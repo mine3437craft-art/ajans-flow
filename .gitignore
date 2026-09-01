@@ -8,3 +8,6 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Yerel gömülü veritabanı (PGlite)
+.pglite/

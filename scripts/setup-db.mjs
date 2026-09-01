@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
+import path from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -21,7 +22,35 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-const sql = neon(process.env.DATABASE_URL);
+/**
+ * Uygulamadaki src/lib/db.ts ile aynı mantık: pglite:// ile başlayan adres
+ * yerel gömülü Postgres'e, diğerleri Neon'a gider.
+ */
+function toText(strings) {
+  return strings.reduce(
+    (acc, part, i) => acc + part + (i < strings.length - 1 ? `$${i + 1}` : ''),
+    '',
+  );
+}
+
+let sql;
+let raw;
+
+if (process.env.DATABASE_URL.startsWith('pglite:')) {
+  const dir = path.resolve(
+    process.cwd(),
+    process.env.DATABASE_URL.replace(/^pglite:(\/\/)?/, '') || './.pglite',
+  );
+  const { PGlite } = await import('@electric-sql/pglite');
+  const db = new PGlite(dir);
+  sql = async (strings, ...params) => (await db.query(toText(strings), params)).rows;
+  raw = async (text) => { await db.exec(text); };
+  console.log(`(yerel PGlite: ${dir})`);
+} else {
+  const client = neon(process.env.DATABASE_URL);
+  sql = (strings, ...params) => client(strings, ...params);
+  raw = async (text) => { await client.query(text, []); };
+}
 
 /** Yorumları temizler, sonra ifadeleri ayırır. Yorum içindeki ';' sorun çıkarmasın diye. */
 function statements(text) {
@@ -43,7 +72,7 @@ async function main() {
   console.log('→ Tablolar oluşturuluyor…');
   const schema = readFileSync(join(here, '..', 'db', 'schema.sql'), 'utf8');
   for (const stmt of statements(schema)) {
-    await sql.query(stmt, []);
+    await raw(stmt);
   }
   console.log('  tamam.');
 
