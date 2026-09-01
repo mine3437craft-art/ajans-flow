@@ -3,12 +3,12 @@ import { verifySession } from '@/lib/session';
 import { isAdminPath } from '@/lib/permissions';
 
 /**
- * İlk savunma hattı: oturumu olmayanı /login'e, personeli yönetici
+ * İlk savunma hattı (Next 16 “proxy” katmanı): oturumu olmayanı /login'e, personeli yönetici
  * sayfalarından panoya yollar. Asıl yetki kontrolü sayfaların ve server
  * action'ların içinde (requireAdmin / assertAdmin) yapılır — burada
  * kullanılan rol çerezden gelir ve bayat olabilir.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('af_session')?.value;
   const session = token ? await verifySession(token) : null;
