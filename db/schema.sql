@@ -132,6 +132,15 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE INDEX IF NOT EXISTS idx_notes_author  ON notes(author_id);
 CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
 
+-- ---------- Basarisiz giris denemeleri ----------
+-- Kaba kuvvet denemelerini yavaslatmak icin. Basarili giriste temizlenir.
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id         BIGSERIAL PRIMARY KEY,
+  username   TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_attempts ON login_attempts(username, created_at DESC);
+
 -- ---------- Islem gecmisi ----------
 CREATE TABLE IF NOT EXISTS activity_log (
   id           BIGSERIAL PRIMARY KEY,

@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
+import ConfirmButton from '@/components/ConfirmButton';
 import { money, dateShort, CUSTOMER_STATUS_LABEL, PACKAGES } from '@/lib/format';
 import { createCustomer, deleteCustomer } from './actions';
 
@@ -156,9 +157,9 @@ export default async function CustomersPage() {
                         <td>
                           <form action={deleteCustomer}>
                             <input type="hidden" name="id" value={c.id} />
-                            <button className="btn-icon" type="submit" title="Sil" aria-label="Müşteriyi sil">
+                            <ConfirmButton soru={`"${c.name}" müşterisi silinsin mi? Bağlı görev ve kayıtlar da etkilenir. Bu işlem geri alınamaz.`} title="Sil">
                               <Icon name="trash" />
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </td>
                       )}

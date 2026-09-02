@@ -11,6 +11,8 @@ import type { Role } from '@/lib/types';
 // bir kukla hash. Hiçbir şifreyle eşleşmemesi önemli değil; amaç eşit süre.
 const DUMMY_HASH = '$2a$12$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
+const MAX_DENEME = 8;
+
 type Row = {
   id: number; username: string; display_name: string;
   password_hash: string; role: Role; is_active: boolean; token_version: number;
@@ -22,6 +24,18 @@ export async function login(_prev: string | null, formData: FormData): Promise<s
   const donus = String(formData.get('donus') ?? '/');
 
   if (!username || !password) return 'Kullanıcı adı ve şifre gerekli.';
+
+  // --- Deneme sınırı ---
+  // Aynı kullanıcı adına 15 dakika içinde 8 başarısız denemeden sonra kilitlenir.
+  const [deneme] = (await sql`
+    SELECT COUNT(*)::int AS n
+    FROM login_attempts
+    WHERE username = ${username} AND created_at > NOW() - INTERVAL '15 minutes'
+  `) as Array<{ n: number }>;
+
+  if ((deneme?.n ?? 0) >= MAX_DENEME) {
+    return 'Çok fazla hatalı deneme yapıldı. 15 dakika sonra tekrar deneyin.';
+  }
 
   const rows = (await sql`
     SELECT id, username, display_name, password_hash, role, is_active, token_version
@@ -41,8 +55,15 @@ export async function login(_prev: string | null, formData: FormData): Promise<s
   }
 
   if (!user || !ok || !user.is_active) {
-    return 'Kullanıcı adı veya şifre hatalı.';
+    await sql`INSERT INTO login_attempts (username) VALUES (${username})`;
+    const kalan = MAX_DENEME - (deneme?.n ?? 0) - 1;
+    return kalan <= 2 && kalan > 0
+      ? `Kullanıcı adı veya şifre hatalı. ${kalan} deneme hakkınız kaldı.`
+      : 'Kullanıcı adı veya şifre hatalı.';
   }
+
+  // Başarılı giriş: bu kullanıcının sayacı sıfırlanır.
+  await sql`DELETE FROM login_attempts WHERE username = ${username}`;
 
   const token = await signSession({
     uid: user.id, username: user.username, role: user.role, tv: user.token_version,

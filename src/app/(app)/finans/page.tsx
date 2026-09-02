@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
+import ConfirmButton from '@/components/ConfirmButton';
 import { money, dateShort, num, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '@/lib/format';
 import { createTransaction, deleteTransaction } from './actions';
 
@@ -178,9 +179,9 @@ export default async function FinancePage({
                       <td>
                         <form action={deleteTransaction}>
                           <input type="hidden" name="id" value={r.id} />
-                          <button className="btn-icon" type="submit" title="Sil" aria-label="İşlemi sil">
+                          <ConfirmButton soru={`${r.category} — ${r.amount}₺ kaydı silinsin mi? Bu işlem geri alınamaz.`} title="Sil">
                             <Icon name="trash" />
-                          </button>
+                          </ConfirmButton>
                         </form>
                       </td>
                     </tr>

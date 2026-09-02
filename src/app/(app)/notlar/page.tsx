@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
+import ConfirmButton from '@/components/ConfirmButton';
 import { createNote, updateNote, deleteNote, togglePin } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -151,9 +152,9 @@ export default async function NotesPage({
                           </form>
                           <form action={deleteNote}>
                             <input type="hidden" name="id" value={n.id} />
-                            <button className="btn-icon" type="submit" title="Sil" aria-label="Notu sil">
+                            <ConfirmButton soru={`"${n.title}" notu silinsin mi? Bu işlem geri alınamaz.`} title="Sil">
                               <Icon name="trash" />
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </>
                       )}

@@ -27,11 +27,27 @@ function pool(): Pool {
         'DATABASE_URL tanımlı değil. Yerelde .env.local, Vercel’de ortam değişkenlerini kontrol edin.',
       );
     }
+    // Sunucusuz ortamda her istek yeni bir örnek başlatabilir. Örnek başına
+    // büyük havuz açmak Supabase'in bağlantı sınırını tüketir ve aralıklı
+    // 500'lere yol açar; bu yüzden Vercel'de örnek başına tek bağlantı.
+    const sunucusuz = process.env.VERCEL === '1';
+
     g.__afPool = new Pool({
       ...baglanti(url),
-      max: 5,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 10_000,
+      max: sunucusuz ? 1 : 10,
+      // Boşta kalan bağlantı çabuk bırakılsın ki havuz tıkanmasın.
+      idleTimeoutMillis: sunucusuz ? 10_000 : 30_000,
+      connectionTimeoutMillis: 15_000,
+      // Sorgu asla süresiz asılı kalmasın.
+      statement_timeout: 20_000,
+      query_timeout: 20_000,
+      allowExitOnIdle: sunucusuz,
+    });
+
+    // Havuzdaki beklenmedik hata süreci düşürmesin (Postgres bağlantıyı
+    // kapattığında pg 'error' yayar; yakalanmazsa uygulama çöker).
+    g.__afPool.on('error', (err) => {
+      console.error('[db] havuz hatası:', err.message);
     });
   }
   return g.__afPool;

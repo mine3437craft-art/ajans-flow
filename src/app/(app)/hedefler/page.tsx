@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
+import ConfirmButton from '@/components/ConfirmButton';
 import { money, num } from '@/lib/format';
 import { setGoal, deleteGoal } from './actions';
 
@@ -96,9 +97,9 @@ export default async function GoalsPage() {
                         </span>
                         <form action={deleteGoal}>
                           <input type="hidden" name="id" value={g.id} />
-                          <button className="btn-icon" type="submit" title="Sil" aria-label="Hedefi sil">
+                          <ConfirmButton soru="Bu hedef silinsin mi?" title="Sil">
                             <Icon name="trash" />
-                          </button>
+                          </ConfirmButton>
                         </form>
                       </div>
                     </div>

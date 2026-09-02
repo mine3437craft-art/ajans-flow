@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
+import ConfirmButton from '@/components/ConfirmButton';
 import { dateShort, TASK_STATUS_LABEL, PRIORITY_LABEL } from '@/lib/format';
 import { createTask, setTaskStatus, deleteTask } from './actions';
 
@@ -207,9 +208,9 @@ export default async function TasksPage({
                           )}
                           <form action={deleteTask}>
                             <input type="hidden" name="id" value={t.id} />
-                            <button className="btn-icon" type="submit" title="Sil" aria-label="Görevi sil">
+                            <ConfirmButton soru={`"${t.title}" görevi silinsin mi? Bu işlem geri alınamaz.`} title="Sil">
                               <Icon name="trash" />
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </div>
                       </td>

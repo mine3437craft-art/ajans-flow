@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
+import ConfirmButton from '@/components/ConfirmButton';
 import { money, dateShort, num } from '@/lib/format';
 import { createDebt, addPayment, deleteDebt } from './actions';
 
@@ -160,9 +161,9 @@ export default async function DebtsPage() {
                         <td>
                           <form action={deleteDebt}>
                             <input type="hidden" name="id" value={r.id} />
-                            <button className="btn-icon" type="submit" title="Sil" aria-label="Kaydı sil">
+                            <ConfirmButton soru={`${r.counterparty} kaydı silinsin mi? Bu işlem geri alınamaz.`} title="Sil">
                               <Icon name="trash" />
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </td>
                       </tr>
