@@ -141,6 +141,15 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_attempts ON login_attempts(username, created_at DESC);
 
+-- ---------- Uygulama ayarlari ----------
+-- SESSION_SECRET ortam degiskeni tanimli degilse, oturum anahtari burada
+-- uretilip saklanir. Ortam degiskeni her zaman onceliklidir.
+CREATE TABLE IF NOT EXISTS app_config (
+  anahtar    TEXT PRIMARY KEY,
+  deger      TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ---------- Islem gecmisi ----------
 CREATE TABLE IF NOT EXISTS activity_log (
   id           BIGSERIAL PRIMARY KEY,

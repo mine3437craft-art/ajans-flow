@@ -1,4 +1,6 @@
+import { randomBytes } from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
+import { sql } from './db';
 import type { Role } from './types';
 
 const COOKIE_NAME = 'af_session';
@@ -12,12 +14,50 @@ export type SessionPayload = {
   tv: number;
 };
 
-function secretKey(): Uint8Array {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error('SESSION_SECRET tanimli degil veya 32 karakterden kisa.');
+// Anahtar süreç ömrü boyunca bir kez çözülür.
+let onbellek: Uint8Array | null = null;
+
+/**
+ * Oturum imzalama anahtarı.
+ *
+ * 1. `SESSION_SECRET` ortam değişkeni varsa (ve yeterince uzunsa) o kullanılır —
+ *    tercih edilen yol budur.
+ * 2. Yoksa veritabanında saklanan anahtar kullanılır; ilk çalıştırmada rastgele
+ *    üretilip yazılır. Böylece kurulum tek bir eksik değişken yüzünden
+ *    tamamen çalışmaz hale gelmez.
+ *
+ * Veritabanındaki anahtar, şifre özetleriyle aynı güven sınırındadır:
+ * veritabanına erişebilen zaten parola özetlerini de görebilir.
+ */
+async function secretKey(): Promise<Uint8Array> {
+  if (onbellek) return onbellek;
+
+  const ortam = process.env.SESSION_SECRET ?? '';
+  if (ortam.length >= 32) {
+    onbellek = new TextEncoder().encode(ortam);
+    return onbellek;
   }
-  return new TextEncoder().encode(secret);
+
+  // ON CONFLICT ... DO UPDATE var olan değeri geri döndürür; böylece aynı anda
+  // çalışan iki örnek farklı anahtar üretip birbirinin oturumunu bozmaz.
+  const yeni = randomBytes(48).toString('base64');
+  const rows = (await sql`
+    INSERT INTO app_config (anahtar, deger)
+    VALUES ('session_secret', ${yeni})
+    ON CONFLICT (anahtar) DO UPDATE SET deger = app_config.deger
+    RETURNING deger
+  `) as Array<{ deger: string }>;
+
+  const deger = rows[0]?.deger;
+  if (!deger) throw new Error('Oturum anahtarı okunamadı.');
+
+  onbellek = new TextEncoder().encode(deger);
+  return onbellek;
+}
+
+/** Ortam değişkeni mi, veritabanı mı kullanılıyor (teşhis için). */
+export function anahtarKaynagi(): 'ortam değişkeni' | 'veritabanı' {
+  return (process.env.SESSION_SECRET ?? '').length >= 32 ? 'ortam değişkeni' : 'veritabanı';
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {
@@ -25,13 +65,13 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE_SECONDS}s`)
-    .sign(secretKey());
+    .sign(await secretKey());
 }
 
 /** Imzayi dogrular. Gecersiz/suresi dolmus token icin null doner. */
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, secretKey(), { algorithms: ['HS256'] });
+    const { payload } = await jwtVerify(token, await secretKey(), { algorithms: ['HS256'] });
     const { uid, username, role, tv } = payload as Record<string, unknown>;
     if (typeof uid !== 'number' || typeof username !== 'string') return null;
     if (role !== 'admin' && role !== 'staff') return null;

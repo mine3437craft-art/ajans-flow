@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { anahtarKaynagi } from '@/lib/session';
 
 /**
  * Kurulum doğrulaması. Oturum gerektirmediği için hiçbir gizli değer
  * dışarı verilmez — yalnızca "ayar doğru mu" bilgisi döner.
  */
 export async function GET() {
-  // Oturum anahtarı: değerin kendisi asla döndürülmez, yalnızca durumu.
-  const secret = process.env.SESSION_SECRET ?? '';
-  const oturumAnahtari = !secret
-    ? 'EKSİK — Vercel ortam değişkenlerine eklenmeli'
-    : secret.length < 32
-      ? `ÇOK KISA — ${secret.length} karakter, en az 32 olmalı`
-      : 'tamam';
+  // Oturum anahtarı: değerin kendisi asla döndürülmez, yalnızca kaynağı.
+  const oturumAnahtari = anahtarKaynagi();
 
   let veritabani: string;
   let kullanici: number | null = null;
@@ -26,7 +22,7 @@ export async function GET() {
     veritabani = 'BAĞLANILAMADI — ayrıntı sunucu günlüğünde';
   }
 
-  const ok = veritabani === 'tamam' && oturumAnahtari === 'tamam';
+  const ok = veritabani === 'tamam';
 
   return NextResponse.json(
     { ok, veritabani, kullanici, oturumAnahtari },

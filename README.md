@@ -108,7 +108,7 @@ npm run dev
    | Key | Değer |
    |---|---|
    | `DATABASE_URL` | Postgres bağlantı adresi, tırnaksız, sonunda `?sslmode=require` |
-   | `SESSION_SECRET` | `openssl rand -base64 48` çıktısı — yereldekinden **farklı** olmalı |
+   | `SESSION_SECRET` | `openssl rand -base64 48` çıktısı — yereldekinden **farklı** olmalı (isteğe bağlı, aşağıya bakın) |
 
 4. **Ortam değişkenleri çalışan deploy'a geriye dönük uygulanmaz.**
    Değişken ekledikten veya değiştirdikten sonra mutlaka yeni bir deploy alın:
@@ -128,6 +128,11 @@ npm run dev
 ## Güvenlik notları
 
 - Şifreler `bcrypt` ile (cost 12) hash'lenir, hiçbir yerde düz metin tutulmaz.
+- `SESSION_SECRET` tanımlıysa oturumlar onunla imzalanır. Tanımlı değilse
+  uygulama ilk çalıştırmada rastgele bir anahtar üretip `app_config`
+  tablosunda saklar — böylece tek bir eksik ortam değişkeni yüzünden giriş
+  tamamen çalışmaz hale gelmez. Ortam değişkenini kullanmak yine de tercih
+  edilir: anahtar o zaman veritabanının dışında kalır.
 - Oturum, `httpOnly` + `sameSite=lax` çerezde imzalı JWT olarak taşınır;
   üretimde `secure` bayrağı açılır. Süre 12 saat.
 - Şifre değişince `token_version` artar ve o kullanıcının diğer cihazlardaki
