@@ -11,3 +11,7 @@ next-env.d.ts
 
 # Yerel Postgres veri dizini
 .pgdata/
+
+# Gecici test dosyalari
+.tmp*
+.mint-test.mjs
