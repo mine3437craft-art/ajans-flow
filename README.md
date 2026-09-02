@@ -102,13 +102,26 @@ npm run dev
 
 1. Projeyi bir GitHub deposuna gönderin.
 2. Vercel'de **Add New → Project** ile depoyu içe aktarın.
-3. **Settings → Environment Variables** altına ekleyin:
-   - `DATABASE_URL`
-   - `SESSION_SECRET`
-4. Deploy edin.
-5. İlk seferde tabloları oluşturmak için yerelde `.env.local` içinde üretim
-   `DATABASE_URL`'i ile bir kez `npm run db:setup` çalıştırın.
-6. `/api/health` adresi bağlantıyı doğrular: `{"ok":true,"kullanici":4}`
+3. **Settings → Environment Variables** altına iki değişken ekleyin —
+   `Production` ortamı mutlaka işaretli olmalı:
+
+   | Key | Değer |
+   |---|---|
+   | `DATABASE_URL` | Postgres bağlantı adresi, tırnaksız, sonunda `?sslmode=require` |
+   | `SESSION_SECRET` | `openssl rand -base64 48` çıktısı — yereldekinden **farklı** olmalı |
+
+4. **Ortam değişkenleri çalışan deploy'a geriye dönük uygulanmaz.**
+   Değişken ekledikten veya değiştirdikten sonra mutlaka yeni bir deploy alın:
+   **Deployments → ⋯ → Redeploy**, ya da `main` dalına herhangi bir commit
+   gönderin (Vercel her push'ta otomatik deploy alır).
+
+5. Tabloları bir kez oluşturun: `.env.local` içine üretim `DATABASE_URL`'ini
+   yazıp `npm run db:setup` çalıştırın.
+
+6. `/api/health` adresi bağlantıyı doğrular:
+   - `{"ok":true,"kullanici":4}` → her şey yolunda
+   - `{"ok":false,"hata":"DATABASE_URL tanımlı değil..."}` → değişken eksik
+     ya da eklendikten sonra yeni deploy alınmamış (4. adım)
 
 ---
 
