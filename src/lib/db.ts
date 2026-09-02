@@ -28,8 +28,7 @@ function pool(): Pool {
       );
     }
     g.__afPool = new Pool({
-      connectionString: url,
-      ssl: sslAyari(url),
+      ...baglanti(url),
       max: 5,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
@@ -39,23 +38,33 @@ function pool(): Pool {
 }
 
 /**
- * TLS ayarını bağlantı adresinden çıkarır — Postgres'in kendi `sslmode`
- * anlamlarına uyar:
+ * TLS ayarını bağlantı adresinden çıkarıp AÇIKÇA belirler.
  *
- *   localhost                → TLS yok
- *   sslmode=require (varsayılan bulut) → şifreli, sertifika doğrulanmaz
- *   sslmode=verify-full|verify-ca      → şifreli, sertifika doğrulanır
+ * `sslmode` parametresi adresten silinir: `pg` onu kendi yorumluyor ve
+ * `require`'ı `verify-full` gibi ele alıyor (sürümler arasında da
+ * değişiyor). Böylece davranış sürücü sürümünden bağımsız hale gelir.
  *
- * Supabase kendi sertifika otoritesini kullandığı için `verify-full`
- * ancak CA sertifikası elde tutulursa çalışır; Neon herkese açık bir CA
- * kullandığından orada doğrulama açılabilir.
+ *   localhost                     → TLS yok
+ *   sslmode=require / belirtilmemiş → şifreli, sertifika doğrulanmaz
+ *   sslmode=verify-full|verify-ca → şifreli, sertifika doğrulanır
+ *
+ * Supabase kendi sertifika otoritesini kullandığı için doğrulama ancak
+ * CA sertifikası elde tutulursa açılabilir; Neon herkese açık bir CA
+ * kullandığından orada `verify-full` yazılabilir.
  */
-function sslAyari(url: string): false | { rejectUnauthorized: boolean } {
-  if (/@(localhost|127\.0\.0\.1)[:/]/.test(url)) return false;
-  const mod = /[?&]sslmode=([a-z-]+)/.exec(url)?.[1];
-  if (mod === 'disable') return false;
-  if (mod === 'verify-full' || mod === 'verify-ca') return { rejectUnauthorized: true };
-  return { rejectUnauthorized: false };
+function baglanti(url: string): { connectionString: string; ssl: false | { rejectUnauthorized: boolean } } {
+  const u = new URL(url);
+  const mod = u.searchParams.get('sslmode');
+  u.searchParams.delete('sslmode');
+  u.searchParams.delete('uselibpqcompat');
+
+  const yerel = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+  const ssl =
+    yerel || mod === 'disable' ? false
+    : mod === 'verify-full' || mod === 'verify-ca' ? { rejectUnauthorized: true }
+    : { rejectUnauthorized: false };
+
+  return { connectionString: u.toString(), ssl };
 }
 
 /** `SELECT ... ${a} ... ${b}` → `SELECT ... $1 ... $2` */

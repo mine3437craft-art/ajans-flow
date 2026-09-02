@@ -23,16 +23,21 @@ if (!process.env.DATABASE_URL) {
 
 const url = process.env.DATABASE_URL;
 
-/** src/lib/db.ts ile aynı kural: sslmode'a göre TLS ayarı. */
-function sslAyari(u) {
-  if (/@(localhost|127\.0\.0\.1)[:/]/.test(u)) return false;
-  const mod = /[?&]sslmode=([a-z-]+)/.exec(u)?.[1];
-  if (mod === 'disable') return false;
-  if (mod === 'verify-full' || mod === 'verify-ca') return { rejectUnauthorized: true };
-  return { rejectUnauthorized: false };
+/** src/lib/db.ts ile aynı kural: sslmode adresten çıkarılır, TLS burada belirlenir. */
+function baglanti(url) {
+  const u = new URL(url);
+  const mod = u.searchParams.get('sslmode');
+  u.searchParams.delete('sslmode');
+  u.searchParams.delete('uselibpqcompat');
+  const yerel = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+  const ssl =
+    yerel || mod === 'disable' ? false
+    : mod === 'verify-full' || mod === 'verify-ca' ? { rejectUnauthorized: true }
+    : { rejectUnauthorized: false };
+  return { connectionString: u.toString(), ssl };
 }
 
-const client = new pg.Client({ connectionString: url, ssl: sslAyari(url) });
+const client = new pg.Client(baglanti(url));
 
 /** Yorumları temizler, sonra ifadeleri ayırır. Yorum içindeki ';' sorun çıkarmasın diye. */
 function statements(text) {
