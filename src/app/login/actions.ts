@@ -65,9 +65,18 @@ export async function login(_prev: string | null, formData: FormData): Promise<s
   // Başarılı giriş: bu kullanıcının sayacı sıfırlanır.
   await sql`DELETE FROM login_attempts WHERE username = ${username}`;
 
-  const token = await signSession({
-    uid: user.id, username: user.username, role: user.role, tv: user.token_version,
-  });
+  // Oturum anahtarı eksik/kısaysa signSession hata fırlatır. Bunu çökmeye
+  // dönüştürmek yerine ne yapılması gerektiğini söyleyen bir mesaj veriyoruz.
+  let token: string;
+  try {
+    token = await signSession({
+      uid: user.id, username: user.username, role: user.role, tv: user.token_version,
+    });
+  } catch (error) {
+    console.error('[login] oturum imzalanamadı:', error instanceof Error ? error.message : error);
+    return 'Sunucu ayarı eksik: oturum anahtarı (SESSION_SECRET) tanımlı değil ' +
+           'veya 32 karakterden kısa. Yöneticinin bunu düzeltmesi gerekiyor.';
+  }
   (await cookies()).set(sessionCookie.name, token, sessionCookie.options);
 
   await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${user.id}`;
