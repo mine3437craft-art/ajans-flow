@@ -2,7 +2,7 @@
 
 Ajans yönetim paneli: müşteri, iş/görev takibi, içerik takvimi, gelir-gider ve borç-alacak takibi.
 
-Next.js (App Router) + Postgres (Neon). Vercel'e deploy edilmek üzere hazırlandı.
+Next.js (App Router) + Postgres. Vercel'e deploy edilmek üzere hazırlandı.
 
 ---
 
@@ -24,7 +24,17 @@ ekleyebilir.
 - Görevler (kendisine atanmış veya kendi oluşturduğu)
 - İçerik takvimi (kendisine atanmış paylaşımlar)
 - Müşteriler (yalnızca kendisine atanmış olanlar; aylık ücret sütunu gizli)
+- Notlar (ekip notlarının tamamı + kendi kişisel notları)
 - Ayarlar (yalnızca kendi şifresi)
+
+### Notlar
+
+Her notun görünürlüğü iki türlü olabilir:
+
+- **Ekip** — herkes görür. Yazan kişi ve yönetici düzenleyip silebilir.
+- **Sadece ben** — yalnızca yazan kişi görür. **Yönetici dahil kimse göremez.**
+  Personele "sadece ben" diye sunulan bir notun patron tarafından okunabilir
+  olması yanıltıcı olurdu; bu yüzden kural istisnasız uygulanıyor.
 
 Gelir/Gider, Borç & Alacak, Raporlar ve Hedefler sayfaları personelde menüde
 görünmez; doğrudan adres yazılsa bile middleware ve sayfa içi `requireAdmin`
@@ -43,11 +53,7 @@ Node 20 veya üstü gerekiyor: <https://nodejs.org>
 npm install
 ```
 
-### 3. Veritabanı (Neon)
-1. <https://neon.tech> üzerinden ücretsiz bir proje açın (veya Vercel'de
-   **Storage → Neon** ile bağlayın; bağlantı adresi otomatik gelir).
-2. `.env.example` dosyasını `.env.local` olarak kopyalayın ve doldurun:
-
+### 3. Ortam değişkenleri
 ```bash
 cp .env.example .env.local
 ```
@@ -58,12 +64,32 @@ cp .env.example .env.local
 openssl rand -base64 48
 ```
 
-### 4. Tabloları ve kullanıcıları oluştur
+### 4. Veritabanı
+
+**Yerel geliştirme** — makinede çalışan gerçek bir Postgres, yönetici şifresi
+gerekmez, veriler `.pgdata/` içinde:
+
+```bash
+npm run db:local
+```
+
+Bu süreç açık kaldığı sürece veritabanı ayaktadır (Ctrl+C ile düzgün kapanır).
+`.env.local` içindeki `DATABASE_URL` varsayılan olarak buna bakar.
+
+**Yayın** — Neon, Supabase veya başka bir Postgres sağlayıcısından aldığınız
+bağlantı adresini `DATABASE_URL` olarak yazmanız yeterli; kodda değişiklik yok.
+
+### 5. Tabloları ve kullanıcıları oluştur
+
+Veritabanı ayaktayken, ayrı bir terminalde:
+
 ```bash
 npm run db:setup
 ```
 
-### 5. Çalıştır
+Tekrar çalıştırmak güvenlidir; var olan kullanıcılara dokunmaz.
+
+### 6. Çalıştır
 ```bash
 npm run dev
 ```
@@ -118,6 +144,7 @@ src/
       gorevler/          iş takibi
       takvim/            içerik takvimi
       musteriler/        müşteriler
+      notlar/            not defteri
       finans/            gelir/gider          [yönetici]
       borclar/           borç & alacak        [yönetici]
       raporlar/          raporlar             [yönetici]

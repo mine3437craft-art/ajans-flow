@@ -270,8 +270,35 @@ textarea.form-control { resize: vertical; min-height: 72px; }
   margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+/* ---------------- Mobil menü ---------------- */
+.sidebar-toggle { display: none; }
+.sidebar-overlay { display: none; }
+
 @media (max-width: 900px) {
-  .sidebar { position: fixed; z-index: 40; transform: translateX(-100%); transition: transform var(--transition); }
-  .sidebar.open { transform: none; }
-  .content, .topbar { padding-left: 16px; padding-right: 16px; }
+  .sidebar {
+    position: fixed; z-index: 40; transform: translateX(-100%);
+    transition: transform var(--transition);
+  }
+  .sidebar.open { transform: none; box-shadow: var(--shadow-lg); }
+
+  .sidebar-toggle {
+    display: grid; place-items: center;
+    position: fixed; top: 12px; left: 12px; z-index: 50;
+    width: 40px; height: 40px; padding: 0;
+    background: var(--bg-card); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-xs);
+  }
+  .sidebar-toggle svg { width: 20px; height: 20px; }
+
+  .sidebar-overlay.show {
+    display: block; position: fixed; inset: 0; z-index: 39;
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  /* Başlık ve logo, açma düğmesinin altında kalmasın */
+  .topbar { padding-left: 64px; padding-right: 16px; }
+  .sidebar-header { padding-left: 64px; }
+  .content { padding-left: 16px; padding-right: 16px; }
+  .grid-2 { grid-template-columns: 1fr; }
 }

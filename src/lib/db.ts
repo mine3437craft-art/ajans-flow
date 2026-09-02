@@ -1,19 +1,44 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { neon } from '@neondatabase/serverless';
-import path from 'node:path';
+import { Pool, types } from 'pg';
 
 /**
- * Tek bir `sql` etiketli şablonu, iki sürücünün arkasına saklar:
+ * Tek sürücü: node-postgres. Aynı kod hem yerelde hem Neon'da çalışır,
+ * yalnızca DATABASE_URL değişir.
  *
- *   DATABASE_URL="postgresql://..."   → Neon (üretim / Vercel)
- *   DATABASE_URL="pglite://./.pglite" → PGlite, makinede çalışan gömülü
- *                                        Postgres (yerel geliştirme)
- *
- * Sorgular her iki durumda da parametreli gider; string birleştirme yok.
+ *   yerel   : postgresql://ajansflow@localhost:54329/ajansflow
+ *   üretim  : postgresql://...@ep-xxx.neon.tech/neondb?sslmode=require
  */
+
+// DATE sütunları JS Date yerine 'YYYY-AA-GG' metni olarak gelsin.
+// Kodun bazı yerlerinde tarihler doğrudan metin olarak karşılaştırılıyor.
+types.setTypeParser(1082, (value) => value);
 
 type Rows = Record<string, any>[];
 type SqlFn = (strings: TemplateStringsArray, ...params: unknown[]) => Promise<Rows>;
+
+// Hot reload sırasında havuz çoğalmasın diye globalThis üzerinde tutulur.
+const g = globalThis as unknown as { __afPool?: Pool };
+
+function pool(): Pool {
+  if (!g.__afPool) {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+      throw new Error(
+        'DATABASE_URL tanımlı değil. Yerelde .env.local, Vercel’de ortam değişkenlerini kontrol edin.',
+      );
+    }
+    const yerel = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+    g.__afPool = new Pool({
+      connectionString: url,
+      // Yerel sunucuda TLS yok; bulut sağlayıcılarda zorunlu.
+      ssl: yerel ? false : { rejectUnauthorized: true },
+      max: 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+    });
+  }
+  return g.__afPool;
+}
 
 /** `SELECT ... ${a} ... ${b}` → `SELECT ... $1 ... $2` */
 function toText(strings: TemplateStringsArray): string {
@@ -23,45 +48,13 @@ function toText(strings: TemplateStringsArray): string {
   );
 }
 
-// Hot reload sırasında tek örnek kalsın diye globalThis üzerinde tutulur.
-const g = globalThis as unknown as {
-  __afPglite?: Promise<any>;
-  __afSql?: SqlFn;
-};
-
-function pgliteClient(url: string): SqlFn {
-  const dir = path.resolve(process.cwd(), url.replace(/^pglite:(\/\/)?/, '') || './.pglite');
-
-  if (!g.__afPglite) {
-    g.__afPglite = import('@electric-sql/pglite').then(({ PGlite }) => new PGlite(dir));
-  }
-
-  return async (strings, ...params) => {
-    const db = await g.__afPglite!;
-    const result = await db.query(toText(strings), params);
-    return result.rows as Rows;
-  };
-}
-
-function makeClient(): SqlFn {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      'DATABASE_URL tanımlı değil. Yerelde .env.local, Vercel’de ortam değişkenlerini kontrol edin.',
-    );
-  }
-  if (url.startsWith('pglite:')) return pgliteClient(url);
-
-  const n = neon(url);
-  return (strings, ...params) => n(strings, ...params) as Promise<Rows>;
-}
-
 /**
  *   const rows = await sql`SELECT * FROM users WHERE id = ${id}`;
  *
- * Bağlantı ilk sorguda kurulur — build sırasında ortam değişkeni aranmaz.
+ * Parametreler her zaman bağlantı değeri olarak gider; string birleştirme yok.
+ * Havuz ilk sorguda kurulur — build sırasında ortam değişkeni aranmaz.
  */
-export const sql: SqlFn = (strings, ...params) => {
-  if (!g.__afSql) g.__afSql = makeClient();
-  return g.__afSql(strings, ...params);
+export const sql: SqlFn = async (strings, ...params) => {
+  const result = await pool().query(toText(strings), params as unknown[]);
+  return result.rows;
 };

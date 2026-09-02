@@ -116,6 +116,22 @@ CREATE TABLE IF NOT EXISTS goals (
   UNIQUE (period, metric)
 );
 
+-- ---------- Notlar ----------
+CREATE TABLE IF NOT EXISTS notes (
+  id         SERIAL PRIMARY KEY,
+  title      TEXT NOT NULL,
+  body       TEXT NOT NULL DEFAULT '',
+  -- ekip    : herkes gorur
+  -- kisisel : yalnizca yazan gorur (yonetici dahil kimse goremez)
+  visibility TEXT NOT NULL DEFAULT 'ekip' CHECK (visibility IN ('ekip', 'kisisel')),
+  is_pinned  BOOLEAN NOT NULL DEFAULT FALSE,
+  author_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notes_author  ON notes(author_id);
+CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
+
 -- ---------- Islem gecmisi ----------
 CREATE TABLE IF NOT EXISTS activity_log (
   id           BIGSERIAL PRIMARY KEY,

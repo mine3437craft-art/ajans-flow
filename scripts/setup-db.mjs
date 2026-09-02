@@ -10,47 +10,23 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { neon } from '@neondatabase/serverless';
+import pg from 'pg';
 import bcrypt from 'bcryptjs';
-import path from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 if (!process.env.DATABASE_URL) {
   console.error('HATA: DATABASE_URL tanımlı değil.');
-  console.error('  .env.local dosyası oluşturup Neon bağlantı adresini yazın.');
+  console.error('  .env.local dosyasını kontrol edin.');
   process.exit(1);
 }
 
-/**
- * Uygulamadaki src/lib/db.ts ile aynı mantık: pglite:// ile başlayan adres
- * yerel gömülü Postgres'e, diğerleri Neon'a gider.
- */
-function toText(strings) {
-  return strings.reduce(
-    (acc, part, i) => acc + part + (i < strings.length - 1 ? `$${i + 1}` : ''),
-    '',
-  );
-}
-
-let sql;
-let raw;
-
-if (process.env.DATABASE_URL.startsWith('pglite:')) {
-  const dir = path.resolve(
-    process.cwd(),
-    process.env.DATABASE_URL.replace(/^pglite:(\/\/)?/, '') || './.pglite',
-  );
-  const { PGlite } = await import('@electric-sql/pglite');
-  const db = new PGlite(dir);
-  sql = async (strings, ...params) => (await db.query(toText(strings), params)).rows;
-  raw = async (text) => { await db.exec(text); };
-  console.log(`(yerel PGlite: ${dir})`);
-} else {
-  const client = neon(process.env.DATABASE_URL);
-  sql = (strings, ...params) => client(strings, ...params);
-  raw = async (text) => { await client.query(text, []); };
-}
+const url = process.env.DATABASE_URL;
+const yerel = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+const client = new pg.Client({
+  connectionString: url,
+  ssl: yerel ? false : { rejectUnauthorized: true },
+});
 
 /** Yorumları temizler, sonra ifadeleri ayırır. Yorum içindeki ';' sorun çıkarmasın diye. */
 function statements(text) {
@@ -69,34 +45,45 @@ const KULLANICILAR = [
 ];
 
 async function main() {
+  await client.connect();
+
   console.log('→ Tablolar oluşturuluyor…');
   const schema = readFileSync(join(here, '..', 'db', 'schema.sql'), 'utf8');
   for (const stmt of statements(schema)) {
-    await raw(stmt);
+    await client.query(stmt);
   }
-  console.log('  tamam.');
+
+  // Şemanın gerçekten uygulandığını doğrula
+  const { rows: tablolar } = await client.query(`
+    SELECT table_name FROM information_schema.tables
+    WHERE table_schema = 'public' ORDER BY table_name
+  `);
+  console.log(`  ${tablolar.length} tablo: ${tablolar.map((t) => t.table_name).join(', ')}`);
 
   console.log('→ Kullanıcılar hazırlanıyor…');
   for (const k of KULLANICILAR) {
-    const varMi = await sql`SELECT 1 FROM users WHERE username = ${k.username}`;
-    if (varMi.length > 0) {
+    const { rows } = await client.query('SELECT 1 FROM users WHERE username = $1', [k.username]);
+    if (rows.length > 0) {
       console.log(`  · ${k.display_name.padEnd(6)} zaten var, atlandı`);
       continue;
     }
     // Başlangıç şifresi: kullanıcıadı + 1234  (örn. beyza1234)
     const hash = await bcrypt.hash(`${k.username}1234`, 12);
-    await sql`
-      INSERT INTO users (username, display_name, password_hash, role, must_change_password)
-      VALUES (${k.username}, ${k.display_name}, ${hash}, ${k.role}, TRUE)
-    `;
+    await client.query(
+      `INSERT INTO users (username, display_name, password_hash, role, must_change_password)
+       VALUES ($1, $2, $3, $4, TRUE)`,
+      [k.username, k.display_name, hash, k.role],
+    );
     console.log(`  ✓ ${k.display_name.padEnd(6)} (${k.role.padEnd(5)}) şifre: ${k.username}1234`);
   }
 
   console.log('\nKurulum tamamlandı.');
   console.log('Herkes ilk girişte kendi şifresini belirleyecek.');
+  await client.end();
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error('\nHATA:', err.message);
+  try { await client.end(); } catch { /* yoksay */ }
   process.exit(1);
 });

@@ -9,5 +9,5 @@ build/
 next-env.d.ts
 .vercel
 
-# Yerel gömülü veritabanı (PGlite)
-.pglite/
+# Yerel Postgres veri dizini
+.pgdata/
