@@ -25,7 +25,16 @@ const url = process.env.DATABASE_URL;
 
 /** src/lib/db.ts ile aynı kural: sslmode adresten çıkarılır, TLS burada belirlenir. */
 function baglanti(url) {
-  const u = new URL(url);
+  const temiz = url.trim()
+    .replace(/^DATABASE_URL\s*=\s*/i, '')
+    .replace(/^['"]+|['"]+$/g, '')
+    .trim();
+  let u;
+  try {
+    u = new URL(temiz);
+  } catch {
+    throw new Error('DATABASE_URL geçerli bir adres değil (tırnak işareti olmamalı).');
+  }
   const mod = u.searchParams.get('sslmode');
   u.searchParams.delete('sslmode');
   u.searchParams.delete('uselibpqcompat');

@@ -52,8 +52,31 @@ function pool(): Pool {
  * CA sertifikası elde tutulursa açılabilir; Neon herkese açık bir CA
  * kullandığından orada `verify-full` yazılabilir.
  */
+function temizle(ham: string): string {
+  return ham
+    .trim()
+    // Panele "DATABASE_URL=..." biçiminde yapıştırılmışsa anahtar adını at
+    .replace(/^DATABASE_URL\s*=\s*/i, '')
+    // Baştaki/sondaki tırnaklar (.env dosyasından kopyalarken sık oluyor)
+    .replace(/^['"]+|['"]+$/g, '')
+    .trim();
+}
+
 function baglanti(url: string): { connectionString: string; ssl: false | { rejectUnauthorized: boolean } } {
-  const u = new URL(url);
+  const temiz = temizle(url);
+  let u: URL;
+  try {
+    u = new URL(temiz);
+  } catch {
+    throw new Error(
+      'DATABASE_URL geçerli bir adres değil. Beklenen biçim: ' +
+      'postgresql://kullanici:parola@host:5432/veritabani?sslmode=require ' +
+      '(tırnak işareti olmadan).',
+    );
+  }
+  if (!/^postgres(ql)?:$/.test(u.protocol)) {
+    throw new Error(`DATABASE_URL "postgresql://" ile başlamalı, "${u.protocol}//" ile başlıyor.`);
+  }
   const mod = u.searchParams.get('sslmode');
   u.searchParams.delete('sslmode');
   u.searchParams.delete('uselibpqcompat');
