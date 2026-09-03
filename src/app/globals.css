@@ -305,3 +305,19 @@ textarea.form-control { resize: vertical; min-height: 72px; }
 
 /* Yükleniyor göstergesi */
 @keyframes af-spin { to { transform: rotate(360deg); } }
+
+/* ---------------- Gün seçim kutuları ---------------- */
+.gun-secim { position: relative; cursor: pointer; user-select: none; }
+.gun-secim input { position: absolute; opacity: 0; width: 0; height: 0; }
+.gun-secim span {
+  display: grid; place-items: center;
+  min-width: 46px; padding: 8px 10px;
+  background: var(--bg-input); border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  transition: background var(--transition), color var(--transition);
+}
+.gun-secim input:checked + span {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+.gun-secim input:focus-visible + span { border-color: var(--text); }

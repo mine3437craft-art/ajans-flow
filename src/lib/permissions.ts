@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/gorevler',   label: 'Görevler',       icon: 'check',    adminOnly: false },
   { href: '/takvim',     label: 'İçerik Takvimi', icon: 'calendar', adminOnly: false },
   { href: '/musteriler', label: 'Müşteriler',     icon: 'users',    adminOnly: false },
+  { href: '/videolar',   label: 'Video Deposu',   icon: 'video',    adminOnly: false },
   { href: '/notlar',     label: 'Notlar',         icon: 'note',     adminOnly: false },
   { href: '/finans',     label: 'Gelir / Gider',  icon: 'money',    adminOnly: true  },
   { href: '/borclar',    label: 'Borç & Alacak',  icon: 'card',     adminOnly: true  },

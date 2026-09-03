@@ -4,6 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import { money, dateShort, num, TASK_STATUS_LABEL } from '@/lib/format';
+import { videoUyarilari } from '@/lib/video';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,18 @@ export default async function DashboardPage({
       AND (${isAdmin}::boolean OR p.assigned_to = ${user.id})
     ORDER BY p.scheduled_at LIMIT 6
   `) as Array<{ id: number; title: string; platform: string; scheduled_at: string; customer_name: string | null }>;
+
+  // Video stoğu azalan müşteriler. Personel yalnızca kendisine atanmış
+  // müşterilerin uyarısını görür.
+  const tumUyarilar = await videoUyarilari();
+  const benimMusteriler = isAdmin
+    ? null
+    : new Set(((await sql`
+        SELECT id FROM customers WHERE assigned_to = ${user.id}
+      `) as Array<{ id: number }>).map((c) => c.id));
+  const videoUyari = benimMusteriler
+    ? tumUyarilar.filter((v) => benimMusteriler.has(v.customer_id))
+    : tumUyarilar;
 
   const stats = taskStats[0];
 
@@ -89,6 +102,39 @@ export default async function DashboardPage({
         <p style={{ color: 'var(--text-secondary)', marginBottom: 18 }}>
           Hoş geldin, <strong>{user.display_name}</strong>.
         </p>
+
+        {videoUyari.length > 0 && (
+          <div className="card" style={{ borderLeft: '3px solid var(--danger)' }}>
+            <div className="card-head">
+              <h2>🎬 Video stoğu azalan müşteriler</h2>
+              <a href="/videolar" className="btn btn-sm btn-secondary">Video Deposu →</a>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <tbody>
+                  {videoUyari.map((v) => (
+                    <tr key={v.customer_id}>
+                      <td className="cell-title">{v.musteri}</td>
+                      <td className="num">
+                        depoda <strong>{v.depoda}</strong> video
+                        <span className="cell-sub"> · haftada {v.haftalik} paylaşım</span>
+                      </td>
+                      <td>
+                        {v.seviye === 'kritik' ? (
+                          <span className="badge b-danger">Çekime gidilmeli</span>
+                        ) : (
+                          <span className="badge b-warning">
+                            {v.haftaKaldi?.toFixed(1)} haftaya yeter
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className="stat-grid">
           <div className="stat-card">

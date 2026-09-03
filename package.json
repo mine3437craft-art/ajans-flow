@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:setup": "node --env-file-if-exists=.env.local scripts/setup-db.mjs",
-    "db:local": "node scripts/local-db.mjs"
+    "db:local": "node scripts/local-db.mjs",
+    "yedek": "node --env-file-if-exists=.env.local scripts/yedekle.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

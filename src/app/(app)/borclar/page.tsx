@@ -1,18 +1,19 @@
+import { Fragment } from 'react';
 import { requireAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
-import { money, dateShort, num } from '@/lib/format';
-import { createDebt, addPayment, deleteDebt } from './actions';
+import { money, dateShort, num, isoDate } from '@/lib/format';
+import { createDebt, addPayment, deleteDebt, updateDebt, undoPayment } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 type DebtRow = {
   id: number; direction: string; counterparty: string;
   amount: string; paid_amount: string; due_date: string | null;
-  description: string | null; customer_name: string | null;
+  description: string | null; customer_id: number | null; customer_name: string | null;
 };
 
 export default async function DebtsPage() {
@@ -20,7 +21,7 @@ export default async function DebtsPage() {
 
   const rows = (await sql`
     SELECT d.id, d.direction, d.counterparty, d.amount, d.paid_amount,
-           d.due_date, d.description, c.name AS customer_name
+           d.due_date, d.description, d.customer_id, c.name AS customer_name
     FROM debts d
     LEFT JOIN customers c ON c.id = d.customer_id
     ORDER BY (d.paid_amount >= d.amount), d.due_date NULLS LAST, d.id DESC
@@ -126,7 +127,8 @@ export default async function DebtsPage() {
                     const kapandi = kalan <= 0;
                     const gecikmis = !kapandi && r.due_date != null && r.due_date < today;
                     return (
-                      <tr key={r.id}>
+                      <Fragment key={r.id}>
+                      <tr>
                         <td>
                           <span className={`badge ${r.direction === 'alacak' ? 'b-success' : 'b-danger'}`}>
                             {r.direction === 'alacak' ? 'Alacak' : 'Borç'}
@@ -167,6 +169,77 @@ export default async function DebtsPage() {
                           </form>
                         </td>
                       </tr>
+                      <tr>
+                        <td colSpan={7} style={{ padding: 0, borderBottom: '1px solid var(--border)' }}>
+                          <details>
+                            <summary style={{ padding: '8px 20px', cursor: 'pointer',
+                                              fontSize: 12.5, fontWeight: 600, color: 'var(--primary)' }}>
+                              Düzenle
+                            </summary>
+                            <form action={updateDebt} style={{ padding: '4px 20px 18px' }}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <div className="form-grid">
+                                <div className="form-group">
+                                  <label htmlFor={`d-dir-${r.id}`}>Tür</label>
+                                  <select id={`d-dir-${r.id}`} name="direction" className="form-control"
+                                          defaultValue={r.direction}>
+                                    <option value="alacak">Alacak (bize borçlu)</option>
+                                    <option value="borc">Borç (biz borçluyuz)</option>
+                                  </select>
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor={`d-kf-${r.id}`}>Kişi / Firma</label>
+                                  <input id={`d-kf-${r.id}`} name="counterparty" className="form-control"
+                                         defaultValue={r.counterparty} required maxLength={150} />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor={`d-tut-${r.id}`}>Tutar (₺)</label>
+                                  <input id={`d-tut-${r.id}`} name="amount" type="number" step="0.01"
+                                         min={num(r.paid_amount) || 0.01} className="form-control"
+                                         defaultValue={num(r.amount)} required />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor={`d-vade-${r.id}`}>Vade</label>
+                                  <input id={`d-vade-${r.id}`} name="due_date" type="date"
+                                         className="form-control" defaultValue={isoDate(r.due_date)} />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor={`d-mus-${r.id}`}>İlgili Müşteri</label>
+                                  <select id={`d-mus-${r.id}`} name="customer_id" className="form-control"
+                                          defaultValue={r.customer_id ?? ''}>
+                                    <option value="">— Yok —</option>
+                                    {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                  </select>
+                                </div>
+                                <div className="form-group full">
+                                  <label htmlFor={`d-ack-${r.id}`}>Açıklama</label>
+                                  <input id={`d-ack-${r.id}`} name="description" className="form-control"
+                                         defaultValue={r.description ?? ''} maxLength={300} />
+                                </div>
+                              </div>
+                              <div className="form-actions">
+                                {num(r.paid_amount) > 0 && (
+                                  <span style={{ marginRight: 'auto', fontSize: 12.5, color: 'var(--text-muted)' }}>
+                                    Şimdiye kadar ödenen: {money(r.paid_amount)}
+                                  </span>
+                                )}
+                                <button className="btn btn-sm btn-primary" type="submit">Güncelle</button>
+                              </div>
+                            </form>
+                            {num(r.paid_amount) > 0 && (
+                              <form action={undoPayment} style={{ padding: '0 20px 16px' }}>
+                                <input type="hidden" name="id" value={r.id} />
+                                <ConfirmButton
+                                  soru={`${r.counterparty} kaydındaki ${money(r.paid_amount)} tutarındaki ödeme geçmişi sıfırlansın mı?`}
+                                  className="btn btn-sm btn-secondary">
+                                  Ödemeleri sıfırla
+                                </ConfirmButton>
+                              </form>
+                            )}
+                          </details>
+                        </td>
+                      </tr>
+                      </Fragment>
                     );
                   })}
                 </tbody>

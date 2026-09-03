@@ -5,6 +5,7 @@ import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
 import { dateShort, TASK_STATUS_LABEL, PRIORITY_LABEL } from '@/lib/format';
+import { gorevleriUret } from '@/lib/tekrar';
 import { createTask, setTaskStatus, deleteTask } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -12,9 +13,18 @@ export const dynamic = 'force-dynamic';
 type TaskRow = {
   id: number; title: string; description: string | null;
   due_date: string | null; due_time: string | null;
-  priority: string; status: string;
+  priority: string; status: string; template_id: number | null;
   customer_name: string | null; assignee_name: string | null;
 };
+
+/** Filtre bağlantısı kurar; seçili diğer filtreleri korur. */
+function baglanti(p: { durum?: string; kisi?: string }): string {
+  const q = new URLSearchParams();
+  if (p.durum) q.set('durum', p.durum);
+  if (p.kisi) q.set('kisi', p.kisi);
+  const s = q.toString();
+  return s ? `/gorevler?${s}` : '/gorevler';
+}
 
 const STATUS_BADGE: Record<string, string> = {
   bekliyor: 'b-muted', devam: 'b-info', tamamlandi: 'b-success', iptal: 'b-danger',
@@ -26,21 +36,30 @@ const PRIORITY_BADGE: Record<string, string> = {
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ durum?: string }>;
+  searchParams: Promise<{ durum?: string; kisi?: string }>;
 }) {
   const user = await requireUser();
-  const { durum } = await searchParams;
+  const { durum, kisi } = await searchParams;
   const isAdmin = user.role === 'admin';
 
+  // Tekrarlayan görev şablonlarından eksik günleri tamamla (tekrar çalıştırmak güvenli).
+  await gorevleriUret();
+
   // Personel yalnızca kendine atanmış ya da kendi oluşturduğu görevleri görür.
+  // kisi='ben' → yalnızca bana atananlar; sayı → o kullanıcı (yalnızca yönetici)
+  const kisiId = kisi === 'ben' ? user.id
+    : (isAdmin && kisi && /^\d+$/.test(kisi)) ? parseInt(kisi, 10)
+    : null;
+
   const tasks = (await sql`
     SELECT t.id, t.title, t.description, t.due_date, t.due_time, t.priority, t.status,
-           c.name AS customer_name, u.display_name AS assignee_name
+           t.template_id, c.name AS customer_name, u.display_name AS assignee_name
     FROM tasks t
     LEFT JOIN customers c ON c.id = t.customer_id
     LEFT JOIN users u ON u.id = t.assigned_to
     WHERE (${isAdmin}::boolean OR t.assigned_to = ${user.id} OR t.created_by = ${user.id})
       AND (${durum ?? null}::text IS NULL OR t.status = ${durum ?? null})
+      AND (${kisiId}::int IS NULL OR t.assigned_to = ${kisiId})
     ORDER BY
       CASE t.status WHEN 'devam' THEN 0 WHEN 'bekliyor' THEN 1 ELSE 2 END,
       t.due_date NULLS LAST,
@@ -75,7 +94,7 @@ export default async function TasksPage({
               Görev Listesi{' '}
               <span className="badge b-muted">{counts.hepsi}</span>
             </h2>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[
                 { k: '', l: 'Tümü' },
                 { k: 'bekliyor', l: `Bekleyen (${counts.bekliyor})` },
@@ -84,13 +103,31 @@ export default async function TasksPage({
               ].map((f) => (
                 <a
                   key={f.k}
-                  href={f.k ? `/gorevler?durum=${f.k}` : '/gorevler'}
+                  href={baglanti({ durum: f.k || undefined, kisi })}
                   className={`btn btn-sm ${(durum ?? '') === f.k ? 'btn-primary' : 'btn-secondary'}`}
                 >
                   {f.l}
                 </a>
               ))}
+              <a href="/gorevler/tekrar" className="btn btn-sm btn-secondary">🔁 Tekrarlayanlar</a>
             </div>
+          </div>
+
+          <div className="filter-bar" style={{ alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px',
+                           textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Kime ait
+            </span>
+            <a href={baglanti({ durum, kisi: undefined })}
+               className={`btn btn-sm ${!kisi ? 'btn-primary' : 'btn-secondary'}`}>Herkes</a>
+            <a href={baglanti({ durum, kisi: 'ben' })}
+               className={`btn btn-sm ${kisi === 'ben' ? 'btn-primary' : 'btn-secondary'}`}>Bana ait</a>
+            {isAdmin && staff.map((s2) => (
+              <a key={s2.id} href={baglanti({ durum, kisi: String(s2.id) })}
+                 className={`btn btn-sm ${kisi === String(s2.id) ? 'btn-primary' : 'btn-secondary'}`}>
+                {s2.display_name}
+              </a>
+            ))}
           </div>
 
           <details style={{ borderBottom: '1px solid var(--border)' }}>
@@ -176,7 +213,12 @@ export default async function TasksPage({
                   {tasks.map((t) => (
                     <tr key={t.id}>
                       <td>
-                        <div className="cell-title">{t.title}</div>
+                        <div className="cell-title">
+                          {t.template_id && (
+                            <span title="Tekrarlayan görev" style={{ marginRight: 5 }}>🔁</span>
+                          )}
+                          {t.title}
+                        </div>
                         {t.description && <div className="cell-sub">{t.description}</div>}
                       </td>
                       <td>{t.customer_name ?? '—'}</td>

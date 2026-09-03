@@ -141,6 +141,48 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_attempts ON login_attempts(username, created_at DESC);
 
+-- ---------- Tekrarlayan gorev sablonlari ----------
+-- Ornek: "Kok Cafe story" her Pazartesi ve Persembe.
+-- Sablondan uretilen gorevler tasks tablosuna dusuruluyor.
+CREATE TABLE IF NOT EXISTS task_templates (
+  id          SERIAL PRIMARY KEY,
+  title       TEXT NOT NULL,
+  description TEXT,
+  customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+  assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  -- ISO gun numaralari: 1=Pazartesi ... 7=Pazar
+  weekdays    SMALLINT[] NOT NULL DEFAULT '{}',
+  priority    TEXT NOT NULL DEFAULT 'normal'
+              CHECK (priority IN ('dusuk', 'normal', 'yuksek')),
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Uretilen gorev, kaynagini bilsin; ayni gun icin ikinci kez uretilmesin.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS template_id INTEGER
+  REFERENCES task_templates(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_task_template_gun
+  ON tasks(template_id, due_date) WHERE template_id IS NOT NULL;
+
+-- ---------- Video deposu ----------
+-- Musteri basina haftalik kac video paylasildigi customers.haftalik_video'da.
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS haftalik_video SMALLINT NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS videos (
+  id           SERIAL PRIMARY KEY,
+  customer_id  INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  title        TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'depoda'
+               CHECK (status IN ('depoda', 'yayinlandi', 'iptal')),
+  recorded_on  DATE,
+  published_on DATE,
+  notes        TEXT,
+  created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_videos_musteri ON videos(customer_id, status);
+
 -- ---------- Uygulama ayarlari ----------
 -- SESSION_SECRET ortam degiskeni tanimli degilse, oturum anahtari burada
 -- uretilip saklanir. Ortam degiskeni her zaman onceliklidir.

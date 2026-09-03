@@ -65,6 +65,61 @@ export async function addPayment(formData: FormData) {
   revalidatePath('/');
 }
 
+/** Kaydı düzenler. Ödenen tutarın altına inen bir toplam kabul edilmez. */
+export async function updateDebt(formData: FormData) {
+  const user = await assertAdmin();
+  const id = parseInt(String(formData.get('id') ?? ''), 10);
+  if (!Number.isInteger(id)) throw new Error('Geçersiz kayıt.');
+
+  const direction = String(formData.get('direction') ?? '');
+  if (direction !== 'alacak' && direction !== 'borc') throw new Error('Geçersiz kayıt türü.');
+
+  const counterparty = str(formData, 'counterparty');
+  if (!counterparty) throw new Error('Kişi / firma adı zorunludur.');
+
+  const amount = parseFloat(String(formData.get('amount') ?? ''));
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Tutar sıfırdan büyük olmalı.');
+
+  const customerRaw = str(formData, 'customer_id');
+  const customerId = customerRaw ? parseInt(customerRaw, 10) : null;
+
+  const rows = (await sql`
+    UPDATE debts
+    SET direction = ${direction}, counterparty = ${counterparty},
+        customer_id = ${Number.isInteger(customerId) ? customerId : null},
+        amount = ${amount}, due_date = ${str(formData, 'due_date')},
+        description = ${str(formData, 'description')}
+    WHERE id = ${id} AND paid_amount <= ${amount}
+    RETURNING id
+  `) as Array<{ id: number }>;
+
+  if (rows.length === 0) {
+    throw new Error('Yeni tutar, şimdiye kadar ödenen tutardan küçük olamaz.');
+  }
+
+  await logActivity({
+    userId: user.id, action: 'güncelle', entity: direction, entityId: id,
+    detail: `${counterparty} — ${amount}`, isFinancial: true,
+  });
+  revalidatePath('/borclar');
+  revalidatePath('/');
+}
+
+/** Hatalı girilen ödemeyi geri alır. */
+export async function undoPayment(formData: FormData) {
+  const user = await assertAdmin();
+  const id = parseInt(String(formData.get('id') ?? ''), 10);
+  if (!Number.isInteger(id)) throw new Error('Geçersiz kayıt.');
+
+  await sql`UPDATE debts SET paid_amount = 0 WHERE id = ${id}`;
+  await logActivity({
+    userId: user.id, action: 'güncelle', entity: 'borç', entityId: id,
+    detail: 'ödemeler sıfırlandı', isFinancial: true,
+  });
+  revalidatePath('/borclar');
+  revalidatePath('/');
+}
+
 export async function deleteDebt(formData: FormData) {
   const user = await assertAdmin();
   const id = parseInt(String(formData.get('id') ?? ''), 10);
