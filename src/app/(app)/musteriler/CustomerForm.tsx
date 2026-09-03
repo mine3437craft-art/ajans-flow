@@ -9,7 +9,7 @@ type Musteri = {
   id: number; name: string; company: string | null; phone: string | null;
   email: string | null; package: string; monthly_fee: string; status: string;
   start_date: string | null; next_payment_date: string | null; notes: string | null;
-  assigned_to: number | null;
+  assigned_to: number | null; renewal_uncertain: boolean;
 };
 
 function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -114,6 +114,19 @@ export default function CustomerForm({
           <label htmlFor={`notes${k}`}>Notlar</label>
           <textarea id={`notes${k}`} name="notes" className="form-control" rows={2}
                     defaultValue={musteri?.notes ?? ''} />
+        </div>
+        <div className="form-group full">
+          <label className="belirsiz-check" htmlFor={`renewal_uncertain${k}`}>
+            <input
+              id={`renewal_uncertain${k}`} name="renewal_uncertain" type="checkbox"
+              defaultChecked={musteri?.renewal_uncertain ?? false}
+            />
+            <span>
+              Devamı belirsiz — bu müşterinin sözleşmesini yenileyip yenilemeyeceği net değil.
+              İşaretlenirse aylık ücreti "Aylık Toplam Gelir"den çıkarılır, ayrı bir
+              "Olası Gelir" tutarında gösterilir.
+            </span>
+          </label>
         </div>
       </div>
       <div className="form-actions">

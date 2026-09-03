@@ -15,7 +15,7 @@ type CustomerRow = {
   id: number; name: string; company: string | null; phone: string | null;
   email: string | null; package: string; monthly_fee: string; status: string;
   start_date: string | null; next_payment_date: string | null; notes: string | null;
-  assigned_to: number | null; assignee_name: string | null;
+  assigned_to: number | null; assignee_name: string | null; renewal_uncertain: boolean;
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -30,7 +30,7 @@ export default async function CustomersPage() {
   const rows = (await sql`
     SELECT c.id, c.name, c.company, c.phone, c.email, c.package,
            c.monthly_fee, c.status, c.start_date, c.next_payment_date, c.notes,
-           c.assigned_to, u.display_name AS assignee_name
+           c.assigned_to, c.renewal_uncertain, u.display_name AS assignee_name
     FROM customers c
     LEFT JOIN users u ON u.id = c.assigned_to
     WHERE ${isAdmin}::boolean OR c.assigned_to = ${user.id}
@@ -46,10 +46,16 @@ export default async function CustomersPage() {
   const bugun = new Date().toISOString().slice(0, 10);
   const yakinda = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
-  // Aktif müşterilerin aylık ücretleri toplamı — potansiyel/sözleşmeli aylık gelir.
-  // Gerçekleşen tahsilat değildir; Gelir/Gider'deki kayıtlı işlemlerden farklıdır.
+  // Aktif ve devamı kesin müşterilerin aylık ücretleri toplamı — sözleşmeli
+  // aylık gelir. Gerçekleşen tahsilat değildir; Gelir/Gider'deki kayıtlı
+  // işlemlerden farklıdır. "Devamı belirsiz" işaretli müşteriler buna dahil
+  // edilmez, ayrı bir "Olası Gelir" tutarında toplanır.
+  const aktifler = rows.filter((c) => c.status === 'aktif');
   const aylikToplam = isAdmin
-    ? rows.filter((c) => c.status === 'aktif').reduce((s, c) => s + Number(c.monthly_fee), 0)
+    ? aktifler.filter((c) => !c.renewal_uncertain).reduce((s, c) => s + Number(c.monthly_fee), 0)
+    : null;
+  const olasiGelir = isAdmin
+    ? aktifler.filter((c) => c.renewal_uncertain).reduce((s, c) => s + Number(c.monthly_fee), 0)
     : null;
 
   return (
@@ -61,8 +67,15 @@ export default async function CustomersPage() {
             <div className="stat-card">
               <div className="stat-icon i-success"><Icon name="money" /></div>
               <div className="stat-value" style={{ color: 'var(--success)' }}>{money(aylikToplam)}</div>
-              <div className="stat-label">Aylık Toplam Gelir (aktif müşteriler)</div>
+              <div className="stat-label">Aylık Toplam Gelir (kesin)</div>
             </div>
+            {olasiGelir !== null && olasiGelir > 0 && (
+              <div className="stat-card">
+                <div className="stat-icon i-warning"><Icon name="alert" /></div>
+                <div className="stat-value" style={{ color: 'var(--warning)' }}>{money(olasiGelir)}</div>
+                <div className="stat-label">Olası Gelir (devamı belirsiz müşteriler)</div>
+              </div>
+            )}
           </div>
         )}
 
@@ -106,7 +119,14 @@ export default async function CustomersPage() {
                     <Fragment key={c.id}>
                       <tr>
                         <td>
-                          <div className="cell-title">{c.name}</div>
+                          <div className="cell-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {c.name}
+                            {c.renewal_uncertain && (
+                              <span className="badge b-warning" title="Sözleşme yenileme durumu belirsiz">
+                                Belirsiz
+                              </span>
+                            )}
+                          </div>
                           {c.company && <div className="cell-sub">{c.company}</div>}
                         </td>
                         <td><span className="badge b-primary">{c.package}</span></td>

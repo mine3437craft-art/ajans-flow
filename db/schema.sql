@@ -185,6 +185,9 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS haftalik_video SMALLINT NOT NULL 
 -- Bir sonraki ödemenin alınacağı tarih. Sözleşme bitişinden ayrı tutulur:
 -- biri sözleşmenin süresini, diğeri bir sonraki tahsilatı gösterir.
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS next_payment_date DATE;
+-- Müşterinin devam edip etmeyeceği belirsizse işaretlenir. Aylık Toplam
+-- Gelir hesabından çıkarılır, ayrı bir "Olası Gelir" tutarında gösterilir.
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS renewal_uncertain BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS videos (
   id           SERIAL PRIMARY KEY,

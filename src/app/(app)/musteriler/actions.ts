@@ -23,6 +23,7 @@ function alanlar(formData: FormData) {
   const assignedTo = assignedRaw ? parseInt(assignedRaw, 10) : null;
 
   const email = str(formData, 'email');
+  const renewalUncertain = formData.get('renewal_uncertain') === 'on';
 
   return {
     name,
@@ -36,6 +37,7 @@ function alanlar(formData: FormData) {
     nextPaymentDate: str(formData, 'next_payment_date'),
     assignedTo: Number.isInteger(assignedTo) ? assignedTo : null,
     notes: str(formData, 'notes'),
+    renewalUncertain,
   };
 }
 
@@ -54,10 +56,10 @@ export async function createCustomer(_prev: string | null, formData: FormData): 
 
   const rows = (await sql`
     INSERT INTO customers (name, company, phone, email, package, monthly_fee, status,
-                           start_date, next_payment_date, assigned_to, notes)
+                           start_date, next_payment_date, assigned_to, notes, renewal_uncertain)
     VALUES (${a.name}, ${a.company}, ${a.phone}, ${a.email}, ${a.package},
             ${a.monthlyFee}, ${a.status}, ${a.startDate}, ${a.nextPaymentDate},
-            ${a.assignedTo}, ${a.notes})
+            ${a.assignedTo}, ${a.notes}, ${a.renewalUncertain})
     RETURNING id
   `) as Array<{ id: number }>;
 
@@ -81,7 +83,7 @@ export async function updateCustomer(_prev: string | null, formData: FormData): 
     SET name = ${a.name}, company = ${a.company}, phone = ${a.phone}, email = ${a.email},
         package = ${a.package}, monthly_fee = ${a.monthlyFee}, status = ${a.status},
         start_date = ${a.startDate}, next_payment_date = ${a.nextPaymentDate},
-        assigned_to = ${a.assignedTo}, notes = ${a.notes}
+        assigned_to = ${a.assignedTo}, notes = ${a.notes}, renewal_uncertain = ${a.renewalUncertain}
     WHERE id = ${id}
   `;
 

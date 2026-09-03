@@ -341,3 +341,12 @@ textarea.form-control { resize: vertical; min-height: 72px; }
   background: var(--bg-input);
 }
 .shortcut-aciklama { font-size: 13.5px; color: var(--text-secondary); }
+
+/* ---------------- Devamı belirsiz onay kutusu ---------------- */
+.belirsiz-check {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  padding: 11px 13px; background: var(--warning-bg); border-radius: var(--radius-sm);
+  text-transform: none; letter-spacing: normal; font-weight: 400;
+}
+.belirsiz-check input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--warning); flex-shrink: 0; }
+.belirsiz-check span { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
