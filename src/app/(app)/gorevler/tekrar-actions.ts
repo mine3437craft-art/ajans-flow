@@ -17,14 +17,25 @@ function gunler(fd: FormData): number[] {
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7);
 }
 
-export async function createTemplate(formData: FormData) {
+/**
+ * Ortak alan ayrıştırma. `useActionState` ile çağrılır: hata durumunda
+ * `throw` yerine metin döner, kullanıcı çökme ekranı yerine formun
+ * üstünde uyarı görür.
+ */
+async function alanlar(formData: FormData): Promise<
+  | { hata: string }
+  | {
+      title: string; description: string | null; customerId: number | null;
+      assignedTo: number | null; weekdays: number[]; priority: string;
+    }
+> {
   const user = await assertUser();
 
   const title = metin(formData, 'title');
-  if (!title) throw new Error('Görev başlığı zorunludur.');
+  if (!title) return { hata: 'Görev başlığı zorunludur.' };
 
   const secilen = gunler(formData);
-  if (secilen.length === 0) throw new Error('En az bir gün seçmelisiniz.');
+  if (secilen.length === 0) return { hata: 'En az bir gün seçmelisiniz.' };
 
   const priority = String(formData.get('priority') ?? 'normal');
   const safePriority = ['dusuk', 'normal', 'yuksek'].includes(priority) ? priority : 'normal';
@@ -32,29 +43,89 @@ export async function createTemplate(formData: FormData) {
   const musteriRaw = metin(formData, 'customer_id');
   const customerId = musteriRaw ? parseInt(musteriRaw, 10) : null;
 
-  // Personel şablonu yalnızca kendine atayabilir.
+  // Personel şablonu yalnızca kendine atayabilir — formda da bu alanı görmez.
   const istenen = metin(formData, 'assigned_to');
   const assignedTo = user.role === 'admin' && istenen ? parseInt(istenen, 10) : user.id;
+
+  return {
+    title,
+    description: metin(formData, 'description'),
+    customerId: Number.isInteger(customerId) ? customerId : null,
+    assignedTo: Number.isInteger(assignedTo) ? assignedTo : null,
+    weekdays: secilen,
+    priority: safePriority,
+  };
+}
+
+export async function createTemplate(_prev: string | null, formData: FormData): Promise<string | null> {
+  const user = await assertUser();
+  const a = await alanlar(formData);
+  if ('hata' in a) return a.hata;
 
   const rows = (await sql`
     INSERT INTO task_templates (title, description, customer_id, assigned_to,
                                 weekdays, priority, created_by)
-    VALUES (${title}, ${metin(formData, 'description')},
-            ${Number.isInteger(customerId) ? customerId : null},
-            ${Number.isInteger(assignedTo) ? assignedTo : null},
-            ${secilen}, ${safePriority}, ${user.id})
+    VALUES (${a.title}, ${a.description}, ${a.customerId}, ${a.assignedTo},
+            ${a.weekdays}, ${a.priority}, ${user.id})
     RETURNING id
   `) as Array<{ id: number }>;
 
   await logActivity({
     userId: user.id, action: 'ekle', entity: 'tekrarlayan görev',
-    entityId: rows[0]?.id, detail: title,
+    entityId: rows[0]?.id, detail: a.title,
   });
 
   // Yeni şablonun görevleri hemen görünsün.
   await gorevleriUret();
   revalidatePath('/gorevler');
   revalidatePath('/gorevler/tekrar');
+  return 'ok';
+}
+
+/**
+ * Şablonu günceller — başlık, gün, öncelik, müşteri ve ATANAN KİŞİ dahil.
+ * Bu şablondan üretilmiş ama henüz tamamlanmamış, bugün ve ileri tarihli
+ * görevler de yeni bilgilerle senkronize edilir; aksi halde "atanan kişiyi
+ * değiştirdim ama görev hâlâ eski kişide görünüyor" durumu oluşurdu. Geçmiş
+ * (tamamlanmış ya da tarihi geçmiş) kayıtlara dokunulmaz.
+ */
+export async function updateTemplate(_prev: string | null, formData: FormData): Promise<string | null> {
+  const user = await assertUser();
+  const id = parseInt(String(formData.get('id') ?? ''), 10);
+  if (!Number.isInteger(id)) return 'Geçersiz şablon.';
+
+  const yetkili = user.role === 'admin'
+    ? ((await sql`SELECT 1 FROM task_templates WHERE id = ${id}`) as unknown[])
+    : ((await sql`SELECT 1 FROM task_templates WHERE id = ${id} AND (assigned_to = ${user.id} OR created_by = ${user.id})`) as unknown[]);
+  if (yetkili.length === 0) return 'Bu şablonu düzenleme yetkiniz yok.';
+
+  const a = await alanlar(formData);
+  if ('hata' in a) return a.hata;
+
+  await sql`
+    UPDATE task_templates
+    SET title = ${a.title}, description = ${a.description}, customer_id = ${a.customerId},
+        assigned_to = ${a.assignedTo}, weekdays = ${a.weekdays}, priority = ${a.priority}
+    WHERE id = ${id}
+  `;
+
+  await sql`
+    UPDATE tasks
+    SET title = ${a.title}, customer_id = ${a.customerId},
+        assigned_to = ${a.assignedTo}, priority = ${a.priority}
+    WHERE template_id = ${id} AND status IN ('bekliyor', 'devam') AND due_date >= CURRENT_DATE
+  `;
+
+  await logActivity({
+    userId: user.id, action: 'güncelle', entity: 'tekrarlayan görev',
+    entityId: id, detail: a.title,
+  });
+
+  // Gün seçimi değişmiş olabilir; eksik günleri tamamla.
+  await gorevleriUret();
+  revalidatePath('/gorevler');
+  revalidatePath('/gorevler/tekrar');
+  return 'ok';
 }
 
 /** Şablonu durdurur/başlatır. Durdurulan şablon yeni görev üretmez. */

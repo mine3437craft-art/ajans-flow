@@ -1,24 +1,7 @@
 import 'server-only';
 import { sql } from './db';
 
-/** ISO gün numaraları: 1 = Pazartesi … 7 = Pazar */
-export const GUNLER: Array<{ no: number; kisa: string; uzun: string }> = [
-  { no: 1, kisa: 'Pzt', uzun: 'Pazartesi' },
-  { no: 2, kisa: 'Sal', uzun: 'Salı' },
-  { no: 3, kisa: 'Çar', uzun: 'Çarşamba' },
-  { no: 4, kisa: 'Per', uzun: 'Perşembe' },
-  { no: 5, kisa: 'Cum', uzun: 'Cuma' },
-  { no: 6, kisa: 'Cmt', uzun: 'Cumartesi' },
-  { no: 7, kisa: 'Paz', uzun: 'Pazar' },
-];
-
-export function gunAdlari(weekdays: number[] | null | undefined): string {
-  if (!weekdays || weekdays.length === 0) return '—';
-  return [...weekdays]
-    .sort((a, b) => a - b)
-    .map((n) => GUNLER.find((g) => g.no === n)?.kisa ?? '?')
-    .join(', ');
-}
+export { GUNLER, gunAdlari } from './gunler';
 
 /** Kaç gün ileriye kadar görev üretilsin. */
 const UFUK_GUN = 13;
