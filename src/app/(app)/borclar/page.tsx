@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { requireAdmin } from '@/lib/auth';
+import { requirePageAccess } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -17,7 +17,7 @@ type DebtRow = {
 };
 
 export default async function DebtsPage() {
-  await requireAdmin();
+  await requirePageAccess('borclar');
 
   const rows = (await sql`
     SELECT d.id, d.direction, d.counterparty, d.amount, d.paid_amount,

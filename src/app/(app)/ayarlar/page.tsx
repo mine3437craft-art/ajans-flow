@@ -5,7 +5,8 @@ import Icon from '@/components/Icon';
 import { dateShort } from '@/lib/format';
 import PasswordForm from './PasswordForm';
 import { NewUserForm, ResetPasswordForm } from './AdminUserForms';
-import { toggleUserActive } from './actions';
+import { toggleUserActive, togglePageAccess } from './actions';
+import { PAGE_KEYS, PAGE_LABELS } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,19 @@ export default async function SettingsPage({
         FROM users ORDER BY role, display_name
       `) as UserRow[])
     : [];
+
+  // Personelin hangi kasa sayfalarına erişimi olduğu — matris halinde göstermek için.
+  const erisimSatirlari = isAdmin
+    ? ((await sql`SELECT user_id, page_key FROM user_page_access`) as Array<{
+        user_id: number; page_key: string;
+      }>)
+    : [];
+  const erisimMap = new Map<number, Set<string>>();
+  for (const r of erisimSatirlari) {
+    if (!erisimMap.has(r.user_id)) erisimMap.set(r.user_id, new Set());
+    erisimMap.get(r.user_id)!.add(r.page_key);
+  }
+  const personel = users.filter((u) => u.role !== 'admin');
 
   return (
     <>
@@ -92,6 +106,56 @@ export default async function SettingsPage({
                 </table>
               </div>
             </div>
+
+            {personel.length > 0 && (
+              <div className="card">
+                <div className="card-head">
+                  <h2>Kasa Yetkileri</h2>
+                </div>
+                <div className="alert alert-info" style={{ margin: '16px 20px 0' }}>
+                  <Icon name="lock" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                  <span>
+                    Bu dört sayfa (finansal veri içerdiği için) varsayılan olarak yalnızca
+                    yöneticiye açıktır. Bir personele belirli bir sayfayı açmak için altındaki
+                    düğmeye tıklayın — istediğiniz zaman geri kapatabilirsiniz.
+                  </span>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Kişi</th>
+                        {PAGE_KEYS.map((k) => <th key={k}>{PAGE_LABELS[k]}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {personel.map((p) => {
+                        const acik = erisimMap.get(p.id) ?? new Set<string>();
+                        return (
+                          <tr key={p.id}>
+                            <td className="cell-title">{p.display_name}</td>
+                            {PAGE_KEYS.map((k) => (
+                              <td key={k}>
+                                <form action={togglePageAccess}>
+                                  <input type="hidden" name="user_id" value={p.id} />
+                                  <input type="hidden" name="page_key" value={k} />
+                                  <button
+                                    type="submit"
+                                    className={`btn btn-sm ${acik.has(k) ? 'btn-success' : 'btn-secondary'}`}
+                                  >
+                                    {acik.has(k) ? '✓ Açık' : 'Kapalı'}
+                                  </button>
+                                </form>
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             <div className="grid-2">
               <div className="card">

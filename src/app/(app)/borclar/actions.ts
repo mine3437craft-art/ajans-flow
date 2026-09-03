@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
-import { assertAdmin, logActivity } from '@/lib/auth';
+import { assertPageAccess, logActivity } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string | null {
   const v = String(fd.get(key) ?? '').trim();
@@ -10,7 +10,7 @@ function str(fd: FormData, key: string): string | null {
 }
 
 export async function createDebt(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('borclar');
 
   const direction = String(formData.get('direction') ?? '');
   if (direction !== 'alacak' && direction !== 'borc') throw new Error('Geçersiz kayıt türü.');
@@ -41,7 +41,7 @@ export async function createDebt(formData: FormData) {
 
 /** Tahsilat / ödeme ekler. Toplam tutarı aşan girişleri reddeder. */
 export async function addPayment(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('borclar');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   const payment = parseFloat(String(formData.get('payment') ?? ''));
 
@@ -67,7 +67,7 @@ export async function addPayment(formData: FormData) {
 
 /** Kaydı düzenler. Ödenen tutarın altına inen bir toplam kabul edilmez. */
 export async function updateDebt(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('borclar');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (!Number.isInteger(id)) throw new Error('Geçersiz kayıt.');
 
@@ -107,7 +107,7 @@ export async function updateDebt(formData: FormData) {
 
 /** Hatalı girilen ödemeyi geri alır. */
 export async function undoPayment(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('borclar');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (!Number.isInteger(id)) throw new Error('Geçersiz kayıt.');
 
@@ -121,7 +121,7 @@ export async function undoPayment(formData: FormData) {
 }
 
 export async function deleteDebt(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('borclar');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (!Number.isInteger(id)) throw new Error('Geçersiz kayıt.');
 

@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
-import { navFor } from '@/lib/permissions';
+import { navFor, type PageKey } from '@/lib/permissions';
 import { logout } from '@/app/login/actions';
 import type { SessionUser } from '@/lib/types';
 
-export default function Sidebar({ user }: { user: SessionUser }) {
+export default function Sidebar({ user, extraAccess }: { user: SessionUser; extraAccess: PageKey[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const items = navFor(user.role);
+  const items = navFor(user.role, new Set(extraAccess));
 
   // Sayfa değişince mobil menü kendiliğinden kapansın.
   useEffect(() => { setOpen(false); }, [pathname]);

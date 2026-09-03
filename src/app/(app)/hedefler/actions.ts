@@ -2,10 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
-import { assertAdmin, logActivity } from '@/lib/auth';
+import { assertPageAccess, logActivity } from '@/lib/auth';
 
 export async function setGoal(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('hedefler');
 
   const period = String(formData.get('period') ?? '');
   if (!/^\d{4}-\d{2}$/.test(period)) throw new Error('Geçersiz dönem.');
@@ -30,7 +30,7 @@ export async function setGoal(formData: FormData) {
 }
 
 export async function deleteGoal(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('hedefler');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (!Number.isInteger(id)) throw new Error('Geçersiz hedef.');
 

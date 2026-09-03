@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth';
+import { requirePageAccess } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -14,7 +14,7 @@ const METRIC_LABEL: Record<string, string> = {
 };
 
 export default async function GoalsPage() {
-  await requireAdmin();
+  await requirePageAccess('hedefler');
 
   const monthStart = new Date().toISOString().slice(0, 7) + '-01';
   const period = monthStart.slice(0, 7);

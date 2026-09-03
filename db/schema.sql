@@ -60,6 +60,16 @@ CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_tasks_due      ON tasks(due_date);
 CREATE INDEX IF NOT EXISTS idx_tasks_status   ON tasks(status);
 
+-- Bir goreve birden fazla kisi atanabilsin diye. tasks.assigned_to
+-- "birincil" sorumluyu tutmaya devam eder (mevcut sorgular bozulmaz);
+-- burasi "ayrica su kisiler de sorumlu" listesini tutar.
+CREATE TABLE IF NOT EXISTS task_assignees (
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (task_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_task_assignees_user ON task_assignees(user_id);
+
 -- ---------- Icerik takvimi ----------
 CREATE TABLE IF NOT EXISTS content_posts (
   id           SERIAL PRIMARY KEY,
@@ -140,6 +150,19 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_attempts ON login_attempts(username, created_at DESC);
+
+-- ---------- Kisi bazli sayfa yetkileri ----------
+-- Varsayilan olarak "kasalar" (finans, borclar, raporlar, hedefler) sadece
+-- yoneticiye acik. Yonetici, belirli bir personele belirli bir sayfayi
+-- tek tek acabilir; bu tablo o istisnalari tutar. role='admin' zaten her
+-- seyi gorur, bu tablo yalnizca 'staff' rolu icin anlam tasir.
+CREATE TABLE IF NOT EXISTS user_page_access (
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  page_key   TEXT NOT NULL CHECK (page_key IN ('finans', 'borclar', 'raporlar', 'hedefler')),
+  granted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, page_key)
+);
 
 -- ---------- Kisayollar (Photoshop, Premiere vb.) ----------
 -- Ekip icin ortak bilgi bankasi; herkes gorur, ekleyen ya da yonetici

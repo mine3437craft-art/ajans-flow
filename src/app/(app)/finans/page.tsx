@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth';
+import { requirePageAccess } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -19,7 +19,7 @@ export default async function FinancePage({
 }: {
   searchParams: Promise<{ tur?: string; ay?: string }>;
 }) {
-  await requireAdmin();
+  await requirePageAccess('finans');
   const { tur, ay } = await searchParams;
 
   // Varsayılan: içinde bulunulan ay (YYYY-AA)

@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth';
+import { requirePageAccess } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 const AY = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 export default async function ReportsPage() {
-  await requireAdmin();
+  await requirePageAccess('raporlar');
 
   // Son 6 ayın gelir/gider özeti
   const aylik = (await sql`

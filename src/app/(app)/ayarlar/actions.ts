@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { sql } from '@/lib/db';
 import { assertAdmin, assertUser, logActivity } from '@/lib/auth';
+import { PAGE_KEYS, PAGE_LABELS, type PageKey } from '@/lib/permissions';
 import { signSession, sessionCookie } from '@/lib/session';
 import type { Role } from '@/lib/types';
 
@@ -146,6 +147,44 @@ export async function toggleUserActive(formData: FormData) {
   await logActivity({
     userId: admin.id, action: 'güncelle', entity: 'kullanıcı', entityId: userId,
     detail: `${rows[0].display_name} ${rows[0].is_active ? 'aktifleştirildi' : 'pasife alındı'}`,
+  });
+  revalidatePath('/ayarlar');
+}
+
+/**
+ * Bir "kasa" sayfasına erişimi açar/kapatır. Yönetici için anlamsızdır
+ * (zaten her şeyi görür) — yalnızca personele tek tek yetki vermek için.
+ */
+export async function togglePageAccess(formData: FormData) {
+  const admin = await assertAdmin();
+  const userId = parseInt(String(formData.get('user_id') ?? ''), 10);
+  const pageKey = String(formData.get('page_key') ?? '') as PageKey;
+
+  if (!Number.isInteger(userId)) throw new Error('Geçersiz kullanıcı.');
+  if (!PAGE_KEYS.includes(pageKey)) throw new Error('Geçersiz sayfa.');
+
+  const hedef = (await sql`
+    SELECT display_name, role FROM users WHERE id = ${userId}
+  `) as Array<{ display_name: string; role: string }>;
+  if (!hedef[0]) throw new Error('Kullanıcı bulunamadı.');
+  if (hedef[0].role === 'admin') throw new Error('Yöneticiye ayrıca yetki vermeye gerek yok.');
+
+  const varMi = (await sql`
+    SELECT 1 FROM user_page_access WHERE user_id = ${userId} AND page_key = ${pageKey}
+  `) as unknown[];
+
+  if (varMi.length > 0) {
+    await sql`DELETE FROM user_page_access WHERE user_id = ${userId} AND page_key = ${pageKey}`;
+  } else {
+    await sql`
+      INSERT INTO user_page_access (user_id, page_key, granted_by)
+      VALUES (${userId}, ${pageKey}, ${admin.id})
+    `;
+  }
+
+  await logActivity({
+    userId: admin.id, action: 'güncelle', entity: 'sayfa yetkisi', entityId: userId,
+    detail: `${hedef[0].display_name} — ${PAGE_LABELS[pageKey]} ${varMi.length > 0 ? 'kapatıldı' : 'açıldı'}`,
   });
   revalidatePath('/ayarlar');
 }

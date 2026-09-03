@@ -15,6 +15,7 @@ type TaskRow = {
   due_date: string | null; due_time: string | null;
   priority: string; status: string; template_id: number | null;
   customer_name: string | null; assignee_name: string | null;
+  ek_atananlar: string | null;
 };
 
 /** Filtre bağlantısı kurar; seçili diğer filtreleri korur. */
@@ -57,13 +58,18 @@ export default async function TasksPage({
 
   const tasks = (await sql`
     SELECT t.id, t.title, t.description, t.due_date, t.due_time, t.priority, t.status,
-           t.template_id, c.name AS customer_name, u.display_name AS assignee_name
+           t.template_id, c.name AS customer_name, u.display_name AS assignee_name,
+           (SELECT string_agg(u2.display_name, ', ' ORDER BY u2.display_name)
+              FROM task_assignees ta JOIN users u2 ON u2.id = ta.user_id
+              WHERE ta.task_id = t.id) AS ek_atananlar
     FROM tasks t
     LEFT JOIN customers c ON c.id = t.customer_id
     LEFT JOIN users u ON u.id = t.assigned_to
-    WHERE (${isAdmin}::boolean OR t.assigned_to = ${user.id} OR t.created_by = ${user.id})
+    WHERE (${isAdmin}::boolean OR t.assigned_to = ${user.id} OR t.created_by = ${user.id}
+           OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = ${user.id}))
       AND (${durum ?? null}::text IS NULL OR t.status = ${durum ?? null})
-      AND (${kisiId}::int IS NULL OR t.assigned_to = ${kisiId})
+      AND (${kisiId}::int IS NULL OR t.assigned_to = ${kisiId}
+           OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = ${kisiId}))
       -- İleri tarihli tekrarlayan görevler henüz gelmediyse "Bugün" görünümünde gizlenir.
       AND (${gun}::text = 'tumu' OR t.due_date IS NULL OR t.due_date <= CURRENT_DATE)
       -- "Bugün" görünümünde, kullanıcı ayrıca bir durum seçmediyse tamamlanan/iptal
@@ -201,14 +207,16 @@ export default async function TasksPage({
                   </select>
                 </div>
                 {isAdmin && (
-                  <div className="form-group">
-                    <label htmlFor="assigned_to">Atanan Kişi</label>
-                    <select id="assigned_to" name="assigned_to" className="form-control" defaultValue={user.id}>
-                      <option value="">— Atanmadı —</option>
+                  <div className="form-group full">
+                    <label>Atanan Kişi(ler) <span style={{ textTransform: 'none', fontWeight: 400 }}>(birden fazla seçilebilir)</span></label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
                       {staff.map((s) => (
-                        <option key={s.id} value={s.id}>{s.display_name}</option>
+                        <label key={s.id} className="gun-secim">
+                          <input type="checkbox" name="assigned_to" value={s.id} defaultChecked={s.id === user.id} />
+                          <span>{s.display_name}</span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 )}
               </div>
@@ -237,7 +245,7 @@ export default async function TasksPage({
                   <tr>
                     <th>Görev</th>
                     <th>Müşteri</th>
-                    {isAdmin && <th>Atanan</th>}
+                    {isAdmin && <th>Atanan Kişi(ler)</th>}
                     <th>Bitiş</th>
                     <th>Öncelik</th>
                     <th>Durum</th>
@@ -257,7 +265,18 @@ export default async function TasksPage({
                         {t.description && <div className="cell-sub">{t.description}</div>}
                       </td>
                       <td>{t.customer_name ?? '—'}</td>
-                      {isAdmin && <td>{t.assignee_name ?? '—'}</td>}
+                      {isAdmin && (
+                        <td>
+                          {!t.assignee_name && !t.ek_atananlar ? '—' : (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {t.assignee_name && <span className="badge b-muted">{t.assignee_name}</span>}
+                              {t.ek_atananlar?.split(', ').map((ad) => (
+                                <span key={ad} className="badge b-muted">{ad}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      )}
                       <td>
                         {dateShort(t.due_date)}
                         {t.due_time && <span className="cell-sub"> {t.due_time.slice(0, 5)}</span>}

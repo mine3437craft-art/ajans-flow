@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { sql } from './db';
 import { sessionCookie, verifySession } from './session';
 import type { SessionUser } from './types';
+import type { PageKey } from './permissions';
 
 /**
  * Çerezdeki oturumu doğrular ve kullanıcıyı VERİTABANINDAN tazeler.
@@ -53,9 +54,9 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 /**
- * Yönetici dışındaki herkesi panoya geri yollar.
- * Finans içeren HER sayfa ve HER server action bunu çağırmak zorunda —
- * menüyü gizlemek tek başına koruma değildir.
+ * Kullanıcının hesap yönetimi gibi GERÇEKTEN devredilemez işlemler için:
+ * yönetici dışındaki herkesi panoya geri yollar. Kullanıcı ekleme/silme,
+ * şifre sıfırlama bunu kullanır — bu yetki asla tek tek devredilmez.
  */
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
@@ -74,6 +75,43 @@ export async function assertAdmin(): Promise<SessionUser> {
 export async function assertUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) throw new Error('Oturum bulunamadı.');
+  return user;
+}
+
+/** Personele yönetici tarafından tek tek açılmış kasa sayfalarının anahtar kümesi. */
+export async function getPageAccess(userId: number): Promise<Set<PageKey>> {
+  const rows = (await sql`
+    SELECT page_key FROM user_page_access WHERE user_id = ${userId}
+  `) as Array<{ page_key: PageKey }>;
+  return new Set(rows.map((r) => r.page_key));
+}
+
+async function hasPageAccess(user: SessionUser, pageKey: PageKey): Promise<boolean> {
+  if (user.role === 'admin') return true;
+  const rows = (await sql`
+    SELECT 1 FROM user_page_access WHERE user_id = ${user.id} AND page_key = ${pageKey}
+  `) as unknown[];
+  return rows.length > 0;
+}
+
+/**
+ * "Kasa" sayfaları için (Gelir/Gider, Borç & Alacak, Raporlar, Hedefler):
+ * yönetici her zaman girer; personel yalnızca yönetici tarafından o sayfa
+ * için tek tek yetkilendirildiyse (user_page_access) girer. Menüyü
+ * gizlemek tek başına koruma değildir — bu kontrol asıl güvenlik sınırıdır.
+ */
+export async function requirePageAccess(pageKey: PageKey): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!(await hasPageAccess(user, pageKey))) redirect('/?yetkisiz=1');
+  return user;
+}
+
+/** Server action'lar için: yönlendirme yerine hata fırlatır. */
+export async function assertPageAccess(pageKey: PageKey): Promise<SessionUser> {
+  const user = await assertUser();
+  if (!(await hasPageAccess(user, pageKey))) {
+    throw new Error('Bu işlem için yetkiniz yok.');
+  }
   return user;
 }
 

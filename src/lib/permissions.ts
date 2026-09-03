@@ -1,38 +1,49 @@
 import type { Role } from './types';
 
+/** "Kasa" sayfaları — varsayılan yalnızca yöneticiye açık, tek tek devredilebilir. */
+export type PageKey = 'finans' | 'borclar' | 'raporlar' | 'hedefler';
+export const PAGE_KEYS: PageKey[] = ['finans', 'borclar', 'raporlar', 'hedefler'];
+export const PAGE_LABELS: Record<PageKey, string> = {
+  finans: 'Gelir / Gider',
+  borclar: 'Borç & Alacak',
+  raporlar: 'Raporlar',
+  hedefler: 'Hedefler',
+};
+
 export type NavItem = {
   href: string;
   label: string;
   icon: string;
-  adminOnly: boolean;
+  /** Varsa bu bir "kasa" sayfasıdır — erişim role veya user_page_access ile belirlenir. */
+  pageKey?: PageKey;
 };
 
 /**
- * Menü tanımı. adminOnly olanlar personelde hem gizlenir hem de
- * sayfa/aksiyon tarafında requireAdmin ile ayrıca engellenir.
- * Menüyü gizlemek tek başına koruma değildir.
+ * Menü tanımı. `pageKey` olan öğeler hem menüde gizlenir hem de
+ * sayfa/aksiyon tarafında requirePageAccess/assertPageAccess ile ayrıca
+ * engellenir — menüyü gizlemek tek başına koruma değildir.
  */
 export const NAV_ITEMS: NavItem[] = [
-  { href: '/',           label: 'Pano',           icon: 'grid',     adminOnly: false },
-  { href: '/gorevler',   label: 'Görevler',       icon: 'check',    adminOnly: false },
-  { href: '/takvim',     label: 'İçerik Takvimi', icon: 'calendar', adminOnly: false },
-  { href: '/musteriler', label: 'Müşteriler',     icon: 'users',    adminOnly: false },
-  { href: '/videolar',   label: 'Video Deposu',   icon: 'video',    adminOnly: false },
-  { href: '/notlar',     label: 'Notlar',         icon: 'note',     adminOnly: false },
-  { href: '/finans',     label: 'Gelir / Gider',  icon: 'money',    adminOnly: true  },
-  { href: '/borclar',    label: 'Borç & Alacak',  icon: 'card',     adminOnly: true  },
-  { href: '/raporlar',   label: 'Raporlar',       icon: 'chart',    adminOnly: true  },
-  { href: '/hedefler',   label: 'Hedefler',       icon: 'target',   adminOnly: true  },
-  { href: '/ayarlar',    label: 'Ayarlar',        icon: 'gear',     adminOnly: false },
+  { href: '/',           label: 'Pano',           icon: 'grid' },
+  { href: '/gorevler',   label: 'Görevler',       icon: 'check' },
+  { href: '/takvim',     label: 'İçerik Takvimi', icon: 'calendar' },
+  { href: '/musteriler', label: 'Müşteriler',     icon: 'users' },
+  { href: '/videolar',   label: 'Video Deposu',   icon: 'video' },
+  { href: '/notlar',     label: 'Notlar',         icon: 'note' },
+  { href: '/finans',     label: 'Gelir / Gider',  icon: 'money',  pageKey: 'finans' },
+  { href: '/borclar',    label: 'Borç & Alacak',  icon: 'card',   pageKey: 'borclar' },
+  { href: '/raporlar',   label: 'Raporlar',       icon: 'chart',  pageKey: 'raporlar' },
+  { href: '/hedefler',   label: 'Hedefler',       icon: 'target', pageKey: 'hedefler' },
+  { href: '/ayarlar',    label: 'Ayarlar',        icon: 'gear' },
 ];
 
-export function navFor(role: Role): NavItem[] {
-  return NAV_ITEMS.filter((item) => role === 'admin' || !item.adminOnly);
-}
-
-/** Yalnızca yöneticinin girebileceği yollar. */
-export const ADMIN_PATHS = NAV_ITEMS.filter((n) => n.adminOnly).map((n) => n.href);
-
-export function isAdminPath(pathname: string): boolean {
-  return ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+/**
+ * `extraAccess`: personele yönetici tarafından tek tek açılmış kasa
+ * sayfaları (user_page_access tablosundan). Yönetici için anlamsızdır,
+ * zaten her şeyi görür.
+ */
+export function navFor(role: Role, extraAccess: ReadonlySet<PageKey> = new Set()): NavItem[] {
+  return NAV_ITEMS.filter(
+    (item) => !item.pageKey || role === 'admin' || extraAccess.has(item.pageKey),
+  );
 }

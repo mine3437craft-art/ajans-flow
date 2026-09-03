@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
-import { assertAdmin, logActivity } from '@/lib/auth';
+import { assertPageAccess, logActivity } from '@/lib/auth';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '@/lib/format';
 
 function str(fd: FormData, key: string): string | null {
@@ -12,7 +12,7 @@ function str(fd: FormData, key: string): string | null {
 
 export async function createTransaction(formData: FormData) {
   // Finansal veri — her çağrıda yönetici kontrolü. Menüyü gizlemek yetmez.
-  const user = await assertAdmin();
+  const user = await assertPageAccess('finans');
 
   const type = String(formData.get('type') ?? '');
   if (type !== 'gelir' && type !== 'gider') throw new Error('Geçersiz işlem türü.');
@@ -47,7 +47,7 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function deleteTransaction(formData: FormData) {
-  const user = await assertAdmin();
+  const user = await assertPageAccess('finans');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (!Number.isInteger(id)) throw new Error('Geçersiz kayıt.');
 
