@@ -97,6 +97,21 @@ function baglanti(url: string): { connectionString: string; ssl: false | { rejec
   u.searchParams.delete('sslmode');
   u.searchParams.delete('uselibpqcompat');
 
+  // Supabase'in "Session pooler"ı (port 5432) her istemciye kalıcı bir
+  // bağlantı ayırır ve toplamda yalnızca 15 eşzamanlı istemciye izin verir.
+  // Sunucusuz ortamda (her istek ayrı bir örnek olabilir) bu sınır hızla
+  // dolar ve "max clients reached in session mode" hatasıyla HERKES dışarıda
+  // kalır — bir kullanıcının şifre değiştirip tekrar giremediği vaka buydu.
+  // "Transaction pooler" (port 6543) aynı işi çok daha fazla eşzamanlı
+  // istemciyle karşılar; burada biz her sorguyu adsız (unnamed) prepared
+  // statement ile çalıştırdığımız için (bağlantılar arası önbelleklenen bir
+  // hazırlanmış ifade yok) bu geçiş güvenlidir. Kullanıcının Vercel'de
+  // ortam değişkenini değiştirmesine gerek kalmasın diye burada otomatik
+  // düzeltiyoruz.
+  if (u.hostname.endsWith('.pooler.supabase.com') && u.port === '5432') {
+    u.port = '6543';
+  }
+
   const yerel = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
   const ssl =
     yerel || mod === 'disable' ? false
