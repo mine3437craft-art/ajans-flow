@@ -6,6 +6,7 @@ import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
 import { money, dateShort, isoDate, CUSTOMER_STATUS_LABEL, PACKAGES } from '@/lib/format';
+import CustomerForm from './CustomerForm';
 import { createCustomer, updateCustomer, deleteCustomer } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -20,89 +21,6 @@ type CustomerRow = {
 const STATUS_BADGE: Record<string, string> = {
   aktif: 'b-success', duraklatildi: 'b-warning', ayrildi: 'b-muted',
 };
-
-function MusteriForm({
-  action, gonderEtiketi, musteri, staff,
-}: {
-  action: (fd: FormData) => Promise<void>;
-  gonderEtiketi: string;
-  musteri?: CustomerRow;
-  staff: Array<{ id: number; display_name: string }>;
-}) {
-  const k = musteri ? `-${musteri.id}` : '';
-  return (
-    <form action={action}>
-      {musteri && <input type="hidden" name="id" value={musteri.id} />}
-      <div className="form-grid">
-        <div className="form-group">
-          <label htmlFor={`name${k}`}>Ad Soyad *</label>
-          <input id={`name${k}`} name="name" className="form-control" required maxLength={150}
-                 defaultValue={musteri?.name} />
-        </div>
-        <div className="form-group">
-          <label htmlFor={`company${k}`}>Firma</label>
-          <input id={`company${k}`} name="company" className="form-control" maxLength={150}
-                 defaultValue={musteri?.company ?? ''} />
-        </div>
-        <div className="form-group">
-          <label htmlFor={`phone${k}`}>Telefon</label>
-          <input id={`phone${k}`} name="phone" className="form-control" maxLength={40}
-                 defaultValue={musteri?.phone ?? ''} />
-        </div>
-        <div className="form-group">
-          <label htmlFor={`email${k}`}>E-posta</label>
-          <input id={`email${k}`} name="email" type="email" className="form-control" maxLength={150}
-                 defaultValue={musteri?.email ?? ''} />
-        </div>
-        <div className="form-group">
-          <label htmlFor={`package${k}`}>Paket</label>
-          <select id={`package${k}`} name="package" className="form-control" defaultValue={musteri?.package ?? PACKAGES[0]}>
-            {PACKAGES.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor={`monthly_fee${k}`}>Aylık Ücret (₺)</label>
-          <input id={`monthly_fee${k}`} name="monthly_fee" type="number" step="0.01" min="0"
-                 className="form-control" defaultValue={musteri ? Number(musteri.monthly_fee) : 0} />
-        </div>
-        <div className="form-group">
-          <label htmlFor={`status${k}`}>Durum</label>
-          <select id={`status${k}`} name="status" className="form-control" defaultValue={musteri?.status ?? 'aktif'}>
-            <option value="aktif">Aktif</option>
-            <option value="duraklatildi">Duraklatıldı</option>
-            <option value="ayrildi">Ayrıldı</option>
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor={`assigned_to${k}`}>Sorumlu</label>
-          <select id={`assigned_to${k}`} name="assigned_to" className="form-control"
-                  defaultValue={musteri?.assigned_to ?? ''}>
-            <option value="">— Atanmadı —</option>
-            {staff.map((s) => <option key={s.id} value={s.id}>{s.display_name}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor={`start_date${k}`}>Başlangıç Tarihi</label>
-          <input id={`start_date${k}`} name="start_date" type="date" className="form-control"
-                 defaultValue={isoDate(musteri?.start_date)} />
-        </div>
-        <div className="form-group">
-          <label htmlFor={`next_payment_date${k}`}>Sonraki Ödeme Tarihi</label>
-          <input id={`next_payment_date${k}`} name="next_payment_date" type="date" className="form-control"
-                 defaultValue={isoDate(musteri?.next_payment_date)} />
-        </div>
-        <div className="form-group full">
-          <label htmlFor={`notes${k}`}>Notlar</label>
-          <textarea id={`notes${k}`} name="notes" className="form-control" rows={2}
-                    defaultValue={musteri?.notes ?? ''} />
-        </div>
-      </div>
-      <div className="form-actions">
-        <button className="btn btn-primary" type="submit">{gonderEtiketi}</button>
-      </div>
-    </form>
-  );
-}
 
 export default async function CustomersPage() {
   const user = await requireUser();
@@ -128,10 +46,26 @@ export default async function CustomersPage() {
   const bugun = new Date().toISOString().slice(0, 10);
   const yakinda = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
+  // Aktif müşterilerin aylık ücretleri toplamı — potansiyel/sözleşmeli aylık gelir.
+  // Gerçekleşen tahsilat değildir; Gelir/Gider'deki kayıtlı işlemlerden farklıdır.
+  const aylikToplam = isAdmin
+    ? rows.filter((c) => c.status === 'aktif').reduce((s, c) => s + Number(c.monthly_fee), 0)
+    : null;
+
   return (
     <>
       <PageHeader title="Müşteriler" />
       <div className="content">
+        {aylikToplam !== null && (
+          <div className="stat-grid">
+            <div className="stat-card">
+              <div className="stat-icon i-success"><Icon name="money" /></div>
+              <div className="stat-value" style={{ color: 'var(--success)' }}>{money(aylikToplam)}</div>
+              <div className="stat-label">Aylık Toplam Gelir (aktif müşteriler)</div>
+            </div>
+          </div>
+        )}
+
         <div className="card">
           <div className="card-head">
             <h2>Müşteri Listesi <span className="badge b-muted">{rows.length}</span></h2>
@@ -143,7 +77,7 @@ export default async function CustomersPage() {
                 + Yeni Müşteri Ekle
               </summary>
               <div style={{ padding: '0 20px 20px' }}>
-                <MusteriForm action={createCustomer} gonderEtiketi="Kaydet" staff={staff} />
+                <CustomerForm action={createCustomer} gonderEtiketi="Kaydet" staff={staff} />
               </div>
             </details>
           )}
@@ -214,7 +148,7 @@ export default async function CustomersPage() {
                                 Düzenle
                               </summary>
                               <div style={{ padding: '4px 20px 18px' }}>
-                                <MusteriForm action={updateCustomer} gonderEtiketi="Güncelle" musteri={c} staff={staff} />
+                                <CustomerForm action={updateCustomer} gonderEtiketi="Güncelle" musteri={c} staff={staff} />
                               </div>
                             </details>
                           </td>

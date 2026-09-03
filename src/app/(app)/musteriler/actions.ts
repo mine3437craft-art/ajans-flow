@@ -12,8 +12,6 @@ function str(fd: FormData, key: string): string | null {
 
 function alanlar(formData: FormData) {
   const name = str(formData, 'name');
-  if (!name) throw new Error('Müşteri adı zorunludur.');
-
   const pkg = str(formData, 'package') ?? PACKAGES[0];
   const safePkg = PACKAGES.includes(pkg) ? pkg : PACKAGES[0];
 
@@ -24,11 +22,13 @@ function alanlar(formData: FormData) {
   const assignedRaw = str(formData, 'assigned_to');
   const assignedTo = assignedRaw ? parseInt(assignedRaw, 10) : null;
 
+  const email = str(formData, 'email');
+
   return {
     name,
     company: str(formData, 'company'),
     phone: str(formData, 'phone'),
-    email: str(formData, 'email'),
+    email,
     package: safePkg,
     monthlyFee: Number.isFinite(fee) && fee >= 0 ? fee : 0,
     status: safeStatus,
@@ -39,10 +39,18 @@ function alanlar(formData: FormData) {
   };
 }
 
-/** Müşteri ekleme/düzenleme/silme yalnızca yöneticide — aylık ücret finansal veridir. */
-export async function createCustomer(formData: FormData) {
+/**
+ * Bu iki action `useActionState` ile çağrılır: hata durumunda `throw` yerine
+ * bir metin döner. Böylece kullanıcı bir şey yanlış girdiğinde çökme ekranı
+ * yerine formun üstünde kırmızı bir uyarı görür — başarıda da yeşil bir
+ * "kaydedildi" mesajı, aksi halde tıklamanın işe yarayıp yaramadığı belirsiz
+ * kalıyordu.
+ */
+export async function createCustomer(_prev: string | null, formData: FormData): Promise<string | null> {
   const user = await assertAdmin();
   const a = alanlar(formData);
+  if (!a.name) return 'Müşteri adı zorunludur.';
+  if (a.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email)) return 'E-posta adresi geçersiz görünüyor.';
 
   const rows = (await sql`
     INSERT INTO customers (name, company, phone, email, package, monthly_fee, status,
@@ -56,13 +64,17 @@ export async function createCustomer(formData: FormData) {
   await logActivity({ userId: user.id, action: 'ekle', entity: 'müşteri', entityId: rows[0]?.id, detail: a.name });
   revalidatePath('/musteriler');
   revalidatePath('/');
+  return 'ok';
 }
 
-export async function updateCustomer(formData: FormData) {
+export async function updateCustomer(_prev: string | null, formData: FormData): Promise<string | null> {
   const user = await assertAdmin();
   const id = parseInt(String(formData.get('id') ?? ''), 10);
-  if (!Number.isInteger(id)) throw new Error('Geçersiz müşteri.');
+  if (!Number.isInteger(id)) return 'Geçersiz müşteri.';
+
   const a = alanlar(formData);
+  if (!a.name) return 'Müşteri adı zorunludur.';
+  if (a.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email)) return 'E-posta adresi geçersiz görünüyor.';
 
   await sql`
     UPDATE customers
@@ -76,6 +88,7 @@ export async function updateCustomer(formData: FormData) {
   await logActivity({ userId: user.id, action: 'güncelle', entity: 'müşteri', entityId: id, detail: a.name });
   revalidatePath('/musteriler');
   revalidatePath('/');
+  return 'ok';
 }
 
 export async function deleteCustomer(formData: FormData) {
