@@ -4,18 +4,19 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
-import { createShortcut, deleteShortcut } from './actions';
+import ShortcutForm, { TusGorunumu } from './ShortcutForm';
+import { deleteShortcut } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 const PROGRAMLAR = ['Photoshop', 'Premiere Pro', 'Illustrator', 'After Effects', 'Diğer'];
 
-const PROGRAM_RENK: Record<string, string> = {
-  'Photoshop': 'b-info',
-  'Premiere Pro': 'b-primary',
-  'Illustrator': 'b-warning',
-  'After Effects': 'b-danger',
-  'Diğer': 'b-muted',
+const PROGRAM_BILGI: Record<string, { renk: string; emoji: string }> = {
+  'Photoshop':     { renk: 'b-info',    emoji: '🎨' },
+  'Premiere Pro':  { renk: 'b-primary', emoji: '🎬' },
+  'Illustrator':   { renk: 'b-warning', emoji: '✏️' },
+  'After Effects': { renk: 'b-danger',  emoji: '✨' },
+  'Diğer':         { renk: 'b-muted',   emoji: '📌' },
 };
 
 type ShortcutRow = {
@@ -43,6 +44,14 @@ export default async function ShortcutsPage({
     ORDER BY s.program, s.aciklama
   `) as ShortcutRow[];
 
+  // Akılda kalıcı olsun diye programa göre gruplanır — Photoshop'un altında
+  // kendi kısayolları, Premiere'in altında kendisininkiler.
+  const gruplar = new Map<string, ShortcutRow[]>();
+  for (const k of kisayollar) {
+    if (!gruplar.has(k.program)) gruplar.set(k.program, []);
+    gruplar.get(k.program)!.push(k);
+  }
+
   return (
     <>
       <PageHeader title="Kısayollar" />
@@ -51,7 +60,8 @@ export default async function ShortcutsPage({
           <Icon name="note" style={{ width: 17, height: 17, flexShrink: 0 }} />
           <span>
             Photoshop, Premiere gibi programlarda öğrendiğiniz kısayolları buraya ekleyin —
-            ekip ortak listeden faydalanır. Örnek: <kbd className="key">Ctrl</kbd>+<kbd className="key">E</kbd> → katmanları birleştir.
+            yazmanıza gerek yok, tuşlara tıklayarak seçin. Ekip ortak listeden faydalanır.
+            Örnek: <kbd className="key">Ctrl</kbd>+<kbd className="key">E</kbd> → katmanları birleştir.
           </span>
         </div>
 
@@ -65,35 +75,17 @@ export default async function ShortcutsPage({
             <summary style={{ padding: '13px 20px', cursor: 'pointer', fontWeight: 600, color: 'var(--primary)' }}>
               + Yeni Kısayol Ekle
             </summary>
-            <form action={createShortcut} style={{ padding: '0 20px 20px' }}>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="program">Program</label>
-                  <select id="program" name="program" className="form-control" defaultValue="Photoshop">
-                    {PROGRAMLAR.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="keys">Tuş Kombinasyonu *</label>
-                  <input id="keys" name="keys" className="form-control" required maxLength={60}
-                         placeholder="örn. Ctrl+E" />
-                </div>
-                <div className="form-group full">
-                  <label htmlFor="aciklama">Ne İşe Yarar? *</label>
-                  <input id="aciklama" name="aciklama" className="form-control" required maxLength={200}
-                         placeholder="örn. Görünür katmanları birleştir" />
-                </div>
-              </div>
-              <div className="form-actions">
-                <button className="btn btn-primary" type="submit">Kısayolu Ekle</button>
-              </div>
-            </form>
+            <div style={{ padding: '0 20px 20px' }}>
+              <ShortcutForm />
+            </div>
           </details>
 
           <form className="filter-bar" method="get">
             <select name="program" className="form-control" defaultValue={program ?? ''} aria-label="Program">
               <option value="">Tüm Programlar</option>
-              {PROGRAMLAR.map((p) => <option key={p} value={p}>{p}</option>)}
+              {PROGRAMLAR.map((p) => (
+                <option key={p} value={p}>{PROGRAM_BILGI[p].emoji} {p}</option>
+              ))}
             </select>
             <input name="ara" className="form-control" defaultValue={arama}
                    placeholder="Tuş veya açıklamada ara…" aria-label="Ara" style={{ flex: '1 1 200px' }} />
@@ -105,39 +97,42 @@ export default async function ShortcutsPage({
             <EmptyState icon="⌨️" title="Kısayol bulunamadı"
                         text={program || arama ? 'Bu filtreye uyan kısayol yok.' : 'Yukarıdan ilk kısayolu ekleyin.'} />
           ) : (
-            <div className="card-body" style={{ display: 'grid', gap: 10 }}>
-              {kisayollar.map((k) => {
-                const benim = k.author_id === user.id;
-                const silebilir = benim || user.role === 'admin';
+            <div className="card-body" style={{ display: 'grid', gap: 22 }}>
+              {[...gruplar.entries()].map(([programAdi, liste]) => {
+                const bilgi = PROGRAM_BILGI[programAdi] ?? PROGRAM_BILGI['Diğer'];
                 return (
-                  <div key={k.id} className="shortcut-row">
-                    <span className={`badge ${PROGRAM_RENK[k.program] ?? 'b-muted'}`} style={{ minWidth: 88, justifyContent: 'center' }}>
-                      {k.program}
-                    </span>
-
-                    <div className="key-combo">
-                      {k.keys.split('+').map((tus, i, arr) => (
-                        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <kbd className="key">{tus}</kbd>
-                          {i < arr.length - 1 && <span style={{ color: 'var(--text-muted)' }}>+</span>}
-                        </span>
-                      ))}
+                  <div key={programAdi}>
+                    <h3 style={{
+                      display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5,
+                      fontWeight: 700, marginBottom: 10, color: 'var(--text-secondary)',
+                    }}>
+                      <span style={{ fontSize: 17 }}>{bilgi.emoji}</span>
+                      {programAdi}
+                      <span className="badge b-muted">{liste.length}</span>
+                    </h3>
+                    <div style={{ display: 'grid', gap: 10 }}>
+                      {liste.map((k) => {
+                        const benim = k.author_id === user.id;
+                        const silebilir = benim || user.role === 'admin';
+                        return (
+                          <div key={k.id} className="shortcut-row">
+                            <TusGorunumu keys={k.keys} />
+                            <span className="shortcut-aciklama">{k.aciklama}</span>
+                            <span className="cell-sub" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                              {benim ? 'Sen' : (k.author_name ?? 'Bilinmiyor')}
+                            </span>
+                            {silebilir && (
+                              <form action={deleteShortcut}>
+                                <input type="hidden" name="id" value={k.id} />
+                                <ConfirmButton soru={`"${k.keys}" kısayolu silinsin mi?`} title="Sil">
+                                  <Icon name="trash" />
+                                </ConfirmButton>
+                              </form>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <span className="shortcut-aciklama">{k.aciklama}</span>
-
-                    <span className="cell-sub" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                      {benim ? 'Sen' : (k.author_name ?? 'Bilinmiyor')}
-                    </span>
-
-                    {silebilir && (
-                      <form action={deleteShortcut}>
-                        <input type="hidden" name="id" value={k.id} />
-                        <ConfirmButton soru={`"${k.keys}" kısayolu silinsin mi?`} title="Sil">
-                          <Icon name="trash" />
-                        </ConfirmButton>
-                      </form>
-                    )}
                   </div>
                 );
               })}

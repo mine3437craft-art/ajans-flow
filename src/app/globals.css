@@ -350,3 +350,35 @@ textarea.form-control { resize: vertical; min-height: 72px; }
 }
 .belirsiz-check input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--warning); flex-shrink: 0; }
 .belirsiz-check span { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+/* ---------------- Kısayol formu: tıklanabilir tuş seçimi ---------------- */
+.mod-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-input); color: var(--text-secondary);
+  font-size: 13.5px; font-weight: 600;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.mod-toggle .mod-sembol { font-size: 15px; }
+.mod-toggle:hover { border-color: var(--border-hover); }
+.mod-toggle.active {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+
+.special-key {
+  display: inline-grid; place-items: center;
+  width: 36px; height: 36px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-input); color: var(--text-secondary);
+  font-size: 16px;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.special-key:hover { border-color: var(--border-hover); }
+.special-key.active {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+
+.shortcut-onizleme {
+  padding: 14px; background: var(--bg-input); border-radius: var(--radius-sm);
+  min-height: 46px; display: flex; align-items: center;
+}

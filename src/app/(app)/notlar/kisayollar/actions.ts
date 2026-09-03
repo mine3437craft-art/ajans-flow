@@ -11,7 +11,12 @@ function metin(fd: FormData, key: string): string | null {
   return v === '' ? null : v;
 }
 
-/** "ctrl+e", " Ctrl + E " gibi girdileri "Ctrl+E" biçimine indirger. */
+/**
+ * "ctrl+e", " Ctrl + E " gibi girdileri "Ctrl+E" biçimine indirger.
+ * Form artık değiştirici tuşları hazır düğmelerden seçtirip burada
+ * "Ctrl+Shift+E" gibi birleştirilmiş halde gönderiyor; bu fonksiyon yine de
+ * bir güvence katmanı olarak kalıyor.
+ */
 function tuslariDuzelt(ham: string): string {
   return ham
     .split('+')
@@ -20,29 +25,34 @@ function tuslariDuzelt(ham: string): string {
     .map((p) => {
       const kucuk = p.toLocaleLowerCase('tr-TR');
       const OZEL: Record<string, string> = {
-        ctrl: 'Ctrl', control: 'Ctrl', cmd: 'Cmd', command: 'Cmd', 'ö': 'Cmd',
+        ctrl: 'Ctrl', control: 'Ctrl', cmd: 'Cmd', command: 'Cmd', win: 'Win', windows: 'Win',
         alt: 'Alt', option: 'Alt', opt: 'Alt', shift: 'Shift',
         enter: 'Enter', return: 'Enter', esc: 'Esc', escape: 'Esc',
         tab: 'Tab', space: 'Space', boşluk: 'Space', del: 'Delete', delete: 'Delete',
+        backspace: 'Backspace', up: '↑', down: '↓', left: '←', right: '→',
       };
       return OZEL[kucuk] ?? (p.length === 1 ? p.toLocaleUpperCase('tr-TR') : p);
     })
     .join('+');
 }
 
-export async function createShortcut(formData: FormData) {
+/**
+ * `useActionState` ile çağrılır: hata durumunda `throw` yerine metin döner,
+ * böylece kullanıcı çökme ekranı yerine formun üstünde uyarı görür.
+ */
+export async function createShortcut(_prev: string | null, formData: FormData): Promise<string | null> {
   const user = await assertUser();
 
   const program = metin(formData, 'program');
   const safeProgram = program && PROGRAMLAR.includes(program) ? program : 'Diğer';
 
   const keysRaw = metin(formData, 'keys');
-  if (!keysRaw) throw new Error('Tuş kombinasyonu zorunludur.');
+  if (!keysRaw) return 'Bir ana tuş seçmeli ya da yazmalısınız.';
   const keys = tuslariDuzelt(keysRaw);
-  if (!keys) throw new Error('Geçerli bir tuş kombinasyonu girin.');
+  if (!keys) return 'Geçerli bir tuş kombinasyonu girin.';
 
   const aciklama = metin(formData, 'aciklama');
-  if (!aciklama) throw new Error('Ne işe yaradığını yazmalısınız.');
+  if (!aciklama) return 'Ne işe yaradığını yazmalısınız.';
 
   const rows = (await sql`
     INSERT INTO shortcuts (program, keys, aciklama, author_id)
@@ -55,6 +65,7 @@ export async function createShortcut(formData: FormData) {
     entityId: rows[0]?.id, detail: `${safeProgram}: ${keys}`,
   });
   revalidatePath('/notlar/kisayollar');
+  return 'ok';
 }
 
 /** Yazan kişi ya da yönetici silebilir. */
