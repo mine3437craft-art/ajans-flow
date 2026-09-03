@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { requireUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
@@ -6,6 +7,7 @@ import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
 import { dateShort } from '@/lib/format';
 import { videoDurumu } from '@/lib/video';
+import VideoEditForm from './VideoEditForm';
 import { addVideos, publishVideo, deleteVideo, setHaftalik } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -165,28 +167,43 @@ export default async function VideolarPage() {
                 </thead>
                 <tbody>
                   {videolar.map((v) => (
-                    <tr key={v.id}>
-                      <td>{v.musteri}</td>
-                      <td>
-                        <div className="cell-title">{v.title}</div>
-                        {v.notes && <div className="cell-sub">{v.notes}</div>}
-                      </td>
-                      <td>{dateShort(v.recorded_on)}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <form action={publishVideo}>
-                            <input type="hidden" name="id" value={v.id} />
-                            <button className="btn btn-sm btn-success" type="submit">Yayınlandı</button>
-                          </form>
-                          <form action={deleteVideo}>
-                            <input type="hidden" name="id" value={v.id} />
-                            <ConfirmButton soru={`"${v.title}" depodan silinsin mi?`} title="Sil">
-                              <Icon name="trash" />
-                            </ConfirmButton>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
+                    <Fragment key={v.id}>
+                      <tr>
+                        <td>{v.musteri}</td>
+                        <td>
+                          <div className="cell-title">{v.title}</div>
+                          {v.notes && <div className="cell-sub">{v.notes}</div>}
+                        </td>
+                        <td>{dateShort(v.recorded_on)}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <form action={publishVideo}>
+                              <input type="hidden" name="id" value={v.id} />
+                              <button className="btn btn-sm btn-success" type="submit">Yayınlandı</button>
+                            </form>
+                            <form action={deleteVideo}>
+                              <input type="hidden" name="id" value={v.id} />
+                              <ConfirmButton soru={`"${v.title}" depodan silinsin mi?`} title="Sil">
+                                <Icon name="trash" />
+                              </ConfirmButton>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={4} style={{ padding: 0, borderBottom: '1px solid var(--border)' }}>
+                          <details>
+                            <summary style={{ padding: '8px 20px', cursor: 'pointer',
+                                              fontSize: 12.5, fontWeight: 600, color: 'var(--primary)' }}>
+                              Düzenle
+                            </summary>
+                            <div style={{ padding: '4px 20px 18px' }}>
+                              <VideoEditForm video={{ id: v.id, title: v.title, notes: v.notes }} />
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

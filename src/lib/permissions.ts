@@ -1,9 +1,10 @@
 import type { Role } from './types';
 
 /** "Kasa" sayfaları — varsayılan yalnızca yöneticiye açık, tek tek devredilebilir. */
-export type PageKey = 'finans' | 'borclar' | 'raporlar' | 'hedefler';
-export const PAGE_KEYS: PageKey[] = ['finans', 'borclar', 'raporlar', 'hedefler'];
+export type PageKey = 'kasa' | 'finans' | 'borclar' | 'raporlar' | 'hedefler';
+export const PAGE_KEYS: PageKey[] = ['kasa', 'finans', 'borclar', 'raporlar', 'hedefler'];
 export const PAGE_LABELS: Record<PageKey, string> = {
+  kasa: 'Kasa',
   finans: 'Gelir / Gider',
   borclar: 'Borç & Alacak',
   raporlar: 'Raporlar',
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/musteriler', label: 'Müşteriler',     icon: 'users' },
   { href: '/videolar',   label: 'Video Deposu',   icon: 'video' },
   { href: '/notlar',     label: 'Notlar',         icon: 'note' },
+  { href: '/kasa',       label: 'Kasa',           icon: 'wallet', pageKey: 'kasa' },
   { href: '/finans',     label: 'Gelir / Gider',  icon: 'money',  pageKey: 'finans' },
   { href: '/borclar',    label: 'Borç & Alacak',  icon: 'card',   pageKey: 'borclar' },
   { href: '/raporlar',   label: 'Raporlar',       icon: 'chart',  pageKey: 'raporlar' },

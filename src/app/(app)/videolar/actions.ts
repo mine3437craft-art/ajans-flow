@@ -64,6 +64,33 @@ export async function publishVideo(formData: FormData) {
   revalidatePath('/');
 }
 
+/**
+ * Video başlığını ve açıklamasını günceller. `useActionState` ile çağrılır:
+ * hata durumunda throw yerine metin döner, kullanıcı çökme ekranı yerine
+ * formun üstünde uyarı görür.
+ */
+export async function updateVideo(_prev: string | null, formData: FormData): Promise<string | null> {
+  const user = await assertUser();
+  const id = parseInt(String(formData.get('id') ?? ''), 10);
+  if (!Number.isInteger(id)) return 'Geçersiz video.';
+
+  const title = metin(formData, 'title');
+  if (!title) return 'Video adı zorunludur.';
+
+  const rows = (await sql`
+    UPDATE videos SET title = ${title}, notes = ${metin(formData, 'notes')}
+    WHERE id = ${id}
+    RETURNING id
+  `) as Array<{ id: number }>;
+  if (rows.length === 0) return 'Video bulunamadı.';
+
+  await logActivity({
+    userId: user.id, action: 'güncelle', entity: 'video', entityId: id, detail: title,
+  });
+  revalidatePath('/videolar');
+  return 'ok';
+}
+
 export async function deleteVideo(formData: FormData) {
   const user = await assertUser();
   const id = parseInt(String(formData.get('id') ?? ''), 10);

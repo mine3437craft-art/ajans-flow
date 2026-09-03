@@ -126,6 +126,21 @@ CREATE TABLE IF NOT EXISTS goals (
   UNIQUE (period, metric)
 );
 
+-- ---------- Kasa (nakit/banka hesapları) ----------
+-- "Nakit", "Garanti Bankası", "Akbank", "Annemin Garanti Hesabı" gibi
+-- serbest isimli hesaplar. Bakiye elle güncellenir (otomatik hesaplanmaz);
+-- Gelir/Gider'deki işlem kayıtlarından bağımsızdır.
+CREATE TABLE IF NOT EXISTS cash_accounts (
+  id           SERIAL PRIMARY KEY,
+  name         TEXT NOT NULL,
+  account_type TEXT NOT NULL DEFAULT 'banka' CHECK (account_type IN ('nakit', 'banka')),
+  balance      NUMERIC(12,2) NOT NULL DEFAULT 0,
+  notes        TEXT,
+  created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ---------- Notlar ----------
 CREATE TABLE IF NOT EXISTS notes (
   id         SERIAL PRIMARY KEY,
