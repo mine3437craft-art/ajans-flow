@@ -18,10 +18,11 @@ type TaskRow = {
 };
 
 /** Filtre bağlantısı kurar; seçili diğer filtreleri korur. */
-function baglanti(p: { durum?: string; kisi?: string }): string {
+function baglanti(p: { durum?: string; kisi?: string; gun?: string }): string {
   const q = new URLSearchParams();
   if (p.durum) q.set('durum', p.durum);
   if (p.kisi) q.set('kisi', p.kisi);
+  if (p.gun && p.gun !== 'bugun') q.set('gun', p.gun);
   const s = q.toString();
   return s ? `/gorevler?${s}` : '/gorevler';
 }
@@ -36,10 +37,13 @@ const PRIORITY_BADGE: Record<string, string> = {
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ durum?: string; kisi?: string }>;
+  searchParams: Promise<{ durum?: string; kisi?: string; gun?: string }>;
 }) {
   const user = await requireUser();
-  const { durum, kisi } = await searchParams;
+  const { durum, kisi, gun: gunParam } = await searchParams;
+  // Varsayılan görünüm: bugüne kadar olan (geciken dahil) + tarihsiz görevler.
+  // 'tumu' seçilirse gelecekteki tekrarlayan görevler de dahil tüm liste görünür.
+  const gun = gunParam === 'tumu' ? 'tumu' : 'bugun';
   const isAdmin = user.role === 'admin';
 
   // Tekrarlayan görev şablonlarından eksik günleri tamamla (tekrar çalıştırmak güvenli).
@@ -60,6 +64,12 @@ export default async function TasksPage({
     WHERE (${isAdmin}::boolean OR t.assigned_to = ${user.id} OR t.created_by = ${user.id})
       AND (${durum ?? null}::text IS NULL OR t.status = ${durum ?? null})
       AND (${kisiId}::int IS NULL OR t.assigned_to = ${kisiId})
+      -- İleri tarihli tekrarlayan görevler henüz gelmediyse "Bugün" görünümünde gizlenir.
+      AND (${gun}::text = 'tumu' OR t.due_date IS NULL OR t.due_date <= CURRENT_DATE)
+      -- "Bugün" görünümünde, kullanıcı ayrıca bir durum seçmediyse tamamlanan/iptal
+      -- görevler listeden düşer — tamamlanınca "azalması" istenen davranış budur.
+      AND (${gun}::text = 'tumu' OR ${durum ?? null}::text IS NOT NULL
+           OR t.status IN ('bekliyor', 'devam'))
     ORDER BY
       CASE t.status WHEN 'devam' THEN 0 WHEN 'bekliyor' THEN 1 ELSE 2 END,
       t.due_date NULLS LAST,
@@ -103,7 +113,7 @@ export default async function TasksPage({
               ].map((f) => (
                 <a
                   key={f.k}
-                  href={baglanti({ durum: f.k || undefined, kisi })}
+                  href={baglanti({ durum: f.k || undefined, kisi, gun })}
                   className={`btn btn-sm ${(durum ?? '') === f.k ? 'btn-primary' : 'btn-secondary'}`}
                 >
                   {f.l}
@@ -116,14 +126,35 @@ export default async function TasksPage({
           <div className="filter-bar" style={{ alignItems: 'center' }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px',
                            textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Görünüm
+            </span>
+            <a href={baglanti({ durum, kisi, gun: 'bugun' })}
+               className={`btn btn-sm ${gun === 'bugun' ? 'btn-primary' : 'btn-secondary'}`}>
+              Bugünün İşleri
+            </a>
+            <a href={baglanti({ durum, kisi, gun: 'tumu' })}
+               className={`btn btn-sm ${gun === 'tumu' ? 'btn-primary' : 'btn-secondary'}`}>
+              Tüm Takvim
+            </a>
+            {gun === 'bugun' && (
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', marginLeft: 4 }}>
+                İleri tarihli tekrarlayan görevler kendi gününde burada belirir —
+                bugün tamamlarsan yarınki otomatik olarak yerini alır.
+              </span>
+            )}
+          </div>
+
+          <div className="filter-bar" style={{ alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px',
+                           textTransform: 'uppercase', color: 'var(--text-muted)' }}>
               Kime ait
             </span>
-            <a href={baglanti({ durum, kisi: undefined })}
+            <a href={baglanti({ durum, kisi: undefined, gun })}
                className={`btn btn-sm ${!kisi ? 'btn-primary' : 'btn-secondary'}`}>Herkes</a>
-            <a href={baglanti({ durum, kisi: 'ben' })}
+            <a href={baglanti({ durum, kisi: 'ben', gun })}
                className={`btn btn-sm ${kisi === 'ben' ? 'btn-primary' : 'btn-secondary'}`}>Bana ait</a>
             {isAdmin && staff.map((s2) => (
-              <a key={s2.id} href={baglanti({ durum, kisi: String(s2.id) })}
+              <a key={s2.id} href={baglanti({ durum, kisi: String(s2.id), gun })}
                  className={`btn btn-sm ${kisi === String(s2.id) ? 'btn-primary' : 'btn-secondary'}`}>
                 {s2.display_name}
               </a>
@@ -192,8 +223,12 @@ export default async function TasksPage({
           {tasks.length === 0 ? (
             <EmptyState
               icon="✅"
-              title="Görev bulunamadı"
-              text={durum ? 'Bu filtreye uyan görev yok.' : 'Yukarıdan ilk görevinizi ekleyin.'}
+              title={gun === 'bugun' && !durum ? 'Bugün için görev yok' : 'Görev bulunamadı'}
+              text={
+                durum ? 'Bu filtreye uyan görev yok.'
+                : gun === 'bugun' ? 'Yukarıdan "Tüm Takvim" ile ileri tarihli görevleri görebilirsiniz.'
+                : 'Yukarıdan ilk görevinizi ekleyin.'
+              }
             />
           ) : (
             <div className="table-wrap">

@@ -10,10 +10,7 @@ function str(fd: FormData, key: string): string | null {
   return v === '' ? null : v;
 }
 
-/** Müşteri ekleme/silme yalnızca yöneticide — aylık ücret finansal veridir. */
-export async function createCustomer(formData: FormData) {
-  const user = await assertAdmin();
-
+function alanlar(formData: FormData) {
   const name = str(formData, 'name');
   if (!name) throw new Error('Müşteri adı zorunludur.');
 
@@ -27,19 +24,56 @@ export async function createCustomer(formData: FormData) {
   const assignedRaw = str(formData, 'assigned_to');
   const assignedTo = assignedRaw ? parseInt(assignedRaw, 10) : null;
 
+  return {
+    name,
+    company: str(formData, 'company'),
+    phone: str(formData, 'phone'),
+    email: str(formData, 'email'),
+    package: safePkg,
+    monthlyFee: Number.isFinite(fee) && fee >= 0 ? fee : 0,
+    status: safeStatus,
+    startDate: str(formData, 'start_date'),
+    nextPaymentDate: str(formData, 'next_payment_date'),
+    assignedTo: Number.isInteger(assignedTo) ? assignedTo : null,
+    notes: str(formData, 'notes'),
+  };
+}
+
+/** Müşteri ekleme/düzenleme/silme yalnızca yöneticide — aylık ücret finansal veridir. */
+export async function createCustomer(formData: FormData) {
+  const user = await assertAdmin();
+  const a = alanlar(formData);
+
   const rows = (await sql`
     INSERT INTO customers (name, company, phone, email, package, monthly_fee, status,
-                           start_date, contract_start, contract_end, assigned_to, notes)
-    VALUES (${name}, ${str(formData, 'company')}, ${str(formData, 'phone')},
-            ${str(formData, 'email')}, ${safePkg},
-            ${Number.isFinite(fee) && fee >= 0 ? fee : 0}, ${safeStatus},
-            ${str(formData, 'start_date')}, ${str(formData, 'contract_start')},
-            ${str(formData, 'contract_end')},
-            ${Number.isInteger(assignedTo) ? assignedTo : null}, ${str(formData, 'notes')})
+                           start_date, next_payment_date, assigned_to, notes)
+    VALUES (${a.name}, ${a.company}, ${a.phone}, ${a.email}, ${a.package},
+            ${a.monthlyFee}, ${a.status}, ${a.startDate}, ${a.nextPaymentDate},
+            ${a.assignedTo}, ${a.notes})
     RETURNING id
   `) as Array<{ id: number }>;
 
-  await logActivity({ userId: user.id, action: 'ekle', entity: 'müşteri', entityId: rows[0]?.id, detail: name });
+  await logActivity({ userId: user.id, action: 'ekle', entity: 'müşteri', entityId: rows[0]?.id, detail: a.name });
+  revalidatePath('/musteriler');
+  revalidatePath('/');
+}
+
+export async function updateCustomer(formData: FormData) {
+  const user = await assertAdmin();
+  const id = parseInt(String(formData.get('id') ?? ''), 10);
+  if (!Number.isInteger(id)) throw new Error('Geçersiz müşteri.');
+  const a = alanlar(formData);
+
+  await sql`
+    UPDATE customers
+    SET name = ${a.name}, company = ${a.company}, phone = ${a.phone}, email = ${a.email},
+        package = ${a.package}, monthly_fee = ${a.monthlyFee}, status = ${a.status},
+        start_date = ${a.startDate}, next_payment_date = ${a.nextPaymentDate},
+        assigned_to = ${a.assignedTo}, notes = ${a.notes}
+    WHERE id = ${id}
+  `;
+
+  await logActivity({ userId: user.id, action: 'güncelle', entity: 'müşteri', entityId: id, detail: a.name });
   revalidatePath('/musteriler');
   revalidatePath('/');
 }

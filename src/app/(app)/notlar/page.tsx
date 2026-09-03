@@ -73,6 +73,7 @@ export default async function NotesPage({
                   {f.l}
                 </a>
               ))}
+              <a href="/notlar/kisayollar" className="btn btn-sm btn-secondary">⌨️ Kısayollar</a>
             </div>
           </div>
 

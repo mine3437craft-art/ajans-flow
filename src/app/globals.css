@@ -321,3 +321,23 @@ textarea.form-control { resize: vertical; min-height: 72px; }
   background: var(--primary); border-color: var(--primary); color: #fff;
 }
 .gun-secim input:focus-visible + span { border-color: var(--text); }
+
+/* ---------------- Kısayol tuşları ---------------- */
+.key {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; padding: 0 9px;
+  background: linear-gradient(180deg, #fff, var(--bg-input));
+  border: 1px solid var(--border);
+  border-bottom-width: 2.5px;
+  border-radius: 7px;
+  box-shadow: var(--shadow-xs);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px; font-weight: 700; color: var(--text);
+}
+.key-combo { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.shortcut-row {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.shortcut-aciklama { font-size: 13.5px; color: var(--text-secondary); }

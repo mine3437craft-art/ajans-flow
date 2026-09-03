@@ -63,7 +63,16 @@ export default async function DashboardPage({
   // --- Yalnızca yöneticiye gönderilen finans verileri ---
   // Personel için sorgu hiç çalışmaz; veri istemciye ulaşmaz.
   let finans: { gelir: number; gider: number; alacak: number; musteri: number } | null = null;
+  let yaklasanOdemeler: Array<{ id: number; name: string; monthly_fee: string; next_payment_date: string }> = [];
   if (isAdmin) {
+    yaklasanOdemeler = (await sql`
+      SELECT id, name, monthly_fee, next_payment_date
+      FROM customers
+      WHERE status = 'aktif' AND next_payment_date IS NOT NULL
+        AND next_payment_date <= CURRENT_DATE + INTERVAL '7 days'
+      ORDER BY next_payment_date
+    `) as Array<{ id: number; name: string; monthly_fee: string; next_payment_date: string }>;
+
     const [tx] = (await sql`
       SELECT
         COALESCE(SUM(amount) FILTER (WHERE type='gelir'), 0) AS gelir,
@@ -102,6 +111,35 @@ export default async function DashboardPage({
         <p style={{ color: 'var(--text-secondary)', marginBottom: 18 }}>
           Hoş geldin, <strong>{user.display_name}</strong>.
         </p>
+
+        {yaklasanOdemeler.length > 0 && (
+          <div className="card" style={{ borderLeft: '3px solid var(--warning)' }}>
+            <div className="card-head">
+              <h2>💳 Yaklaşan Ödemeler</h2>
+              <a href="/musteriler" className="btn btn-sm btn-secondary">Müşteriler →</a>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <tbody>
+                  {yaklasanOdemeler.map((o) => {
+                    const gecmis = o.next_payment_date < new Date().toISOString().slice(0, 10);
+                    return (
+                      <tr key={o.id}>
+                        <td className="cell-title">{o.name}</td>
+                        <td className="num">{money(o.monthly_fee)}</td>
+                        <td>
+                          <span className={`badge ${gecmis ? 'b-danger' : 'b-warning'}`}>
+                            {gecmis ? 'Vadesi geçti' : dateShort(o.next_payment_date)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {videoUyari.length > 0 && (
           <div className="card" style={{ borderLeft: '3px solid var(--danger)' }}>

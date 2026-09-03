@@ -141,6 +141,20 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_attempts ON login_attempts(username, created_at DESC);
 
+-- ---------- Kisayollar (Photoshop, Premiere vb.) ----------
+-- Ekip icin ortak bilgi bankasi; herkes gorur, ekleyen ya da yonetici
+-- silebilir. Tus kombinasyonu "+" ile ayrilmis parcalar olarak tutulur
+-- (orn. "Ctrl+E") ki arayuzde ayri tuslar halinde gosterilebilsin.
+CREATE TABLE IF NOT EXISTS shortcuts (
+  id          SERIAL PRIMARY KEY,
+  program     TEXT NOT NULL,
+  keys        TEXT NOT NULL,
+  aciklama    TEXT NOT NULL,
+  author_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_shortcuts_program ON shortcuts(program);
+
 -- ---------- Tekrarlayan gorev sablonlari ----------
 -- Ornek: "Kok Cafe story" her Pazartesi ve Persembe.
 -- Sablondan uretilen gorevler tasks tablosuna dusuruluyor.
@@ -168,6 +182,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_task_template_gun
 -- ---------- Video deposu ----------
 -- Musteri basina haftalik kac video paylasildigi customers.haftalik_video'da.
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS haftalik_video SMALLINT NOT NULL DEFAULT 0;
+-- Bir sonraki ödemenin alınacağı tarih. Sözleşme bitişinden ayrı tutulur:
+-- biri sözleşmenin süresini, diğeri bir sonraki tahsilatı gösterir.
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS next_payment_date DATE;
 
 CREATE TABLE IF NOT EXISTS videos (
   id           SERIAL PRIMARY KEY,
