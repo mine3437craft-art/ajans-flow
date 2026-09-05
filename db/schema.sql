@@ -326,3 +326,9 @@ CREATE TABLE IF NOT EXISTS note_guides (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_rehber_sira ON note_guides(category, sort_order);
+
+-- ---------- Bulanik arama (yazim hatasi toleransi) ----------
+-- "maskleme" yazan "maskeleme"yi bulsun: pg_trgm'in word_similarity'si bir
+-- kelimenin metnin icindeki en yakin parcayla benzerligini olcer. Kok
+-- aramasi sonuc vermezse yedek olarak devreye girer (src/lib/arama.ts).
+CREATE EXTENSION IF NOT EXISTS pg_trgm;

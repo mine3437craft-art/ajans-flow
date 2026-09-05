@@ -171,6 +171,95 @@ function Zincir() {
   );
 }
 
+function FircaHareket() {
+  return (
+    <div className="gorsel">
+      <div className="pusula">
+        <div className="pusula-ok ust">↑ <span>yumuşar</span></div>
+        <div className="pusula-orta">
+          <div className="pusula-ok sol">← <span>küçülür</span></div>
+          <div className="pusula-merkez">
+            <kbd>Alt</kbd> + <strong>sağ tık</strong><br />
+            <small>basılı tutup sürükle</small>
+          </div>
+          <div className="pusula-ok sag"><span>büyür</span> →</div>
+        </div>
+        <div className="pusula-ok alt">↓ <span>sertleşir</span></div>
+      </div>
+      <p className="gorsel-not">Mac'te aynı hareket: <kbd>Control</kbd> + <kbd>Option</kbd> basılıyken sürükle.</p>
+    </div>
+  );
+}
+
+function MaskeMenusu() {
+  const satirlar = [
+    ['Disable Layer Mask', 'Maskeyi geçici kapatır, üstünde kırmızı çarpı çıkar.', 'Evet — Enable ile anında', 'evet'],
+    ['Delete Layer Mask', 'Maskeyi siler, gizlenen her şey geri görünür.', 'Sadece Ctrl+Z ile', 'orta'],
+    ['Apply Layer Mask', 'Maskeyi piksellere işler, gizlenen yerler gerçekten silinir.', 'Hayır', 'hayir'],
+  ];
+  return (
+    <div className="gorsel tablo-mini">
+      <table>
+        <thead>
+          <tr><th>Seçenek</th><th>Ne olur?</th><th>Geri alınır mı?</th></tr>
+        </thead>
+        <tbody>
+          {satirlar.map((s) => (
+            <tr key={s[0]}>
+              <td><strong>{s[0]}</strong></td>
+              <td>{s[1]}</td>
+              <td className={`geri-${s[3]}`}>{s[2]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ClippingMask() {
+  return (
+    <div className="gorsel klip">
+      <div className="klip-adim">
+        <div className="klip-kutu"><div className="klip-daire" /></div>
+        <div className="klip-etiket">Alttaki katman<br /><em>şekil (daire)</em></div>
+      </div>
+      <div className="klip-arti">+</div>
+      <div className="klip-adim">
+        <div className="klip-kutu klip-foto" />
+        <div className="klip-etiket">Üstteki katman<br /><em>fotoğraf</em></div>
+      </div>
+      <div className="klip-arti">=</div>
+      <div className="klip-adim">
+        <div className="klip-kutu"><div className="klip-daire klip-foto" /></div>
+        <div className="klip-etiket">Sonuç<br /><em>fotoğraf yalnızca dairenin içinde</em></div>
+      </div>
+    </div>
+  );
+}
+
+function SecimTuslari() {
+  const tuslar = [
+    { tus: 'Shift', sembol: '+', ad: 'Seçime ekler', renk: 'var(--success)' },
+    { tus: 'Alt', sembol: '−', ad: 'Seçimden çıkarır', renk: 'var(--danger)' },
+    { tus: 'Shift + Alt', sembol: '∩', ad: 'Kesişimi alır', renk: 'var(--info)' },
+  ];
+  return (
+    <div className="gorsel secim-tuslari">
+      {tuslar.map((t) => (
+        <div className="secim-tus" key={t.tus}>
+          <span className="secim-sembol" style={{ color: t.renk }}>{t.sembol}</span>
+          <kbd>{t.tus}</kbd>
+          <span className="secim-ad">{t.ad}</span>
+        </div>
+      ))}
+      <p className="gorsel-not" style={{ flexBasis: '100%' }}>
+        Tuşa basılıyken çizmeye başla; imlecin yanında küçük bir + / − işareti çıkar.
+      </p>
+    </div>
+  );
+}
+
 const GORSELLER: Record<string, () => React.ReactElement> = {
   cozunurluk: Cozunurluk,
   'renk-modu': RenkModu,
@@ -179,6 +268,10 @@ const GORSELLER: Record<string, () => React.ReactElement> = {
   'dosya-turleri': DosyaTurleri,
   'karisim-modlari': KarisimModlari,
   zincir: Zincir,
+  'firca-hareket': FircaHareket,
+  'maske-menusu': MaskeMenusu,
+  'clipping-mask': ClippingMask,
+  'secim-tuslari': SecimTuslari,
 };
 
 /** Rehber formundaki seçim kutusu için: anahtar + okunur ad. */
@@ -191,6 +284,10 @@ export const GORSEL_SECENEKLERI: Array<{ k: string; l: string }> = [
   { k: 'dosya-turleri', l: 'PSD / JPEG / PNG tablosu' },
   { k: 'karisim-modlari', l: 'Karışım modları grupları' },
   { k: 'zincir', l: 'Maske–katman zinciri' },
+  { k: 'firca-hareket', l: 'Fırça boyut/sertlik hareketi (pusula)' },
+  { k: 'maske-menusu', l: 'Maske menüsü: Disable / Delete / Apply' },
+  { k: 'clipping-mask', l: 'Clipping mask (şekil + fotoğraf = sonuç)' },
+  { k: 'secim-tuslari', l: 'Seçim tuşları (Shift / Alt)' },
 ];
 
 export default function RehberGorsel({ anahtar }: { anahtar: string | null }) {

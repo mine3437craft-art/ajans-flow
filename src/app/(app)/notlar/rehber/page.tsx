@@ -6,6 +6,11 @@ import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
 import RehberGorsel from '@/components/RehberGorsel';
 import RehberForm from '@/components/RehberForm';
+import Vurgu from '@/components/Vurgu';
+import AramaKisayolu from '@/components/AramaKisayolu';
+import {
+  aramaDesenleri, katlanmisKelimeler, vurguDuzenleri, kelimeler, kokOzeti, BULANIK_ESIK,
+} from '@/lib/arama';
 import { createGuide, updateGuide, deleteGuide } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +20,7 @@ type Kayit = {
   summary: string; body: string; steps: string[]; tips: string[];
   visual: string | null; source_note_ids: number[];
   author_id: number | null; updated_at: string;
+  eslesme: number;
 };
 
 export default async function RehberPage({
@@ -27,21 +33,50 @@ export default async function RehberPage({
   const arama = (ara ?? '').trim();
   const kat = (kategori ?? '').trim();
 
-  // Arama tr_fold ile: büyük harfli metinlerde ILIKE Türkçe İ/I yüzünden
-  // eşleşmiyordu. Adımların ve ipuçlarının içinde de arıyoruz.
+  // Notlar sayfasıyla aynı arama: kök eşleştirme + yazım hatası payı.
+  // Adımlar ve ipuçları da metne dahil. Başlıkta eşleşen üste çıkar.
+  const desenler = aramaDesenleri(arama);
+  const bulanikKelimeler = katlanmisKelimeler(arama);
+  const vurgu = vurguDuzenleri(arama);
+
   const kayitlar = (await sql`
     SELECT id, slug, category, icon, title, summary, body, steps, tips,
-           visual, source_note_ids, author_id, updated_at
+           visual, source_note_ids, author_id, updated_at,
+           CASE
+             WHEN cardinality(${desenler}::text[]) = 0 THEN 0
+             WHEN tr_fold(title) ~ ALL(${desenler}::text[]) THEN 4
+             WHEN tr_fold(title || ' ' || summary) ~ ALL(${desenler}::text[]) THEN 3
+             WHEN tr_fold(title || ' ' || summary || ' ' || body || ' '
+                          || array_to_string(steps, ' ') || ' ' || array_to_string(tips, ' '))
+                  ~ ALL(${desenler}::text[]) THEN 2
+             ELSE 1
+           END AS eslesme
     FROM note_guides
-    WHERE (${arama || null}::text IS NULL
-           OR tr_fold(title)   LIKE tr_fold(${'%' + arama + '%'})
-           OR tr_fold(summary) LIKE tr_fold(${'%' + arama + '%'})
-           OR tr_fold(body)    LIKE tr_fold(${'%' + arama + '%'})
-           OR tr_fold(array_to_string(steps, ' ')) LIKE tr_fold(${'%' + arama + '%'})
-           OR tr_fold(array_to_string(tips,  ' ')) LIKE tr_fold(${'%' + arama + '%'}))
-      AND (${kat || null}::text IS NULL OR category = ${kat || null})
-    ORDER BY sort_order, id
+    WHERE (${kat || null}::text IS NULL OR category = ${kat || null})
+      AND (
+        cardinality(${desenler}::text[]) = 0
+        OR tr_fold(title || ' ' || summary || ' ' || body || ' '
+                   || array_to_string(steps, ' ') || ' ' || array_to_string(tips, ' '))
+           ~ ALL(${desenler}::text[])
+        OR (cardinality(${bulanikKelimeler}::text[]) > 0 AND (
+              SELECT bool_and(word_similarity(k, tr_fold(title || ' ' || summary || ' ' || body)) >= ${BULANIK_ESIK})
+              FROM unnest(${bulanikKelimeler}::text[]) AS k))
+      )
+    ORDER BY eslesme DESC, sort_order, id
   `) as Kayit[];
+
+  // Ham notlarda kaç kayıt eşleşiyor — çapraz bağlantı için.
+  const notSayisi = arama
+    ? (((await sql`
+        SELECT COUNT(*)::int AS n FROM notes n
+        WHERE (n.visibility = 'ekip' OR n.author_id = ${user.id})
+          AND tr_fold(n.title || ' ' || n.body) ~ ALL(${desenler}::text[])
+      `) as Array<{ n: number }>)[0]?.n ?? 0)
+    : 0;
+
+  const yakinEslesme = kayitlar.length > 0 && kayitlar.every((k) => k.eslesme === 1);
+  const kokler = kokOzeti(arama);
+  const sozcukler = kelimeler(arama);
 
   const kategoriler = (await sql`
     SELECT category, COUNT(*)::int AS adet FROM note_guides GROUP BY category ORDER BY category
@@ -52,6 +87,7 @@ export default async function RehberPage({
   return (
     <>
       <PageHeader title="Düzenlenmiş Notlar" />
+      <AramaKisayolu hedefId="ara" />
       <div className="content">
         <div className="alert alert-info">
           <Icon name="note" style={{ width: 17, height: 17, flexShrink: 0 }} />
@@ -84,10 +120,10 @@ export default async function RehberPage({
 
           <form className="filter-bar" method="get">
             {kat && <input type="hidden" name="kategori" value={kat} />}
-            <input name="ara" className="form-control" defaultValue={arama}
-                   placeholder="Rehberde ara — örn. maske, çözünürlük, katman…"
-                   aria-label="Rehberde ara" style={{ flex: '1 1 240px' }} />
-            <button className="btn btn-secondary btn-sm" type="submit">Ara</button>
+            <input id="ara" name="ara" className="form-control" defaultValue={arama} autoComplete="off"
+                   placeholder="Ne arıyorsun? örn. seçme, maske, fırça büyütme…   ( / tuşuyla buraya gel )"
+                   aria-label="Rehberde ara" style={{ flex: '1 1 320px' }} />
+            <button className="btn btn-primary btn-sm" type="submit">Ara</button>
             {arama && (
               <a className="btn btn-ghost btn-sm"
                  href={`/notlar/rehber${kat ? `?kategori=${encodeURIComponent(kat)}` : ''}`}>
@@ -95,6 +131,26 @@ export default async function RehberPage({
               </a>
             )}
           </form>
+
+          {arama && (
+            <div className="sonuc-ipucu">
+              <span>
+                <strong>{kayitlar.length}</strong> anlatım bulundu
+                {yakinEslesme && ' — tam eşleşme yok, yakın yazımlar gösteriliyor'}
+              </span>
+              {sozcukler.length > 0 && (
+                <span>
+                  · aranan kök{sozcukler.length > 1 ? 'ler' : ''}:{' '}
+                  {sozcukler.map((sz, i) => <code key={sz}>{sz} → {kokler[i]}…</code>)}
+                </span>
+              )}
+              {notSayisi > 0 && (
+                <a href={`/notlar?ara=${encodeURIComponent(arama)}`}>
+                  · Ham notlarda {notSayisi} kayıt →
+                </a>
+              )}
+            </div>
+          )}
 
           <details style={{ borderTop: '1px solid var(--border)' }}>
             <summary className="acilir-baslik">+ Yeni anlatım ekle</summary>
@@ -109,19 +165,30 @@ export default async function RehberPage({
             <EmptyState
               icon="📚"
               title={arama ? 'Aramaya uyan anlatım yok' : 'Henüz anlatım yok'}
-              text={arama ? 'Başka bir kelime dene.' : 'Yukarıdan ilk anlatımı ekleyebilirsin.'}
+              text={arama
+                ? 'Kelimenin kökünü ve yakın yazımlarını da denedik. Daha kısa ya da başka bir kelime dene.'
+                : 'Yukarıdan ilk anlatımı ekleyebilirsin.'}
             />
           </div>
         ) : (
           kayitlar.map((r) => {
             const yazabilir = user.role === 'admin' || r.author_id === user.id;
             return (
-              <article className="rehber-kart" key={r.id}>
+              <article className="rehber-kart" key={r.id} id={`r-${r.id}`}>
                 <header className="rehber-ust">
                   <span className="rehber-simge" aria-hidden>{r.icon}</span>
                   <div className="rehber-kimlik">
-                    <h2>{r.title}</h2>
-                    {r.summary && <p className="rehber-ozet">{r.summary}</p>}
+                    <h2>
+                      <Vurgu metin={r.title} desenler={vurgu} kelimeler={bulanikKelimeler} />
+                      {r.eslesme === 1 && (
+                        <span className="badge b-warning yakin-rozet" style={{ marginLeft: 8 }}>yakın eşleşme</span>
+                      )}
+                    </h2>
+                    {r.summary && (
+                      <p className="rehber-ozet">
+                        <Vurgu metin={r.summary} desenler={vurgu} kelimeler={bulanikKelimeler} />
+                      </p>
+                    )}
                   </div>
                   <span className="badge b-primary">{r.category}</span>
                   {yazabilir && (
@@ -136,7 +203,7 @@ export default async function RehberPage({
 
                 <div className="rehber-govde">
                   {r.body.split(/\n{2,}/).filter(Boolean).map((p, i) => (
-                    <p key={i}>{p}</p>
+                    <p key={i}><Vurgu metin={p} desenler={vurgu} kelimeler={bulanikKelimeler} /></p>
                   ))}
 
                   <RehberGorsel anahtar={r.visual} />
@@ -145,7 +212,9 @@ export default async function RehberPage({
                     <div className="rehber-blok">
                       <div className="rehber-blok-baslik">Adım adım</div>
                       <ol className="adimlar">
-                        {r.steps.map((a, i) => <li key={i}>{a}</li>)}
+                        {r.steps.map((a, i) => (
+                          <li key={i}><Vurgu metin={a} desenler={vurgu} kelimeler={bulanikKelimeler} /></li>
+                        ))}
                       </ol>
                     </div>
                   )}
@@ -154,7 +223,9 @@ export default async function RehberPage({
                     <div className="rehber-blok">
                       <div className="rehber-blok-baslik">İpuçları</div>
                       <ul className="ipuclari">
-                        {r.tips.map((t, i) => <li key={i}>{t}</li>)}
+                        {r.tips.map((t, i) => (
+                          <li key={i}><Vurgu metin={t} desenler={vurgu} kelimeler={bulanikKelimeler} /></li>
+                        ))}
                       </ul>
                     </div>
                   )}

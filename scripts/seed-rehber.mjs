@@ -349,7 +349,241 @@ Bu şablonun neden böyle kurulduğunu bilen kişi Beyza. Bir adım eklemek veya
     visual: null,
     kaynak: [2],
   },
+  {
+    slug: 'firca-ayarlari',
+    sort: 45,
+    icon: '🖌️',
+    title: 'Fırça (Brush): Boyut, Sertlik, Spacing ve Fırça İndirme',
+    summary: 'Alt + sağ tık basılıyken sağa-sola sürükle boyutu, yukarı-aşağı sürükle sertliği değiştirir. Çizgi kesik kesik çıkıyorsa Spacing\'e bak.',
+    body: `Fırça (B) Photoshop'ta en çok elinde olacak araç. Boyutunu ve kenar yumuşaklığını her seferinde üst çubuktan ayarlamak yerine tek hareketle değiştirmeyi öğrenmek işi çok hızlandırır.
+
+Windows'ta Alt tuşuna basılı tutup sağ tıkla sürüklersin: sağa gidince fırça büyür, sola gidince küçülür; yukarı çekince kenarı yumuşar, aşağı çekince sertleşir. Ekranda kırmızı bir daire fırçanın yeni hâlini gösterir. Mac'te aynı iş Control + Option basılı sürüklemedir.
+
+Fırçanın "hareketi" — dağılma, boyut oynaması, açı gibi şeyler — Brush Settings panelinde ayarlanır (F5). Panelin altındaki uzun beyaz kutu fırçanın nasıl çizeceğini önden gösterir; soldaki listeden Shape Dynamics ve Scattering açılınca çizgi canlanır.
+
+Çizgin kesik kesik, tırtıklı çıkıyorsa sebep Spacing'dir. Brush Settings > Brush Tip Shape altındaki Spacing kutusu işaretli olmalı ve değeri düşük tutulmalı (yüzde 1-10). Kutu işaretli değilse aralık farenin hızına bağlı kalır, hızlı çizdiğinde fırça izleri birbirinden kopar. Değer yüksekse zaten nokta nokta çizer.
+
+İnternetten fırça indirmek de mümkün: Brusheezy gibi sitelerde ücretsiz .abr dosyaları var. İndirdiğin dosyayı Brushes paneline aktarırsın, listenin sonuna yeni bir klasör olarak gelir.`,
+    steps: [
+      'B ile fırçayı al.',
+      'Boyut: Alt + sağ tık basılı, sağa (büyüt) veya sola (küçült) sürükle.',
+      'Sertlik: aynı hareketle yukarı (yumuşat) veya aşağı (sertleştir) sürükle.',
+      'Kesik çizgi sorunu: F5 > Brush Tip Shape > Spacing işaretli ve %1-10 arası.',
+      'Fırça indirme: .abr dosyasını indir > Window > Brushes > sağ üst ≡ menü > Import Brushes.',
+    ],
+    tips: [
+      'Klavyeden de olur: [ küçültür, ] büyütür; Shift + [ yumuşatır, Shift + ] sertleştirir.',
+      'Düz çizgi için bir noktaya tıkla, Shift basılı tutarak ikinci noktaya tıkla.',
+      'Fırça kenarı sertken (Hardness 100) maske geçişleri de sert olur — maskede yumuşak fırça kullan.',
+      'İndirdiğin .abr dosyasına çift tıklamak da Photoshop\'a doğrudan yükler.',
+    ],
+    visual: 'firca-hareket',
+    kaynak: [37, 38, 39, 40, 41, 42],
+  },
+  {
+    slug: 'lasso-secim',
+    sort: 47,
+    icon: '➰',
+    title: 'Lasso (L): Serbest Seçim ve Seçime Ekleme / Çıkarma',
+    summary: 'Elle çizerek seçersin. Shift basılıyken çizdiğin seçime eklenir, Alt basılıyken çıkarılır.',
+    body: `Lasso, kalemle çember çizer gibi elle seçim yapmanı sağlar (L). Kaba ve hızlı seçimler ya da başka bir araçla yaptığın seçimi düzeltmek için idealdir.
+
+Asıl gücü tuş kombinasyonlarında: Shift basılı tutup çizersen yeni çizdiğin alan var olan seçime eklenir; Alt basılı tutarsan seçimden çıkarılır; ikisi birden basılıysa yalnızca kesişen kısım kalır. İmlecin yanındaki küçük + ve − işareti hangi modda olduğunu söyler.
+
+Lasso'nun altında iki kardeşi vardır (araçta uzun basınca çıkar): Polygonal Lasso tıkladığın noktaları düz çizgilerle birleştirir, köşeli nesneler için iyidir. Magnetic Lasso ise kenarları kendisi bulur, kontrastı yüksek nesnelerde işe yarar.
+
+Seçimi kaldırmak Ctrl+D, tersine çevirmek Ctrl+Shift+I. Seçim kenarlarını yumuşatmak veya saç gibi zor yerleri temizlemek için üst çubuktaki Select and Mask düğmesini kullan.`,
+    steps: [
+      'L ile Lasso\'yu al, seçmek istediğin alanın etrafını çizip başladığın yere dön.',
+      'Eksik kalan yer için Shift basılı tutup o bölgeyi de çiz — eklenir.',
+      'Fazla alınan yer için Alt basılı tutup o bölgeyi çiz — çıkarılır.',
+      'Bitince Ctrl+J ile seçimi yeni katmana kopyala ya da maske ekle.',
+    ],
+    tips: [
+      'Çizim bitmeden fareyi bırakırsan Photoshop son noktayı başlangıca düz çizgiyle bağlar.',
+      'Seçim çizgisi ("karıncalar") gözünü yoruyorsa Ctrl+H ile gizle, seçim durur.',
+      'Otomatik seçim için Object Selection Tool (W) çoğu zaman Lasso\'dan hızlıdır; Lasso\'yu düzeltme için kullan.',
+    ],
+    visual: 'secim-tuslari',
+    kaynak: [45],
+  },
+  {
+    slug: 'hue-saturation',
+    sort: 65,
+    icon: '🌈',
+    title: 'Hue / Saturation: Renk Tonu, Doygunluk, Açıklık',
+    summary: 'Renkleri kaydırır, canlandırır veya soldurur. Ayarlama katmanı olarak ekle ki fotoğraf bozulmasın.',
+    body: `Hue/Saturation üç kaydıraçtan oluşur. Hue renk tonunu çarkın üstünde kaydırır (kırmızıyı turuncuya, maviyi mora götürür). Saturation doygunluğu ayarlar: sağa canlanır, sola gri tona gider. Lightness açıklığı değiştirir.
+
+En doğru kullanımı ayarlama katmanı olarak eklemektir: Katmanlar panelinin altındaki yarısı siyah yarısı beyaz daire simgesi > Hue/Saturation. Böylece fotoğrafın pikselleri değişmez; katmanı kapatır, siler, sonradan yeniden ayarlarsın. Image > Adjustments > Hue/Saturation (Ctrl+U) aynı işi yapar ama doğrudan piksele işler, geri dönüşü Ctrl+Z ile sınırlıdır.
+
+Beyza'nın notunda "layer'a sağ tık" yazıyor; sağ tık menüsünde Hue/Saturation yok. Doğru yer yukarıdaki daire simgesi ya da Window > Adjustments paneli.
+
+Asıl numara Master açılır menüsündedir: Master yerine Reds, Yellows, Blues seçersen yalnızca o renk aralığı değişir. Gökyüzünü daha mavi yapmak veya bir tişörtün rengini değiştirmek fotoğrafın geri kalanına dokunmadan böyle olur. Colorize kutusu ise tüm görüntüyü tek renge boyar, sepya gibi efektler için.`,
+    steps: [
+      'Katmanlar panelinin altında yarısı siyah yarısı beyaz daireye tıkla > Hue/Saturation.',
+      'Properties panelinde Hue, Saturation, Lightness kaydıraçlarını oyna.',
+      'Tek bir rengi hedeflemek için Master menüsünden o rengi seç (Reds, Blues…).',
+      'Etkiyi yalnızca bir katmana sınırlamak için ayarlama katmanına sağ tık > Create Clipping Mask.',
+    ],
+    tips: [
+      'Saturation\'ı +100 yapmak fotoğrafı "yanmış" gösterir; +10 ile +25 arası genelde yeter.',
+      'Ayarlama katmanının kendi maskesi vardır: siyahla boyadığın yerde etki kalkar.',
+      'Panelde el simgesi (Targeted Adjustment) varken fotoğrafta bir renge tıkla, o rengi otomatik seçer.',
+    ],
+    visual: null,
+    kaynak: [19],
+  },
+  {
+    slug: 'clipping-mask',
+    sort: 95,
+    icon: '✂️',
+    title: 'Clipping Mask: Fotoğrafı Bir Şeklin İçine Sokmak',
+    summary: 'Üstteki katman yalnızca alttaki katmanın dolu olduğu yerde görünür. Yazının içine fotoğraf koymak böyle yapılır.',
+    body: `Clipping mask iki katman arasında kurulan bir ilişkidir: üstteki katman, altındaki katmanın piksellerinin olduğu yerde görünür, geri kalan yerde saklanır. Alttaki katman kalıp, üstteki katman dolgudur.
+
+Klasik örnek: alta büyük bir yazı yazarsın, üstüne fotoğraf koyarsın, clipping mask yaparsın — fotoğraf yalnızca harflerin içinde kalır. Aynı şekilde bir daireye, şekle ya da çizime fotoğraf oturtabilirsin.
+
+Beyza "arka planı daha temiz maskeler" diye not almış; mantığı doğru ama sebebi şu: kenarı fırçayla boyamaya gerek kalmaz, alttaki şeklin kenarı neyse sınır o olur. Bu yüzden düzgün ve keskin çıkar.
+
+İkinci büyük kullanımı ayarlama katmanlarında: Hue/Saturation gibi bir ayar normalde altındaki her şeyi etkiler. Onu tek bir katmana kırparsan (clip) yalnızca o katmanı değiştirir.`,
+    steps: [
+      'Kalıp olacak katmanı (şekil, yazı) alta, dolgu olacak katmanı (fotoğraf) hemen üstüne koy.',
+      'Üstteki katman seçiliyken Ctrl + Alt + G — ya da Alt basılı tutup iki katmanın arasındaki çizgiye tıkla.',
+      'Üstteki katmanın küçük resminin yanında aşağı dönük bir ok belirir; kırpılmış demektir.',
+      'Fotoğrafı Ctrl+T ile şeklin içinde kaydırıp boyutlandır.',
+    ],
+    tips: [
+      'Kaldırmak için aynı kısayol: Ctrl + Alt + G.',
+      'Birden fazla katmanı aynı kalıba kırpabilirsin; hepsini alttaki tek katmana bağlar.',
+      'Katman maskesinden farkı: burada kalıp ayrı bir katmandır, sonradan şekli değiştirmek çok kolaydır.',
+    ],
+    visual: 'clipping-mask',
+    kaynak: [20],
+  },
+  {
+    slug: 'maske-menusu',
+    sort: 98,
+    icon: '🧭',
+    title: 'Maske Menüsü: Disable, Delete ve Apply Farkı',
+    summary: 'Maske kutusuna sağ tıklayınca çıkan üç seçenek birbirine benzer ama biri geri alınamaz.',
+    body: `Maske kutusuna sağ tıklayınca çıkan menüde üç seçenek birbirine karışır. Farkları şu:
+
+Disable Layer Mask maskeyi geçici olarak kapatır. Maske kutusunun üstünde kırmızı bir çarpı çıkar, katman maskesizmiş gibi görünür. Aynı menüden Enable Layer Mask dersen olduğu gibi geri gelir. Beyza'nın notundaki kısayol doğru: maske kutusuna Shift ile tıklamak da aynı işi yapar — bir tık kapatır, bir tık açar. "Maskesiz nasıl duruyordu" diye bakmak için en hızlı yol.
+
+Delete Layer Mask maskeyi tamamen kaldırır. Gizlenen her şey geri görünür ama maskeye harcadığın emek gider; yalnızca Ctrl+Z ile geri alabilirsin.
+
+Apply Layer Mask maskeyi katmanın piksellerine kalıcı olarak işler. Gizlenen yerler gerçekten silinir. Bu üçünden geri dönüşü olmayan tek seçenek budur, ayrıntısı bir sonraki anlatımda.`,
+    steps: [
+      'Katmanlar panelinde maske kutusuna (katmanın yanındaki siyah-beyaz küçük kare) sağ tıkla.',
+      'Geçici bakış için Disable Layer Mask; geri almak için Enable Layer Mask.',
+      'Kısayol: maske kutusuna Shift + tık — açar/kapatır.',
+      'Maskeyi tamamen kaldırmak için Delete, kalıcı işlemek için Apply.',
+    ],
+    tips: [
+      'Maskenin kendisini büyük görmek için maske kutusuna Alt ile tıkla; siyah-beyaz hâlini gösterir, tekrar Alt + tık ile çıkarsın.',
+      'Emin değilsen hiçbirini yapma; kapatılmış maske dosyaya zarar vermez.',
+    ],
+    visual: 'maske-menusu',
+    kaynak: [21],
+  },
+  {
+    slug: 'katman-kopyalama',
+    sort: 72,
+    icon: '📑',
+    title: 'Katmanı Kopyalamak: Ctrl+J ile Duplicate Layer Farkı',
+    summary: 'Ctrl+J aynı belgede anında kopyalar. Duplicate Layer menüsü ise kopyayı hangi belgeye koyacağını sorar.',
+    body: `Bir katmanın kopyasını almanın iki yolu var ve farkları küçük ama işe yarar.
+
+Ctrl+J katmanı olduğu yerde, aynı belgede kopyalar. Hiçbir şey sormaz. Bir şeyi denemeden önce yedek almak için en hızlı yol budur.
+
+Layer > Duplicate Layer (ya da katmana sağ tık > Duplicate Layer) bir pencere açar. Beyza'nın fark ettiği kısım burada: Destination altındaki Document menüsünden kopyanın hangi belgeye gideceğini seçersin. Açık olan başka bir belgeyi seçebilir ya da New diyerek yalnızca bu katmanı içeren yepyeni bir dosya oluşturabilirsin.
+
+Katmanı başka belgeye taşımanın üçüncü yolu sürüklemektir: katmanı tutup üstteki diğer belgenin sekmesine götür, sekme açılınca tuvalin üstüne bırak.`,
+    steps: [
+      'Aynı belgede kopya: katmanı seç, Ctrl+J.',
+      'Başka belgeye kopya: katmana sağ tık > Duplicate Layer > Document menüsünden hedef belgeyi seç.',
+      'Yeni dosya olarak: aynı pencerede Document > New, bir ad ver.',
+    ],
+    tips: [
+      'Seçili bir alan varken Ctrl+J yalnızca seçili kısmı yeni katmana kopyalar.',
+      'Kopyalanan katman adının sonuna "copy" gelir; çift tıklayıp anlamlı bir ad ver.',
+    ],
+    visual: null,
+    kaynak: [26],
+  },
+  {
+    slug: 'katman-duzeni',
+    sort: 74,
+    icon: '🧹',
+    title: 'Katmanları Düzenli Tutmak: İsim, Grup ve Auto-Select',
+    summary: 'Ada çift tıkla yeniden adlandır, Ctrl+G ile grupla. Taşıma aracının Layer/Group seçimi tıkladığında neyin seçileceğini belirler.',
+    body: `Üç katmanla başlayan iş kırk katmana çıktığında düzen her şey olur.
+
+Yeniden adlandırmak için katmanın adına çift tıkla, yaz, Enter. Dikkat: küçük resme çift tıklarsan Layer Style penceresi açılır, ada çift tıklamak gerekir.
+
+Gruplamak için ilgili katmanları seç (Ctrl ile tıklayarak) ve Ctrl+G. Bir klasör oluşur, okuna tıklayıp kapatırsın. Grubu kapatıp açmak, taşımak, gizlemek tek hamledir.
+
+Taşıma aracı (V) seçiliyken üst çubukta Auto-Select kutusu ve yanında Layer / Group seçimi vardır. Layer seçiliyse tuvalde tıkladığın şey tek bir katmanı seçer; Group seçiliyse tıkladığın şeyin ait olduğu grubun tamamı seçilir. Beyza'nın notundaki gibi: Layer modundayken gruplar, Group modundayken tek katmanlar seçilmez. Birden fazla grubu seçip üstteki hizalama düğmelerini kullanırsan grupları birbirine hizalar.`,
+    steps: [
+      'Yeniden adlandır: katman adına çift tık > yaz > Enter.',
+      'Grupla: katmanları Ctrl ile seç > Ctrl+G. Grup adına çift tıklayıp ad ver.',
+      'V ile taşıma aracını al; üst çubukta Auto-Select işaretli ve yanında Layer ya da Group seç.',
+      'Renk kodu: katmana sağ tık > alttan bir renk seç; panelde göz simgesinin yanı boyanır.',
+    ],
+    tips: [
+      'Auto-Select kapalıyken tuvalde tıklamak katman değiştirmez; yanlışlıkla başka katmanı seçmemek için bazen kapatmak iyidir.',
+      'Ctrl + tuvalde tık, Auto-Select kapalı olsa bile geçici olarak katman seçer.',
+      'Grubu dağıtmak için gruba sağ tık > Ungroup Layers (Ctrl+Shift+G).',
+    ],
+    visual: null,
+    kaynak: [30, 31, 44],
+  },
+  {
+    slug: 'hizalama-ortalama',
+    sort: 76,
+    icon: '🎯',
+    title: 'Ortalamak ve Hizalamak (Align)',
+    summary: 'Taşıma aracının üst çubuğundaki hizalama düğmeleri. Üç noktadan Canvas seçersen katmanı sayfaya ortalar.',
+    body: `Bir şeyi tam ortaya koymak göz kararıyla yapılmaz, hizalama düğmeleriyle yapılır. Taşıma aracı (V) seçiliyken üst çubukta yatay ve dikey hizalama düğmeleri görünür.
+
+Neye göre hizalanacağını sağdaki üç nokta (…) menüsünden seçersin. Align To altında iki seçenek var: Canvas ve Selection. Canvas seçiliyken tek bir katmanı seçip yatay ve dikey "ortala" düğmelerine bastığında katman sayfanın tam ortasına gelir. Beyza'nın "3 noktadan canvası seçersen ekrana ortalar" dediği şey budur.
+
+Selection seçiliyken iki durum var: tuvalde bir seçim çizdiysen katman o seçime göre hizalanır; seçim yoksa ve birden fazla katman seçtiysen katmanlar birbirine göre hizalanır — örneğin üç logoyu aynı hizaya dizmek.
+
+Eski yöntem de hâlâ çalışır: Ctrl+A ile tüm tuvali seç, sonra ortala düğmelerine bas. Aynı sonucu verir.`,
+    steps: [
+      'V ile taşıma aracını al, ortalamak istediğin katmanı seç.',
+      'Üst çubukta hizalama düğmelerinin yanındaki … simgesine tıkla > Align To: Canvas.',
+      'Yatay ortala ve dikey ortala düğmelerine bas.',
+      'Birkaç katmanı birbirine hizalamak için: hepsini seç, Align To: Selection, istediğin düğmeye bas.',
+    ],
+    tips: [
+      'Distribute (dağıt) düğmeleri seçili katmanların arasındaki boşlukları eşitler.',
+      'Ctrl + T ile dönüştürme kutusu açıkken de aynı hizalama düğmeleri çalışır.',
+    ],
+    visual: null,
+    kaynak: [43, 44],
+  },
 ];
+
+/**
+ * Beyza sonradan aynı konuda yeni ham notlar girdi (ör. maskeleme iki kez).
+ * Var olan anlatımın metnine dokunmadan yalnızca kaynak listesine eklenir;
+ * böylece not kartında "düzenlenmiş hâli" bağlantısı çıkar.
+ */
+const EK_KAYNAKLAR = {
+  'calisma-alani-paneller': [32, 33],
+  'yeni-belge-cozunurluk': [34],
+  'rgb-cmyk': [35],
+  'dosya-acma-sayfa-boyutu': [36],
+  'kayit-formatlari': [25],
+  'katman-turleri': [27, 28],
+  'bozmadan-calisma': [29],
+  'maske-mantigi': [24],
+  'maske-zincir': [23],
+  'apply-layer-mask': [22],
+};
 
 const client = new pg.Client(baglanti(process.env.DATABASE_URL));
 
@@ -372,6 +606,21 @@ async function main() {
     if (rowCount > 0) { eklenen++; console.log(`  + ${k.title}`); }
     else { atlanan++; }
   }
+
+  let baglanan = 0;
+  for (const [slug, idler] of Object.entries(EK_KAYNAKLAR)) {
+    const { rowCount } = await client.query(
+      `UPDATE note_guides
+       SET source_note_ids = (
+         SELECT COALESCE(array_agg(DISTINCT x ORDER BY x), '{}')
+         FROM unnest(source_note_ids || $2::int[]) AS x
+       )
+       WHERE slug = $1 AND NOT (source_note_ids @> $2::int[])`,
+      [slug, idler],
+    );
+    baglanan += rowCount;
+  }
+  if (baglanan > 0) console.log(`  ~ ${baglanan} anlatıma yeni ham not kaynağı bağlandı`);
 
   const { rows } = await client.query('SELECT COUNT(*)::int AS n FROM note_guides');
   console.log(`\n${eklenen} anlatım eklendi, ${atlanan} tanesi zaten vardı.`);
