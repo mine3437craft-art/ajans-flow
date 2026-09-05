@@ -118,7 +118,7 @@ export default async function KasaPage({
                       <form action={deleteAccount}>
                         <input type="hidden" name="id" value={h.id} />
                         <ConfirmButton
-                          soru={`"${h.name}" hesabı silinsin mi? Bu hesaba işlenmiş gelir/gider kayıtları silinmez, yalnızca hesap bağlantısı kopar.`}
+                          soru={`"${h.name}" hesabı silinsin mi? Gelir/gider kayıtları silinmez, yalnızca hesap bağlantıları kopar. Bu hesabın transfer kayıtları listeden kalkar; diğer hesapların bakiyesi değişmez.`}
                           title="Sil"
                         >
                           <Icon name="trash" />
