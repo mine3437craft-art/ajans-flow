@@ -290,3 +290,39 @@ CREATE TABLE IF NOT EXISTS cash_transfers (
   CONSTRAINT transfer_ayni_hesap_olamaz CHECK (from_account_id <> to_account_id)
 );
 CREATE INDEX IF NOT EXISTS idx_transfer_tarih ON cash_transfers(occurred_on DESC);
+
+-- ---------- Turkce arama ----------
+-- Postgres'in ILIKE'i en_US kolasyonuyla calisiyor: lower('İ') iki kod
+-- noktasina donusuyor, bu yuzden "İÇERİK" ILIKE '%içerik%' FALSE veriyordu.
+-- Notlarin cogu buyuk harfle yazildigi icin arama hicbir seyi bulamiyordu.
+-- Bu fonksiyon Turkce harfleri ASCII karsiligina katlar; hem buyuk/kucuk
+-- harf hem de sapkasiz arama calisir ("SAĞDAKİ" <- "sagdaki").
+-- Govdesinde ';' YOK: setup-db.mjs dosyayi ';' ile bolerek calistiriyor.
+CREATE OR REPLACE FUNCTION tr_fold(t TEXT) RETURNS TEXT
+  LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS
+$$ SELECT lower(translate(t, 'İIıŞşĞğÜüÖöÇç', 'iiissgguuoocc')) $$;
+
+-- ---------- Duzenlenmis notlar (rehber) ----------
+-- Ekibin ham notlari `notes` tablosunda oldugu gibi kalir. Burasi ayri:
+-- ayni bilgi duzenlenmis, uzun ve dogrulanmis haliyle duruyor. Bir kayit
+-- birden fazla ham nottan derlenmis olabilir (source_note_ids).
+CREATE TABLE IF NOT EXISTS note_guides (
+  id              SERIAL PRIMARY KEY,
+  -- Tohumlama betigi tekrar calistiginda kayit cogalmasin diye.
+  slug            TEXT UNIQUE NOT NULL,
+  category        TEXT NOT NULL DEFAULT 'Photoshop',
+  icon            TEXT NOT NULL DEFAULT '📘',
+  title           TEXT NOT NULL,
+  summary         TEXT NOT NULL DEFAULT '',
+  body            TEXT NOT NULL DEFAULT '',
+  steps           TEXT[] NOT NULL DEFAULT '{}',
+  tips            TEXT[] NOT NULL DEFAULT '{}',
+  -- Sayfadaki gorsel anlatim bileseninin anahtari (RehberGorsel.tsx).
+  visual          TEXT,
+  source_note_ids INTEGER[] NOT NULL DEFAULT '{}',
+  sort_order      INTEGER NOT NULL DEFAULT 100,
+  author_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_rehber_sira ON note_guides(category, sort_order);

@@ -28,6 +28,7 @@ const TABLOLAR = [
   { ad: 'content_posts' },
   { ad: 'videos' },
   { ad: 'notes' },
+  { ad: 'note_guides' },
   { ad: 'transactions' },
   { ad: 'cash_accounts' },
   { ad: 'cash_transfers' },

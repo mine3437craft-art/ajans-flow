@@ -33,6 +33,11 @@ export default async function NotesPage({
 
   // Görünürlük kuralı tek yerde: ekip notları herkese açık,
   // kişisel notları yalnızca yazan görür (yönetici dahil kimse göremez).
+  //
+  // Arama ILIKE değil tr_fold ile: veritabanı en_US kolasyonunda ve
+  // lower('İ') iki kod noktası veriyor, bu yüzden büyük harfle yazılmış
+  // notlarda "içerik" araması hiçbir şey bulamıyordu. tr_fold Türkçe
+  // harfleri ASCII'ye katlar — "sagdaki" de "SAĞDAKİ"yi bulur.
   const notes = (await sql`
     SELECT n.id, n.title, n.body, n.visibility, n.is_pinned, n.author_id,
            u.display_name AS author_name, n.updated_at
@@ -40,8 +45,8 @@ export default async function NotesPage({
     LEFT JOIN users u ON u.id = n.author_id
     WHERE (n.visibility = 'ekip' OR n.author_id = ${user.id})
       AND (${arama || null}::text IS NULL
-           OR n.title ILIKE ${'%' + arama + '%'}
-           OR n.body  ILIKE ${'%' + arama + '%'})
+           OR tr_fold(n.title) LIKE tr_fold(${'%' + arama + '%'})
+           OR tr_fold(n.body)  LIKE tr_fold(${'%' + arama + '%'}))
       AND (${kim ?? null}::text IS NULL
            OR (${kim ?? null} = 'benim' AND n.author_id = ${user.id})
            OR (${kim ?? null} = 'kisisel' AND n.visibility = 'kisisel' AND n.author_id = ${user.id})
@@ -67,24 +72,33 @@ export default async function NotesPage({
               {filtreler.map((f) => (
                 <a
                   key={f.k}
-                  href={f.k ? `/notlar?kim=${f.k}` : '/notlar'}
+                  href={`/notlar?${new URLSearchParams({
+                    ...(f.k ? { kim: f.k } : {}),
+                    ...(arama ? { ara: arama } : {}),
+                  })}`}
                   className={`btn btn-sm ${(kim ?? '') === f.k ? 'btn-primary' : 'btn-secondary'}`}
                 >
                   {f.l}
                 </a>
               ))}
+              <a href="/notlar/rehber" className="btn btn-sm btn-secondary">📚 Düzenlenmiş Notlar</a>
               <a href="/notlar/kisayollar" className="btn btn-sm btn-secondary">⌨️ Kısayollar</a>
             </div>
           </div>
 
           <form className="filter-bar" method="get">
+            {/* Filtre seçimi aramada kaybolmasın diye forma da taşınıyor. */}
+            {kim && <input type="hidden" name="kim" value={kim} />}
             <input
               name="ara" className="form-control" defaultValue={arama}
-              placeholder="Notlarda ara…" aria-label="Notlarda ara"
+              placeholder="Notun içinde geçen bir kelime yaz…" aria-label="Notlarda ara"
               style={{ flex: '1 1 240px' }}
             />
             <button className="btn btn-secondary btn-sm" type="submit">Ara</button>
-            {arama && <a className="btn btn-ghost btn-sm" href="/notlar">Temizle</a>}
+            {arama && (
+              <a className="btn btn-ghost btn-sm"
+                 href={`/notlar${kim ? `?kim=${kim}` : ''}`}>Temizle</a>
+            )}
           </form>
 
           <details style={{ borderBottom: '1px solid var(--border)' }}>
