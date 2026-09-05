@@ -338,3 +338,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- Ayri tabloya gerek yok; kisayol anlatimla birlikte okunur, birlikte
 -- duzenlenir, aramaya da anlatimin parcasi olarak girer.
 ALTER TABLE note_guides ADD COLUMN IF NOT EXISTS shortcuts TEXT[] NOT NULL DEFAULT '{}';
+
+-- Anlatimlar icindekiler listesinde bolumlere ayrilir (Baslarken, Araclar,
+-- Katmanlar, Maskeler...). category "hangi program", section "konu grubu".
+ALTER TABLE note_guides ADD COLUMN IF NOT EXISTS section TEXT NOT NULL DEFAULT 'Genel';

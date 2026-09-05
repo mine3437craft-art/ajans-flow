@@ -34,6 +34,7 @@ function baglanti(url) {
 const KAYITLAR = [
   {
     slug: 'calisma-alani-paneller',
+    bolum: 'Başlarken',
     sort: 10,
     icon: '🧰',
     title: 'Çalışma Alanı: Paneller Nerede, Kaybolunca Ne Yapılır',
@@ -65,6 +66,7 @@ Panelleri karıştırıp içinden çıkamazsan Window > Workspace > Reset Essent
   },
   {
     slug: 'yeni-belge-cozunurluk',
+    bolum: 'Başlarken',
     sort: 20,
     icon: '📐',
     title: 'Yeni Belge Açarken Çözünürlük Kaç Olmalı?',
@@ -96,6 +98,7 @@ Baskıya gidecek işlerde 300 ppi'nin altına düşme. 150 ppi ancak uzaktan bak
   },
   {
     slug: 'rgb-cmyk',
+    bolum: 'Renk',
     sort: 30,
     icon: '🎨',
     title: 'RGB mi CMYK mi? Ekran ile Baskının Rengi Aynı Değil',
@@ -125,6 +128,7 @@ Bu yüzden kural şu: baskı işini bitirdikten sonra CMYK'ye çevir, renkler bo
   },
   {
     slug: 'dosya-acma-sayfa-boyutu',
+    bolum: 'Başlarken',
     sort: 40,
     icon: '📂',
     title: 'Dosyayı Nasıl Açtığın Sayfa Boyutunu Belirler',
@@ -156,6 +160,7 @@ Yani "sayfa boyutunda açılmıyor" dediğin durum bir hata değil, hangi yolu k
   },
   {
     slug: 'kayit-formatlari',
+    bolum: 'Kaydetme',
     sort: 50,
     icon: '💾',
     title: 'PSD, JPEG, PNG — Hangisiyle Kaydetmeli?',
@@ -188,6 +193,7 @@ Pratik kural: her işte PSD'yi sakla, teslim için JPEG ver, şeffaflık gerekiy
   },
   {
     slug: 'katman-turleri',
+    bolum: 'Katmanlar',
     sort: 60,
     icon: '🗂️',
     title: 'Katmanlar (Layer) Nedir, Hangi Türleri Var?',
@@ -222,6 +228,7 @@ Küçük bir düzeltme: ayarlama katmanı "efekt" değildir. Efekt dediğimiz g�
   },
   {
     slug: 'bozmadan-calisma',
+    bolum: 'Katmanlar',
     sort: 70,
     icon: '🛟',
     title: 'Fotoğrafa Zarar Vermeden Çalışmak',
@@ -255,6 +262,7 @@ Aynı mantık her yerde geçerli: silgiyle silmek yerine maske kullan, fotoğraf
   },
   {
     slug: 'maske-mantigi',
+    bolum: 'Maskeler',
     sort: 80,
     icon: '🎭',
     title: 'Katman Maskesi: Siyah Gizler, Beyaz Gösterir',
@@ -295,6 +303,7 @@ Fırça yerine gradyan aracıyla maskeye siyahtan beyaza bir geçiş çekersen, 
   },
   {
     slug: 'maske-zincir',
+    bolum: 'Maskeler',
     sort: 90,
     icon: '🔗',
     title: 'Maske ile Katman Arasındaki Zincir Ne İşe Yarar?',
@@ -325,6 +334,7 @@ Beyza'nın "2 farklı resim oluyor" dediği durum tam olarak budur — bozulma d
   },
   {
     slug: 'apply-layer-mask',
+    bolum: 'Maskeler',
     sort: 100,
     icon: '⚠️',
     title: 'Apply Layer Mask: Geri Dönüşü Yok',
@@ -354,6 +364,7 @@ Bu yüzden kural basit: müşteri işi onaylamadan Apply Layer Mask yapma. Yapma
   },
   {
     slug: 'karisim-modlari',
+    bolum: 'Renk',
     sort: 110,
     icon: '🌗',
     title: 'Karışım Modları (Blend Modes) Nasıl Seçilir?',
@@ -391,6 +402,7 @@ Beyza'nın kuralı iyi bir başlangıç noktası: fotoğraf zaten aydınlıksa k
   },
   {
     slug: 'ekip-psd-sablonu',
+    bolum: 'Ekip',
     sort: 120,
     icon: '📌',
     title: 'Ekip PSD Şablonu ve Action Kullanımı',
@@ -423,6 +435,7 @@ Bu şablonun neden böyle kurulduğunu bilen kişi Beyza. Bir adım eklemek veya
   },
   {
     slug: 'firca-ayarlari',
+    bolum: 'Araçlar',
     sort: 45,
     icon: '🖌️',
     title: 'Fırça (Brush): Boyut, Sertlik, Spacing ve Fırça İndirme',
@@ -465,6 +478,7 @@ Fırçanın "hareketi" — dağılma, boyut oynaması, açı gibi şeyler — Br
   },
   {
     slug: 'lasso-secim',
+    bolum: 'Araçlar',
     sort: 47,
     icon: '➰',
     title: 'Lasso (L): Serbest Seçim ve Seçime Ekleme / Çıkarma',
@@ -503,6 +517,7 @@ Seçimi kaldırmak Ctrl+D, tersine çevirmek Ctrl+Shift+I. Seçim kenarlarını 
   },
   {
     slug: 'hue-saturation',
+    bolum: 'Renk',
     sort: 65,
     icon: '🌈',
     title: 'Hue / Saturation: Renk Tonu, Doygunluk, Açıklık',
@@ -535,6 +550,7 @@ Asıl numara Master açılır menüsündedir: Master yerine Reds, Yellows, Blues
   },
   {
     slug: 'clipping-mask',
+    bolum: 'Maskeler',
     sort: 95,
     icon: '✂️',
     title: 'Clipping Mask: Fotoğrafı Bir Şeklin İçine Sokmak',
@@ -567,6 +583,7 @@ Beyza "arka planı daha temiz maskeler" diye not almış; mantığı doğru ama 
   },
   {
     slug: 'maske-menusu',
+    bolum: 'Maskeler',
     sort: 98,
     icon: '🧭',
     title: 'Maske Menüsü: Disable, Delete ve Apply Farkı',
@@ -598,6 +615,7 @@ Apply Layer Mask maskeyi katmanın piksellerine kalıcı olarak işler. Gizlenen
   },
   {
     slug: 'katman-kopyalama',
+    bolum: 'Katmanlar',
     sort: 72,
     icon: '📑',
     title: 'Katmanı Kopyalamak: Ctrl+J ile Duplicate Layer Farkı',
@@ -628,6 +646,7 @@ Katmanı başka belgeye taşımanın üçüncü yolu sürüklemektir: katmanı t
   },
   {
     slug: 'katman-duzeni',
+    bolum: 'Katmanlar',
     sort: 74,
     icon: '🧹',
     title: 'Katmanları Düzenli Tutmak: İsim, Grup ve Auto-Select',
@@ -663,6 +682,7 @@ Taşıma aracı (V) seçiliyken üst çubukta Auto-Select kutusu ve yanında Lay
   },
   {
     slug: 'hizalama-ortalama',
+    bolum: 'Katmanlar',
     sort: 76,
     icon: '🎯',
     title: 'Ortalamak ve Hizalamak (Align)',
@@ -725,11 +745,11 @@ async function main() {
     const { rowCount } = await client.query(
       `INSERT INTO note_guides
          (slug, category, icon, title, summary, body, steps, tips, visual,
-          source_note_ids, sort_order, shortcuts)
-       VALUES ($1, 'Photoshop', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          source_note_ids, sort_order, shortcuts, section)
+       VALUES ($1, 'Photoshop', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (slug) DO NOTHING`,
       [k.slug, k.icon, k.title, k.summary, k.body, k.steps, k.tips,
-       k.visual, k.kaynak, k.sort, k.kisayollar ?? []],
+       k.visual, k.kaynak, k.sort, k.kisayollar ?? [], k.bolum ?? 'Genel'],
     );
     if (rowCount > 0) { eklenen++; console.log(`  + ${k.title}`); }
     else { atlanan++; }
@@ -748,6 +768,18 @@ async function main() {
     kisayolEklenen += rowCount;
   }
   if (kisayolEklenen > 0) console.log(`  ~ ${kisayolEklenen} anlatıma kısayol listesi eklendi`);
+
+  // Bölüm alanı sonradan eklendi: 'Genel'de kalmış tohum kayıtlarını yerleştir.
+  let bolumlenen = 0;
+  for (const k of KAYITLAR) {
+    if (!k.bolum) continue;
+    const { rowCount } = await client.query(
+      `UPDATE note_guides SET section = $2 WHERE slug = $1 AND section = 'Genel'`,
+      [k.slug, k.bolum],
+    );
+    bolumlenen += rowCount;
+  }
+  if (bolumlenen > 0) console.log(`  ~ ${bolumlenen} anlatım bölümüne yerleştirildi`);
 
   let baglanan = 0;
   for (const [slug, idler] of Object.entries(EK_KAYNAKLAR)) {

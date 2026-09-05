@@ -856,3 +856,54 @@ kbd {
 .rehber-kisayol:last-child { border-bottom: none; }
 .rehber-kisayol .key-combo { min-width: 150px; }
 .rehber-kisayol .key { height: 26px; min-width: 26px; font-size: 11.5px; padding: 0 7px; }
+
+/* ---------------- Rehber: içindekiler + katlanır kartlar ---------------- */
+.icindekiler {
+  display: grid; gap: 14px 24px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  padding: 16px 20px 18px;
+}
+.icindekiler-bolum h3 {
+  font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+.icindekiler-bolum a {
+  display: flex; align-items: baseline; gap: 7px;
+  padding: 4px 0; font-size: 13.5px; color: var(--text); line-height: 1.4;
+}
+.icindekiler-bolum a:hover { color: var(--primary); }
+.icindekiler-bolum a .ik { flex-shrink: 0; font-size: 13px; }
+
+.bolum-baslik {
+  display: flex; align-items: center; gap: 10px;
+  margin: 26px 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.bolum-baslik::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.bolum-baslik:first-of-type { margin-top: 6px; }
+
+details.rehber-kart { margin-bottom: 10px; }
+details.rehber-kart > summary { list-style: none; cursor: pointer; }
+details.rehber-kart > summary::-webkit-details-marker { display: none; }
+details.rehber-kart > summary.rehber-ust { border-bottom: none; padding: 14px 18px; align-items: center; }
+details.rehber-kart[open] > summary.rehber-ust { border-bottom: 1px solid var(--border); }
+details.rehber-kart > summary:hover { background: var(--primary-subtle); }
+.rehber-ok {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  color: var(--text-muted); background: var(--bg-input); font-size: 12px;
+  transition: transform var(--transition);
+}
+details.rehber-kart[open] .rehber-ok { transform: rotate(180deg); }
+.rehber-meta {
+  display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 5px;
+  font-size: 11.5px; color: var(--text-muted);
+}
+.rehber-alinti {
+  margin-top: 6px; padding: 7px 10px; border-left: 3px solid var(--primary);
+  background: var(--bg-card); border-radius: 0 6px 6px 0;
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;
+}
+.rehber-govde-alt {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--border);
+}

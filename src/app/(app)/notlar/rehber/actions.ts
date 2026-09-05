@@ -64,9 +64,10 @@ export async function createGuide(
 
   const rows = (await sql`
     INSERT INTO note_guides
-      (slug, category, icon, title, summary, body, steps, tips, shortcuts, visual, sort_order, author_id)
+      (slug, category, section, icon, title, summary, body, steps, tips, shortcuts, visual, sort_order, author_id)
     VALUES (${slugUret(title)},
             ${metin(formData, 'category') || 'Photoshop'},
+            ${metin(formData, 'section') || 'Genel'},
             ${metin(formData, 'icon') || '📘'},
             ${title},
             ${metin(formData, 'summary')},
@@ -103,6 +104,7 @@ export async function updateGuide(
   await sql`
     UPDATE note_guides
     SET category = ${metin(formData, 'category') || 'Photoshop'},
+        section  = ${metin(formData, 'section') || 'Genel'},
         icon     = ${metin(formData, 'icon') || '📘'},
         title    = ${title},
         summary  = ${metin(formData, 'summary')},

@@ -3,9 +3,10 @@
 import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { GORSEL_SECENEKLERI } from './RehberGorsel';
+import { BOLUMLER } from '@/lib/rehber';
 
 export type Rehber = {
-  id: number; category: string; icon: string; title: string;
+  id: number; category: string; section: string; icon: string; title: string;
   summary: string; body: string; steps: string[]; tips: string[];
   shortcuts: string[];
   visual: string | null;
@@ -56,10 +57,17 @@ export default function RehberForm({
                  defaultValue={kayit?.icon ?? '📘'} placeholder="📘" />
         </div>
         <div className="form-group">
-          <label htmlFor={`r-cat${k}`}>Kategori</label>
+          <label htmlFor={`r-cat${k}`}>Program</label>
           <select id={`r-cat${k}`} name="category" className="form-control"
                   defaultValue={kayit?.category ?? 'Photoshop'}>
             {KATEGORILER.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor={`r-sec${k}`}>Bölüm (içindekilerde nerede dursun)</label>
+          <select id={`r-sec${k}`} name="section" className="form-control"
+                  defaultValue={kayit?.section ?? 'Genel'}>
+            {BOLUMLER.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
         <div className="form-group full">

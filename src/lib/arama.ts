@@ -139,3 +139,33 @@ export function kokOzeti(arama: string): string[] {
     return enKisa;
   });
 }
+
+/**
+ * Arama sonucu satırında gösterilecek alıntı: ilk eşleşen kelimenin
+ * etrafından ~genişlik karakter. Eşleşme yoksa null. Vurgulama ayrıca
+ * <Vurgu> ile yapılır; burası yalnızca pencereyi seçer.
+ */
+export function alinti(
+  metin: string,
+  desenler: RegExp[],
+  kelimeler: string[] = [],
+  genislik = 90,
+): string | null {
+  if (!metin || desenler.length === 0) return null;
+  const duz = metin.replace(/\s+/g, ' ');
+  const kelimeDeseni = /[\p{L}\p{N}]+/gu;
+  let m: RegExpExecArray | null;
+  while ((m = kelimeDeseni.exec(duz)) !== null) {
+    const k = trFold(m[0]);
+    const eslesti =
+      desenler.some((d) => d.test(k))
+      || kelimeler.some((q) => ucluBenzerlik(q, k) >= 0.4);
+    if (!eslesti) continue;
+    const bas = Math.max(0, m.index - genislik);
+    const son = Math.min(duz.length, m.index + m[0].length + genislik);
+    // Kelime ortasından kesmeyelim
+    const parca = duz.slice(bas, son).replace(/^\S*\s/, bas > 0 ? '' : '$&').replace(/\s\S*$/, son < duz.length ? '' : '$&');
+    return `${bas > 0 ? '…' : ''}${parca.trim()}${son < duz.length ? '…' : ''}`;
+  }
+  return null;
+}
