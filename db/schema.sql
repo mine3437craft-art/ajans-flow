@@ -332,3 +332,9 @@ CREATE INDEX IF NOT EXISTS idx_rehber_sira ON note_guides(category, sort_order);
 -- kelimenin metnin icindeki en yakin parcayla benzerligini olcer. Kok
 -- aramasi sonuc vermezse yedek olarak devreye girer (src/lib/arama.ts).
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Anlatimin icindeki klavye kisayollari. Her eleman "Ctrl+J | Katmani
+-- kopyalar" bicimindedir: dik cizginin solu tus dizisi, sagi aciklama.
+-- Ayri tabloya gerek yok; kisayol anlatimla birlikte okunur, birlikte
+-- duzenlenir, aramaya da anlatimin parcasi olarak girer.
+ALTER TABLE note_guides ADD COLUMN IF NOT EXISTS shortcuts TEXT[] NOT NULL DEFAULT '{}';

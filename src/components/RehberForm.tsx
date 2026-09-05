@@ -7,6 +7,7 @@ import { GORSEL_SECENEKLERI } from './RehberGorsel';
 export type Rehber = {
   id: number; category: string; icon: string; title: string;
   summary: string; body: string; steps: string[]; tips: string[];
+  shortcuts: string[];
   visual: string | null;
 };
 
@@ -88,6 +89,15 @@ export default function RehberForm({
           <label htmlFor={`r-tips${k}`}>İpuçları — her satır bir ipucu</label>
           <textarea id={`r-tips${k}`} name="tips" className="form-control" rows={4}
                     defaultValue={kayit?.tips.join('\n')} />
+        </div>
+        <div className="form-group full">
+          <label htmlFor={`r-keys${k}`}>Kısayollar — her satır: tuşlar | açıklama</label>
+          <textarea id={`r-keys${k}`} name="shortcuts" className="form-control" rows={4}
+                    defaultValue={kayit?.shortcuts.join('\n')}
+                    placeholder={'Ctrl+J | Katmanı kopyalar\nShift+Tık | Seçime ekler'} />
+          <small className="alan-ipucu">
+            Tuşları + ile ayır. Dik çizginin sağı ekranda açıklama olarak görünür.
+          </small>
         </div>
         <div className="form-group full">
           <label htmlFor={`r-vis${k}`}>Görsel anlatım</label>

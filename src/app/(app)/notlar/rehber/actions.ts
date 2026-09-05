@@ -18,6 +18,20 @@ function satirlar(fd: FormData, key: string): string[] {
 }
 
 /**
+ * Kisayol satirlari "Ctrl+J | Katmani kopyalar" bicimindedir. Dik cizgi
+ * yoksa satir oldugu gibi tus dizisi sayilir; aciklama bos kalir.
+ * Bosluklari tekler ki ekranda tuslar duzgun bolunsun.
+ */
+function kisayolSatirlari(fd: FormData): string[] {
+  return satirlar(fd, 'shortcuts').map((satir) => {
+    const [tus, ...geri] = satir.split('|');
+    const aciklama = geri.join('|').trim();
+    const temizTus = tus.trim().replace(/\s*\+\s*/g, '+');
+    return aciklama ? `${temizTus} | ${aciklama}` : temizTus;
+  });
+}
+
+/**
  * Yazma yetkisi: kaydi ekleyen kisi ya da yonetici. Tohumlanan kayitlarda
  * author_id NULL oldugu icin onlara yalnizca yonetici dokunabilir.
  */
@@ -50,7 +64,7 @@ export async function createGuide(
 
   const rows = (await sql`
     INSERT INTO note_guides
-      (slug, category, icon, title, summary, body, steps, tips, visual, sort_order, author_id)
+      (slug, category, icon, title, summary, body, steps, tips, shortcuts, visual, sort_order, author_id)
     VALUES (${slugUret(title)},
             ${metin(formData, 'category') || 'Photoshop'},
             ${metin(formData, 'icon') || '📘'},
@@ -59,6 +73,7 @@ export async function createGuide(
             ${metin(formData, 'body')},
             ${satirlar(formData, 'steps')}::text[],
             ${satirlar(formData, 'tips')}::text[],
+            ${kisayolSatirlari(formData)}::text[],
             ${metin(formData, 'visual') || null},
             ${900},
             ${user.id})
@@ -94,6 +109,7 @@ export async function updateGuide(
         body     = ${metin(formData, 'body')},
         steps    = ${satirlar(formData, 'steps')}::text[],
         tips     = ${satirlar(formData, 'tips')}::text[],
+        shortcuts = ${kisayolSatirlari(formData)}::text[],
         visual   = ${metin(formData, 'visual') || null},
         updated_at = NOW()
     WHERE id = ${id}

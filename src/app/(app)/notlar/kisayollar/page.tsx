@@ -1,5 +1,6 @@
 import { requireUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import { aramaDesenleri } from '@/lib/arama';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
@@ -33,14 +34,17 @@ export default async function ShortcutsPage({
   const { program, ara } = await searchParams;
   const arama = (ara ?? '').trim();
 
+  // Notlar'daki aramayla aynı motor: kök eşleştirme (tr_fold + \m). ILIKE
+  // Türkçe İ/I yüzünden büyük harfli açıklamaları bulamıyordu.
+  const desenler = aramaDesenleri(arama);
+
   const kisayollar = (await sql`
     SELECT s.id, s.program, s.keys, s.aciklama, s.author_id, u.display_name AS author_name
     FROM shortcuts s
     LEFT JOIN users u ON u.id = s.author_id
     WHERE (${program ?? null}::text IS NULL OR s.program = ${program ?? null})
-      AND (${arama || null}::text IS NULL
-           OR s.keys ILIKE ${'%' + arama + '%'}
-           OR s.aciklama ILIKE ${'%' + arama + '%'})
+      AND (cardinality(${desenler}::text[]) = 0
+           OR tr_fold(s.keys || ' ' || s.aciklama) ~ ALL(${desenler}::text[]))
     ORDER BY s.program, s.aciklama
   `) as ShortcutRow[];
 

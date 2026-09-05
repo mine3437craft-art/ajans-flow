@@ -8,6 +8,7 @@ import RehberGorsel from '@/components/RehberGorsel';
 import RehberForm from '@/components/RehberForm';
 import Vurgu from '@/components/Vurgu';
 import AramaKisayolu from '@/components/AramaKisayolu';
+import { TusGorunumu } from '../kisayollar/ShortcutForm';
 import {
   aramaDesenleri, katlanmisKelimeler, vurguDuzenleri, kelimeler, kokOzeti, BULANIK_ESIK,
 } from '@/lib/arama';
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
 type Kayit = {
   id: number; slug: string; category: string; icon: string; title: string;
   summary: string; body: string; steps: string[]; tips: string[];
+  shortcuts: string[];
   visual: string | null; source_note_ids: number[];
   author_id: number | null; updated_at: string;
   eslesme: number;
@@ -40,14 +42,15 @@ export default async function RehberPage({
   const vurgu = vurguDuzenleri(arama);
 
   const kayitlar = (await sql`
-    SELECT id, slug, category, icon, title, summary, body, steps, tips,
+    SELECT id, slug, category, icon, title, summary, body, steps, tips, shortcuts,
            visual, source_note_ids, author_id, updated_at,
            CASE
              WHEN cardinality(${desenler}::text[]) = 0 THEN 0
              WHEN tr_fold(title) ~ ALL(${desenler}::text[]) THEN 4
              WHEN tr_fold(title || ' ' || summary) ~ ALL(${desenler}::text[]) THEN 3
              WHEN tr_fold(title || ' ' || summary || ' ' || body || ' '
-                          || array_to_string(steps, ' ') || ' ' || array_to_string(tips, ' '))
+                          || array_to_string(steps, ' ') || ' ' || array_to_string(tips, ' ')
+                          || ' ' || array_to_string(shortcuts, ' '))
                   ~ ALL(${desenler}::text[]) THEN 2
              ELSE 1
            END AS eslesme
@@ -56,7 +59,8 @@ export default async function RehberPage({
       AND (
         cardinality(${desenler}::text[]) = 0
         OR tr_fold(title || ' ' || summary || ' ' || body || ' '
-                   || array_to_string(steps, ' ') || ' ' || array_to_string(tips, ' '))
+                   || array_to_string(steps, ' ') || ' ' || array_to_string(tips, ' ')
+                   || ' ' || array_to_string(shortcuts, ' '))
            ~ ALL(${desenler}::text[])
         OR (cardinality(${bulanikKelimeler}::text[]) > 0 AND (
               SELECT bool_and(word_similarity(k, tr_fold(title || ' ' || summary || ' ' || body)) >= ${BULANIK_ESIK})
@@ -227,6 +231,33 @@ export default async function RehberPage({
                           <li key={i}><Vurgu metin={t} desenler={vurgu} kelimeler={bulanikKelimeler} /></li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {r.shortcuts.length > 0 && (
+                    <div className="rehber-blok">
+                      <div className="rehber-blok-baslik" style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                        <span>Kısayollar</span>
+                        <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>
+                          Mac&apos;te Ctrl → Cmd, Alt → Option
+                        </span>
+                      </div>
+                      <div className="rehber-kisayollar">
+                        {r.shortcuts.map((k, i) => {
+                          const [tus, ...geri] = k.split('|');
+                          const aciklama = geri.join('|').trim();
+                          return (
+                            <div className="rehber-kisayol" key={i}>
+                              <TusGorunumu keys={tus.trim()} />
+                              {aciklama && (
+                                <span className="shortcut-aciklama">
+                                  <Vurgu metin={aciklama} desenler={vurgu} kelimeler={bulanikKelimeler} />
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 

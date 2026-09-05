@@ -55,6 +55,12 @@ Panelleri karıştırıp içinden çıkamazsan Window > Workspace > Reset Essent
       'Kendi düzenini beğendiysen Window > Workspace > New Workspace ile kaydet, bir daha kurmak zorunda kalmazsın.',
     ],
     visual: null,
+    kisayollar: [
+      'F7 | Katmanlar (Layers) panelini aç / kapat',
+      'F5 | Brush Settings panelini aç / kapat',
+      'Tab | Bütün panelleri gizle / geri getir',
+      'Shift+Tab | Yalnızca yan panelleri gizle / geri getir',
+    ],
     kaynak: [3, 4, 5],
   },
   {
@@ -81,6 +87,11 @@ Baskıya gidecek işlerde 300 ppi'nin altına düşme. 150 ppi ancak uzaktan bak
       'Mevcut bir dosyanın çözünürlüğünü görmek için: Image > Image Size.',
     ],
     visual: 'cozunurluk',
+    kisayollar: [
+      'Ctrl+N | Yeni belge',
+      'Ctrl+Alt+I | Image Size — çözünürlüğü gör ve değiştir',
+      'Ctrl+Alt+C | Canvas Size — sayfa boyutunu değiştir',
+    ],
     kaynak: [6],
   },
   {
@@ -106,6 +117,10 @@ Bu yüzden kural şu: baskı işini bitirdikten sonra CMYK'ye çevir, renkler bo
       'Matbaadan hangi renk profilini istediğini sormak her zaman en garantisidir.',
     ],
     visual: 'renk-modu',
+    kisayollar: [
+      'Ctrl+Y | Proof Colors — CMYK\'de nasıl görüneceğini önizle',
+      'Ctrl+Shift+Y | Gamut Warning — baskıda çıkmayacak renkleri gri işaretle',
+    ],
     kaynak: [7],
   },
   {
@@ -131,6 +146,12 @@ Yani "sayfa boyutunda açılmıyor" dediğin durum bir hata değil, hangi yolu k
       'Sayfa boyutunu sonradan değiştirmek için: Image > Canvas Size (sayfa büyür/küçülür), Image > Image Size (içerikle birlikte ölçeklenir).',
     ],
     visual: null,
+    kisayollar: [
+      'Ctrl+O | Dosya aç (kendi boyutunda yeni belge)',
+      'Ctrl+T | Free Transform — yerleştirilen görseli boyutlandır',
+      'Ctrl+0 | Sayfayı ekrana sığdır',
+      'Ctrl+1 | %100 görünüm',
+    ],
     kaynak: [8],
   },
   {
@@ -157,6 +178,12 @@ Pratik kural: her işte PSD'yi sakla, teslim için JPEG ver, şeffaflık gerekiy
       'Quick Export\'un varsayılan formatını değiştirmek için: File > Export > Export Preferences.',
     ],
     visual: 'dosya-turleri',
+    kisayollar: [
+      'Ctrl+S | Kaydet (PSD)',
+      'Ctrl+Shift+S | Farklı kaydet',
+      'Ctrl+Alt+S | Kopyasını kaydet (Save a Copy) — JPEG için',
+      'Ctrl+Alt+Shift+W | Export As — PNG için',
+    ],
     kaynak: [9, 10, 13],
   },
   {
@@ -183,6 +210,14 @@ Küçük bir düzeltme: ayarlama katmanı "efekt" değildir. Efekt dediğimiz g�
       'Göz simgesine tıklayarak katmanı geçici olarak gizleyebilirsin — silmeye gerek yok.',
     ],
     visual: 'katman-yigini',
+    kisayollar: [
+      'F7 | Katmanlar paneli',
+      'Ctrl+Shift+N | Yeni boş katman',
+      'Ctrl+] | Katmanı bir üste taşı',
+      'Ctrl+[ | Katmanı bir alta taşı',
+      'Ctrl+Shift+] | En üste taşı',
+      'Ctrl+Shift+[ | En alta taşı',
+    ],
     kaynak: [11],
   },
   {
@@ -209,6 +244,13 @@ Aynı mantık her yerde geçerli: silgiyle silmek yerine maske kullan, fotoğraf
       'Büyük bir denemeye girişmeden önce Ctrl+J ile katmanın kopyasını al.',
     ],
     visual: null,
+    kisayollar: [
+      'Ctrl+Shift+N | Yeni boş katman (rötuş için)',
+      'Ctrl+J | Katmanın kopyasını al',
+      'Ctrl+Z | Geri al',
+      'Ctrl+Shift+Z | İleri al',
+      'Ctrl+Alt+Z | Eski sürümlerde bir adım daha geri',
+    ],
     kaynak: [12],
   },
   {
@@ -240,6 +282,15 @@ Fırça yerine gradyan aracıyla maskeye siyahtan beyaza bir geçiş çekersen, 
       'Maskeyi geçici olarak kapatmak için maske kutusuna Shift ile tıkla, üstünde kırmızı çarpı çıkar.',
     ],
     visual: 'maske-tonlari',
+    kisayollar: [
+      'B | Fırça',
+      'X | Ön / arka plan rengini değiştir — siyah ↔ beyaz',
+      'D | Renkleri varsayılana al (siyah / beyaz)',
+      'G | Gradyan aracı',
+      'Alt+Tık (maske kutusu) | Maskeyi tek başına siyah-beyaz gör',
+      'Shift+Tık (maske kutusu) | Maskeyi geçici kapat / aç',
+      '\\ | Maskeyi kırmızı örtü olarak göster',
+    ],
     kaynak: [15, 16],
   },
   {
@@ -266,6 +317,10 @@ Beyza'nın "2 farklı resim oluyor" dediği durum tam olarak budur — bozulma d
       'Hangisinin seçili olduğunu kutunun etrafındaki ince çerçeveden anlarsın. Yanlış kutu seçiliyken boyarsan fotoğrafın üstüne boya sürersin.',
     ],
     visual: 'zincir',
+    kisayollar: [
+      'V | Taşıma aracı',
+      'Ctrl+Tık (katman küçük resmi) | Katmanın dolu alanını seçim olarak al',
+    ],
     kaynak: [17],
   },
   {
@@ -291,6 +346,10 @@ Bu yüzden kural basit: müşteri işi onaylamadan Apply Layer Mask yapma. Yapma
       'Dosya boyutunu küçültmek istiyorsan önce Layer > Flatten Image yerine kopyasını kaydetmeyi dene: File > Save a Copy.',
     ],
     visual: null,
+    kisayollar: [
+      'Ctrl+J | Apply\'dan önce katmanın kopyasını al',
+      'Ctrl+Z | Apply sonrası tek geri dönüş',
+    ],
     kaynak: [18],
   },
   {
@@ -319,6 +378,15 @@ Beyza'nın kuralı iyi bir başlangıç noktası: fotoğraf zaten aydınlıksa k
       'Mod seçtikten sonra Opacity ile Fill farklıdır: Fill katmanın efektlerini etkilemez.',
     ],
     visual: 'karisim-modlari',
+    kisayollar: [
+      'Shift+Artı | Sonraki karışım modu (taşıma aracı seçiliyken)',
+      'Shift+Eksi | Önceki karışım modu',
+      'Shift+Alt+N | Normal',
+      'Shift+Alt+M | Multiply',
+      'Shift+Alt+S | Screen',
+      'Shift+Alt+O | Overlay',
+      '1…0 | Opacity %10 … %100 (taşıma aracı seçiliyken)',
+    ],
     kaynak: [14],
   },
   {
@@ -347,6 +415,10 @@ Bu şablonun neden böyle kurulduğunu bilen kişi Beyza. Bir adım eklemek veya
       'Şablonu bozmamak için üstünde çalışmadan önce File > Save As ile yeni bir isimle kaydet.',
     ],
     visual: null,
+    kisayollar: [
+      'Alt+F9 | Actions paneli',
+      'Ctrl+Shift+S | Farklı kaydet — şablonun aslını ezmemek için',
+    ],
     kaynak: [2],
   },
   {
@@ -378,6 +450,17 @@ Fırçanın "hareketi" — dağılma, boyut oynaması, açı gibi şeyler — Br
       'İndirdiğin .abr dosyasına çift tıklamak da Photoshop\'a doğrudan yükler.',
     ],
     visual: 'firca-hareket',
+    kisayollar: [
+      'B | Fırça',
+      '[ | Fırçayı küçült',
+      '] | Fırçayı büyüt',
+      'Shift+[ | Kenarı yumuşat',
+      'Shift+] | Kenarı sertleştir',
+      'Alt+Sağ tık sürükle | Sağ-sol boyut, yukarı-aşağı sertlik',
+      'F5 | Brush Settings',
+      'Shift+Tık | İki nokta arasına düz çizgi',
+      '1…0 | Fırça opaklığı %10 … %100',
+    ],
     kaynak: [37, 38, 39, 40, 41, 42],
   },
   {
@@ -405,6 +488,17 @@ Seçimi kaldırmak Ctrl+D, tersine çevirmek Ctrl+Shift+I. Seçim kenarlarını 
       'Otomatik seçim için Object Selection Tool (W) çoğu zaman Lasso\'dan hızlıdır; Lasso\'yu düzeltme için kullan.',
     ],
     visual: 'secim-tuslari',
+    kisayollar: [
+      'L | Lasso (uzun bas: Polygonal / Magnetic)',
+      'Shift+Sürükle | Seçime ekle',
+      'Alt+Sürükle | Seçimden çıkar',
+      'Shift+Alt+Sürükle | Kesişimi al',
+      'Ctrl+D | Seçimi kaldır',
+      'Ctrl+Shift+I | Seçimi tersine çevir',
+      'Ctrl+H | Seçim çizgisini gizle / göster',
+      'Ctrl+Alt+R | Select and Mask',
+      'W | Object Selection — otomatik seçim',
+    ],
     kaynak: [45],
   },
   {
@@ -432,6 +526,11 @@ Asıl numara Master açılır menüsündedir: Master yerine Reds, Yellows, Blues
       'Panelde el simgesi (Targeted Adjustment) varken fotoğrafta bir renge tıkla, o rengi otomatik seçer.',
     ],
     visual: null,
+    kisayollar: [
+      'Ctrl+U | Hue/Saturation — doğrudan piksele (ayarlama katmanı tercih et)',
+      'Ctrl+Shift+U | Desaturate — siyah-beyaz yap',
+      'Ctrl+Alt+G | Ayarı yalnızca alttaki katmana kırp',
+    ],
     kaynak: [19],
   },
   {
@@ -459,6 +558,11 @@ Beyza "arka planı daha temiz maskeler" diye not almış; mantığı doğru ama 
       'Katman maskesinden farkı: burada kalıp ayrı bir katmandır, sonradan şekli değiştirmek çok kolaydır.',
     ],
     visual: 'clipping-mask',
+    kisayollar: [
+      'Ctrl+Alt+G | Clipping mask oluştur / kaldır',
+      'Alt+Tık (iki katman arası çizgi) | Aynı iş, fareyle',
+      'Ctrl+T | Kırpılmış görseli şeklin içinde boyutlandır',
+    ],
     kaynak: [20],
   },
   {
@@ -485,6 +589,11 @@ Apply Layer Mask maskeyi katmanın piksellerine kalıcı olarak işler. Gizlenen
       'Emin değilsen hiçbirini yapma; kapatılmış maske dosyaya zarar vermez.',
     ],
     visual: 'maske-menusu',
+    kisayollar: [
+      'Shift+Tık (maske kutusu) | Disable / Enable',
+      'Alt+Tık (maske kutusu) | Maskeyi siyah-beyaz gör',
+      'Ctrl+Z | Delete sonrası tek geri dönüş',
+    ],
     kaynak: [21],
   },
   {
@@ -510,6 +619,11 @@ Katmanı başka belgeye taşımanın üçüncü yolu sürüklemektir: katmanı t
       'Kopyalanan katman adının sonuna "copy" gelir; çift tıklayıp anlamlı bir ad ver.',
     ],
     visual: null,
+    kisayollar: [
+      'Ctrl+J | Katmanı (seçim varsa yalnızca seçimi) kopyala',
+      'Ctrl+Shift+J | Seçimi kes ve yeni katmana al',
+      'Alt+Sürükle | Katmanı tuvalde sürükleyerek kopyala',
+    ],
     kaynak: [26],
   },
   {
@@ -537,6 +651,14 @@ Taşıma aracı (V) seçiliyken üst çubukta Auto-Select kutusu ve yanında Lay
       'Grubu dağıtmak için gruba sağ tık > Ungroup Layers (Ctrl+Shift+G).',
     ],
     visual: null,
+    kisayollar: [
+      'Ctrl+G | Seçili katmanları grupla',
+      'Ctrl+Shift+G | Grubu dağıt',
+      'Ctrl+Tık | Birden fazla katman seç',
+      'Shift+Tık | Aradaki tüm katmanları seç',
+      'Ctrl+E | Seçili katmanları birleştir',
+      'Ctrl+Tık (tuvalde) | Auto-Select kapalıyken geçici katman seç',
+    ],
     kaynak: [30, 31, 44],
   },
   {
@@ -563,6 +685,12 @@ Eski yöntem de hâlâ çalışır: Ctrl+A ile tüm tuvali seç, sonra ortala d�
       'Ctrl + T ile dönüştürme kutusu açıkken de aynı hizalama düğmeleri çalışır.',
     ],
     visual: null,
+    kisayollar: [
+      'V | Taşıma aracı — hizalama düğmeleri üst çubukta çıkar',
+      'Ctrl+A | Tüm tuvali seç (ortalamanın klasik yolu)',
+      'Ctrl+D | Seçimi kaldır',
+      'Ctrl+T | Free Transform — hizalama burada da çalışır',
+    ],
     kaynak: [43, 44],
   },
 ];
@@ -597,15 +725,29 @@ async function main() {
     const { rowCount } = await client.query(
       `INSERT INTO note_guides
          (slug, category, icon, title, summary, body, steps, tips, visual,
-          source_note_ids, sort_order)
-       VALUES ($1, 'Photoshop', $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          source_note_ids, sort_order, shortcuts)
+       VALUES ($1, 'Photoshop', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (slug) DO NOTHING`,
       [k.slug, k.icon, k.title, k.summary, k.body, k.steps, k.tips,
-       k.visual, k.kaynak, k.sort],
+       k.visual, k.kaynak, k.sort, k.kisayollar ?? []],
     );
     if (rowCount > 0) { eklenen++; console.log(`  + ${k.title}`); }
     else { atlanan++; }
   }
+
+  // Kısayol alanı sonradan eklendi: daha önce tohumlanmış kayıtlarda boşsa
+  // doldur. Uygulamadan elle kısayol girilmişse (dizi dolu) dokunulmaz.
+  let kisayolEklenen = 0;
+  for (const k of KAYITLAR) {
+    if (!k.kisayollar?.length) continue;
+    const { rowCount } = await client.query(
+      `UPDATE note_guides SET shortcuts = $2::text[]
+       WHERE slug = $1 AND cardinality(shortcuts) = 0`,
+      [k.slug, k.kisayollar],
+    );
+    kisayolEklenen += rowCount;
+  }
+  if (kisayolEklenen > 0) console.log(`  ~ ${kisayolEklenen} anlatıma kısayol listesi eklendi`);
 
   let baglanan = 0;
   for (const [slug, idler] of Object.entries(EK_KAYNAKLAR)) {
