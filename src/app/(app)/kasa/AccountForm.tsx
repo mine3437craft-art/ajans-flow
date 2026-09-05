@@ -59,9 +59,16 @@ export default function AccountForm({
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor={`ca-bal${k}`}>Bakiye (₺)</label>
+          <label htmlFor={`ca-bal${k}`}>
+            {hesap ? 'Bakiye Düzeltme (₺)' : 'Başlangıç Bakiyesi (₺)'}
+          </label>
           <input id={`ca-bal${k}`} name="balance" type="number" step="0.01" className="form-control"
                  defaultValue={hesap ? Number(hesap.balance) : 0} />
+          <small className="alan-ipucu">
+            {hesap
+              ? 'Gelir/gider girdikçe kendi kendine değişir. Buradaki rakamı yalnızca banka ekstresiyle uyuşmuyorsa düzelt.'
+              : 'Hesapta şu an ne kadar varsa onu yaz. Sonrası otomatik işlenir.'}
+          </small>
         </div>
         <div className="form-group full">
           <label htmlFor={`ca-notes${k}`}>Not</label>

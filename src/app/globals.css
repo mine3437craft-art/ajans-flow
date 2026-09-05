@@ -18,6 +18,7 @@
   --bg-topbar: rgba(255, 255, 255, 0.92);
 
   --border: rgba(0, 0, 0, 0.07);
+  --border-hover: rgba(0, 0, 0, 0.16);
   --border-focus: rgba(255, 107, 53, 0.5);
 
   --text: #1A1A2E;
@@ -382,3 +383,223 @@ textarea.form-control { resize: vertical; min-height: 72px; }
   padding: 14px; background: var(--bg-input); border-radius: var(--radius-sm);
   min-height: 46px; display: flex; align-items: center;
 }
+
+/* =========================================================
+   Kasa & Gelir/Gider
+   ========================================================= */
+
+/* Kart başlığının sağındaki küçük açıklama */
+.card-not { font-size: 11.5px; color: var(--text-muted); }
+.card-ozet { display: flex; gap: 14px; font-size: 13px; font-weight: 700;
+             font-variant-numeric: tabular-nums; }
+
+/* Katlanır bölüm başlığı (yeni hesap, hesapları düzenle…) */
+.acilir-baslik {
+  padding: 13px 20px; cursor: pointer;
+  font-weight: 600; font-size: 13.5px; color: var(--primary);
+  list-style: none;
+}
+.acilir-baslik::-webkit-details-marker { display: none; }
+.acilir-baslik:hover { background: var(--primary-subtle); }
+
+/* ---------------- Hesap kartları ---------------- */
+.hesap-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+}
+.hesap-karti {
+  position: relative; display: block; padding: 15px 16px 14px;
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  transition: border-color var(--transition), transform var(--transition),
+              box-shadow var(--transition);
+}
+.hesap-karti::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
+  background: var(--primary-gradient);
+}
+.hesap-karti.nakit::before { background: linear-gradient(180deg, #16A34A, #4ADE80); }
+.hesap-karti:hover { border-color: var(--border-hover); transform: translateY(-1px);
+                     box-shadow: var(--shadow); }
+.hesap-karti.secili { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-subtle); }
+
+.hesap-ust { display: flex; align-items: center; gap: 9px; }
+.hesap-rozet {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 15px; background: var(--bg-input);
+}
+.hesap-kimlik { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.hesap-ad { font-weight: 650; font-size: 13.5px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hesap-tur { font-size: 11px; color: var(--text-muted); }
+.hesap-bakiye {
+  font-size: 21px; font-weight: 800; letter-spacing: -.6px; margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.hesap-akis {
+  display: flex; gap: 12px; margin-top: 6px;
+  font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+.hesap-not {
+  margin-top: 8px; font-size: 11.5px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.hesap-duzen-satir {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 0 6px; border-top: 1px solid var(--border);
+}
+.hesap-duzen-satir .cell-title { flex: 1; }
+
+/* ---------------- Gelir / Gider formu ---------------- */
+.segment {
+  display: inline-flex; gap: 3px; padding: 3px;
+  background: var(--bg-input); border-radius: 10px; margin-bottom: 18px;
+}
+.segment button {
+  border: none; background: transparent; border-radius: 8px;
+  padding: 8px 18px; font-size: 13.5px; font-weight: 650;
+  color: var(--text-secondary); transition: var(--transition);
+}
+.segment button:hover { color: var(--text); }
+.segment button.aktif { background: var(--bg-card); box-shadow: var(--shadow-xs); }
+.segment button.aktif.gelir { color: var(--success); }
+.segment button.aktif.gider { color: var(--danger); }
+
+.tutar-alani { margin-bottom: 18px; }
+.tutar-kutu {
+  display: flex; align-items: baseline; gap: 6px; margin-top: 6px;
+  padding: 8px 14px; background: var(--bg-input);
+  border: 1.5px solid transparent; border-radius: var(--radius-sm);
+  transition: border-color var(--transition), background var(--transition);
+}
+.tutar-kutu:focus-within { background: #fff; border-color: var(--border-focus); }
+.tutar-input {
+  flex: 1; min-width: 0; border: none; background: transparent; outline: none;
+  font-family: inherit; font-size: 27px; font-weight: 800; letter-spacing: -1px;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.tutar-birim { font-size: 19px; font-weight: 700; color: var(--text-muted); }
+
+.secim-basligi {
+  font-size: 11px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 9px;
+}
+
+.hesap-secim { display: flex; flex-wrap: wrap; gap: 9px; }
+.hesap-chip {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 13px 9px 10px; text-align: left;
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); transition: var(--transition);
+}
+.hesap-chip:hover { border-color: var(--border-hover); }
+.hesap-chip.secili {
+  border-color: var(--primary); background: var(--primary-subtle);
+  box-shadow: 0 0 0 2px var(--primary-subtle);
+}
+.hesap-chip-ikon {
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 13px; background: var(--bg-input);
+}
+.hesap-chip-govde { display: flex; flex-direction: column; line-height: 1.25; }
+.hesap-chip-ad { font-size: 13px; font-weight: 650; color: var(--text); }
+.hesap-chip-bakiye { font-size: 11.5px; color: var(--text-muted);
+                     font-variant-numeric: tabular-nums; }
+
+.etki-satiri {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 9px;
+  margin-top: 14px; padding: 11px 14px;
+  background: var(--bg-input); border-radius: var(--radius-sm);
+  font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.etki-satiri.eksi { background: var(--danger-bg); }
+.etki-eski { color: var(--text-muted); text-decoration: line-through; }
+.etki-ok { color: var(--text-muted); }
+.etki-yeni { font-weight: 800; font-size: 15px; }
+.etki-satiri.eksi .etki-yeni { color: var(--danger); }
+.etki-uyari { font-size: 11.5px; font-weight: 650; color: var(--danger); }
+
+/* ---------------- Transfer ---------------- */
+.transfer-satiri {
+  display: grid; align-items: end; gap: 12px;
+  grid-template-columns: 1fr auto 1fr;
+}
+.transfer-ok { padding-bottom: 10px; font-size: 18px; color: var(--text-muted); }
+
+/* ---------------- Hareket listesi ---------------- */
+.hareket {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+.hareket:last-child { border-bottom: none; }
+.hareket:hover { background: var(--primary-subtle); }
+.hareket-ikon {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 15px; font-weight: 700;
+}
+.hareket-ikon.h-gelir    { background: var(--success-bg); color: var(--success); }
+.hareket-ikon.h-gider    { background: var(--danger-bg);  color: var(--danger); }
+.hareket-ikon.h-transfer { background: var(--info-bg);    color: var(--info); }
+.hareket-govde { flex: 1; min-width: 0; }
+.hareket-baslik {
+  font-size: 13.5px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hareket-ok { color: var(--text-muted); }
+.hareket-alt {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  font-size: 11.5px; color: var(--text-muted); margin-top: 1px;
+}
+.hareket-hesap { font-weight: 600; }
+.hareket-tutar {
+  font-size: 14.5px; font-weight: 750; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.hareket-tutar.t-gelir    { color: var(--success); }
+.hareket-tutar.t-gider    { color: var(--danger); }
+.hareket-tutar.t-transfer { color: var(--text-secondary); }
+
+/* ---------------- Kasa şeridi (Gelir/Gider sayfası) ---------------- */
+.kasa-serit {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px;
+  padding: 13px 18px; margin-bottom: 20px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-xs);
+}
+.kasa-serit-baslik {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.kasa-serit-oge { display: flex; align-items: baseline; gap: 7px; font-size: 13px; }
+.kasa-serit-ad { color: var(--text-secondary); }
+.kasa-serit-tutar { font-weight: 750; font-variant-numeric: tabular-nums; }
+.kasa-serit-link { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--primary); }
+
+/* ---------------- Kategori dağılımı ---------------- */
+.dagilim { display: flex; flex-direction: column; gap: 13px; }
+.dagilim-ust {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-size: 13px; margin-bottom: 5px; font-variant-numeric: tabular-nums;
+}
+.dagilim-ust em { font-style: normal; color: var(--text-muted); font-size: 12px; }
+
+/* Satır içi küçük seçim kutusu (kasaya bağla) */
+.mini-secim {
+  padding: 3px 8px; font-size: 11.5px; font-family: inherit;
+  color: var(--warning); background: var(--warning-bg);
+  border: 1px solid transparent; border-radius: 999px; cursor: pointer;
+}
+.mini-secim:hover { border-color: var(--warning); }
+
+@media (max-width: 640px) {
+  .transfer-satiri { grid-template-columns: 1fr; }
+  .transfer-ok { display: none; }
+  .hesap-secim .hesap-chip { flex: 1 1 100%; }
+  .hareket { flex-wrap: wrap; }
+  .hareket-govde { flex-basis: calc(100% - 47px); }
+}
+
+.alan-ipucu { font-size: 11.5px; line-height: 1.45; color: var(--text-muted); }

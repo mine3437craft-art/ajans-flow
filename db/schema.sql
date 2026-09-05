@@ -128,8 +128,10 @@ CREATE TABLE IF NOT EXISTS goals (
 
 -- ---------- Kasa (nakit/banka hesapları) ----------
 -- "Nakit", "Garanti Bankası", "Akbank", "Annemin Garanti Hesabı" gibi
--- serbest isimli hesaplar. Bakiye elle güncellenir (otomatik hesaplanmaz);
--- Gelir/Gider'deki işlem kayıtlarından bağımsızdır.
+-- serbest isimli hesaplar. balance = guncel bakiye. Bir gelir/gider kaydi
+-- veya transfer bu hesaba baglandiginda ayni SQL ifadesi icinde (CTE ile,
+-- atomik olarak) artirilir/azaltilir; kayit silinince geri alinir. Elle de
+-- duzeltilebilir -- banka ekstresiyle uyusmadiginda dogru rakam yazilir.
 CREATE TABLE IF NOT EXISTS cash_accounts (
   id           SERIAL PRIMARY KEY,
   name         TEXT NOT NULL,
@@ -263,3 +265,28 @@ CREATE TABLE IF NOT EXISTS activity_log (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_log_created ON activity_log(created_at DESC);
+
+-- ---------- Kasa <-> Gelir/Gider baglantisi ----------
+-- Her gelir/gider kaydi hangi kasadan (Nakit, Garanti, Akbank...) girdi/cikti
+-- oldugunu tasir. NULL kalabilir: kasa secilmeden girilmis eski kayitlar ve
+-- "hangi hesaptan odendigini bilmiyorum" durumu icin. Kasa silinirse kayit
+-- durur, yalnizca bagi kopar.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id INTEGER
+  REFERENCES cash_accounts(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(account_id);
+
+-- Hesaplar arasi para aktarimi: "Garanti'den nakit cektim" gibi. Gelir/gider
+-- DEGILDIR; toplam varlik degismez, sadece yer degistirir. Bu yuzden ayri
+-- tabloda tutulur, raporlardaki gelir/gider toplamlarini sismez.
+CREATE TABLE IF NOT EXISTS cash_transfers (
+  id              SERIAL PRIMARY KEY,
+  from_account_id INTEGER NOT NULL REFERENCES cash_accounts(id) ON DELETE CASCADE,
+  to_account_id   INTEGER NOT NULL REFERENCES cash_accounts(id) ON DELETE CASCADE,
+  amount          NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+  occurred_on     DATE NOT NULL,
+  description     TEXT,
+  created_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT transfer_ayni_hesap_olamaz CHECK (from_account_id <> to_account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_transfer_tarih ON cash_transfers(occurred_on DESC);

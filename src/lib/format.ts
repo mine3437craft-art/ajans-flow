@@ -30,6 +30,16 @@ export function isoDate(value: string | Date | null | undefined): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Europe/Istanbul'a gore bugun (YYYY-AA-GG). Sunucu UTC'de calistigi icin
+ * new Date().toISOString() gece yarisindan sonra bir onceki gunu veriyordu.
+ */
+export function bugunTR(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+
 export function num(value: number | string | null | undefined): number {
   const n = typeof value === 'string' ? parseFloat(value) : (value ?? 0);
   return Number.isFinite(n) ? n : 0;
