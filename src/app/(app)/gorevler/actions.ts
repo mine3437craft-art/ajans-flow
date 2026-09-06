@@ -33,13 +33,15 @@ async function canEditTask(taskId: number, user: { id: number; role: string }): 
   return rows.length > 0;
 }
 
-/** Formdan seçilen kişileri toplar; ilk eleman "birincil" (tasks.assigned_to) olur. */
-function secilenKisiler(formData: FormData, user: { id: number; role: string }): number[] {
-  if (user.role !== 'admin') return [user.id];
-  const secim = formData.getAll('assigned_to')
+/**
+ * Formdan seçilen kişileri toplar; ilk eleman "birincil" (tasks.assigned_to)
+ * olur. Herkes herkese görev atayabilir — ortak pano. Hiç kimse
+ * seçilmediyse görev atanmamış kalır.
+ */
+function secilenKisiler(formData: FormData): number[] {
+  return formData.getAll('assigned_to')
     .map((v) => parseInt(String(v), 10))
     .filter((n) => Number.isInteger(n));
-  return secim.length > 0 ? secim : [];
 }
 
 export async function createTask(formData: FormData) {
@@ -51,8 +53,7 @@ export async function createTask(formData: FormData) {
   const priority = String(formData.get('priority') ?? 'normal');
   const safePriority = (PRIORITIES as readonly string[]).includes(priority) ? priority : 'normal';
 
-  // Personel görevi yalnızca kendine atayabilir; yönetici birden fazla kişi seçebilir.
-  const kisiler = secilenKisiler(formData, user);
+  const kisiler = secilenKisiler(formData);
   const [birincil, ...digerleri] = kisiler;
 
   const rows = (await sql`

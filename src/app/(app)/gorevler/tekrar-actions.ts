@@ -45,7 +45,8 @@ async function alanlar(formData: FormData): Promise<
 
   // Personel şablonu yalnızca kendine atayabilir — formda da bu alanı görmez.
   const istenen = metin(formData, 'assigned_to');
-  const assignedTo = user.role === 'admin' && istenen ? parseInt(istenen, 10) : user.id;
+  // Ortak pano: herkes herkese atayabilir; seçim yoksa kendine.
+  const assignedTo = istenen ? parseInt(istenen, 10) : user.id;
 
   return {
     title,

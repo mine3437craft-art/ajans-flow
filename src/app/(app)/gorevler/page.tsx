@@ -45,15 +45,17 @@ export default async function TasksPage({
   // Varsayılan görünüm: bugüne kadar olan (geciken dahil) + tarihsiz görevler.
   // 'tumu' seçilirse gelecekteki tekrarlayan görevler de dahil tüm liste görünür.
   const gun = gunParam === 'tumu' ? 'tumu' : 'bugun';
-  const isAdmin = user.role === 'admin';
 
   // Tekrarlayan görev şablonlarından eksik günleri tamamla (tekrar çalıştırmak güvenli).
   await gorevleriUret();
 
-  // Personel yalnızca kendine atanmış ya da kendi oluşturduğu görevleri görür.
-  // kisi='ben' → yalnızca bana atananlar; sayı → o kullanıcı (yalnızca yönetici)
+  // Görev listesi ekibin ortak panosu: herkes bütün görevleri görür, herkes
+  // görev açıp herkese atayabilir. Kişiye göre süzmek isteyen kişi
+  // filtresini kullanır. (Eskiden personel yalnızca kendi görevlerini
+  // görüyordu; Elif'in listesinde işlerin yarısı görünmüyordu.)
+  // kisi='ben' → bana atananlar; sayı → o kullanıcıya atananlar
   const kisiId = kisi === 'ben' ? user.id
-    : (isAdmin && kisi && /^\d+$/.test(kisi)) ? parseInt(kisi, 10)
+    : (kisi && /^\d+$/.test(kisi)) ? parseInt(kisi, 10)
     : null;
 
   const tasks = (await sql`
@@ -65,9 +67,7 @@ export default async function TasksPage({
     FROM tasks t
     LEFT JOIN customers c ON c.id = t.customer_id
     LEFT JOIN users u ON u.id = t.assigned_to
-    WHERE (${isAdmin}::boolean OR t.assigned_to = ${user.id} OR t.created_by = ${user.id}
-           OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = ${user.id}))
-      AND (${durum ?? null}::text IS NULL OR t.status = ${durum ?? null})
+    WHERE (${durum ?? null}::text IS NULL OR t.status = ${durum ?? null})
       AND (${kisiId}::int IS NULL OR t.assigned_to = ${kisiId}
            OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = ${kisiId}))
       -- İleri tarihli tekrarlayan görevler henüz gelmediyse "Bugün" görünümünde gizlenir.
@@ -82,17 +82,16 @@ export default async function TasksPage({
       CASE t.priority WHEN 'yuksek' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END
   `) as TaskRow[];
 
+  // Görev açarken müşteri adı seçilebilsin diye aktif müşterilerin yalnızca
+  // adı listelenir — para ve iletişim bilgisi burada yok, Müşteriler
+  // sayfasının kişi bazlı kuralı orada geçerli olmaya devam eder.
   const customers = (await sql`
-    SELECT id, name FROM customers
-    WHERE status = 'aktif' AND (${isAdmin}::boolean OR assigned_to = ${user.id})
-    ORDER BY name
+    SELECT id, name FROM customers WHERE status = 'aktif' ORDER BY name
   `) as Array<{ id: number; name: string }>;
 
-  const staff = isAdmin
-    ? ((await sql`SELECT id, display_name FROM users WHERE is_active ORDER BY display_name`) as Array<{
-        id: number; display_name: string;
-      }>)
-    : [];
+  const staff = (await sql`
+    SELECT id, display_name FROM users WHERE is_active ORDER BY display_name
+  `) as Array<{ id: number; display_name: string }>;
 
   const counts = {
     hepsi: tasks.length,
@@ -159,7 +158,7 @@ export default async function TasksPage({
                className={`btn btn-sm ${!kisi ? 'btn-primary' : 'btn-secondary'}`}>Herkes</a>
             <a href={baglanti({ durum, kisi: 'ben', gun })}
                className={`btn btn-sm ${kisi === 'ben' ? 'btn-primary' : 'btn-secondary'}`}>Bana ait</a>
-            {isAdmin && staff.map((s2) => (
+            {staff.map((s2) => (
               <a key={s2.id} href={baglanti({ durum, kisi: String(s2.id), gun })}
                  className={`btn btn-sm ${kisi === String(s2.id) ? 'btn-primary' : 'btn-secondary'}`}>
                 {s2.display_name}
@@ -206,7 +205,7 @@ export default async function TasksPage({
                     ))}
                   </select>
                 </div>
-                {isAdmin && (
+                {(
                   <div className="form-group full">
                     <label>Atanan Kişi(ler) <span style={{ textTransform: 'none', fontWeight: 400 }}>(birden fazla seçilebilir)</span></label>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
@@ -245,7 +244,7 @@ export default async function TasksPage({
                   <tr>
                     <th>Görev</th>
                     <th>Müşteri</th>
-                    {isAdmin && <th>Atanan Kişi(ler)</th>}
+                    <th>Atanan Kişi(ler)</th>
                     <th>Bitiş</th>
                     <th>Öncelik</th>
                     <th>Durum</th>
@@ -265,7 +264,7 @@ export default async function TasksPage({
                         {t.description && <div className="cell-sub">{t.description}</div>}
                       </td>
                       <td>{t.customer_name ?? '—'}</td>
-                      {isAdmin && (
+                      {(
                         <td>
                           {!t.assignee_name && !t.ek_atananlar ? '—' : (
                             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>

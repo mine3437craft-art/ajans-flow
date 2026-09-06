@@ -21,12 +21,11 @@ function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }
 }
 
 export default function TemplateForm({
-  action, gonderEtiketi, sablon, isAdmin, currentUserId, customers, staff,
+  action, gonderEtiketi, sablon, currentUserId, customers, staff,
 }: {
   action: (prev: string | null, fd: FormData) => Promise<string | null>;
   gonderEtiketi: string;
   sablon?: Sablon;
-  isAdmin: boolean;
   currentUserId: number;
   customers: Array<{ id: number; name: string }>;
   staff: Array<{ id: number; display_name: string }>;
@@ -92,7 +91,7 @@ export default function TemplateForm({
           </select>
         </div>
 
-        {isAdmin && (
+        {(
           <div className="form-group">
             <label htmlFor={`assigned_to${k}`}>Kim yapacak?</label>
             <select id={`assigned_to${k}`} name="assigned_to" className="form-control"

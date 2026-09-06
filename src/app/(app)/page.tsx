@@ -18,15 +18,13 @@ export default async function DashboardPage({
   const isAdmin = user.role === 'admin';
   const monthStart = new Date().toISOString().slice(0, 7) + '-01';
 
-  // --- Herkesin görebildiği veriler ---
+  // --- Herkesin görebildiği veriler --- (görevler ekibin ortak panosu: kişiye göre süzülmez)
   const taskStats = (await sql`
     SELECT
       COUNT(*) FILTER (WHERE status IN ('bekliyor','devam'))                        AS acik,
       COUNT(*) FILTER (WHERE status = 'tamamlandi' AND completed_at >= ${monthStart}::date) AS bu_ay_biten,
       COUNT(*) FILTER (WHERE status IN ('bekliyor','devam') AND due_date < CURRENT_DATE) AS geciken
     FROM tasks
-    WHERE ${isAdmin}::boolean OR assigned_to = ${user.id} OR created_by = ${user.id}
-      OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = tasks.id AND ta.user_id = ${user.id})
   `) as Array<{ acik: string; bu_ay_biten: string; geciken: string }>;
 
   const myTasks = (await sql`
@@ -34,8 +32,6 @@ export default async function DashboardPage({
     FROM tasks t
     LEFT JOIN customers c ON c.id = t.customer_id
     WHERE t.status IN ('bekliyor','devam')
-      AND (${isAdmin}::boolean OR t.assigned_to = ${user.id} OR t.created_by = ${user.id}
-           OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = ${user.id}))
     ORDER BY t.due_date NULLS LAST LIMIT 8
   `) as Array<{ id: number; title: string; due_date: string | null; status: string; customer_name: string | null }>;
 

@@ -21,7 +21,6 @@ type Sablon = {
 
 export default async function TekrarPage() {
   const user = await requireUser();
-  const isAdmin = user.role === 'admin';
 
   const sablonlar = (await sql`
     SELECT s.id, s.title, s.description, s.weekdays, s.priority, s.is_active,
@@ -29,20 +28,18 @@ export default async function TekrarPage() {
     FROM task_templates s
     LEFT JOIN customers c ON c.id = s.customer_id
     LEFT JOIN users u ON u.id = s.assigned_to
-    WHERE ${isAdmin}::boolean OR s.assigned_to = ${user.id} OR s.created_by = ${user.id}
     ORDER BY s.is_active DESC, c.name NULLS LAST, s.title
   `) as Sablon[];
 
+  // Tekrarlayan görevler de ekibin ortak panosu: herkes bütün şablonları
+  // görür, herkese atayabilir. Düzenleme/silme yine sahibine ve yöneticiye.
   const customers = (await sql`
-    SELECT id, name FROM customers
-    WHERE status = 'aktif' AND (${isAdmin}::boolean OR assigned_to = ${user.id})
-    ORDER BY name
+    SELECT id, name FROM customers WHERE status = 'aktif' ORDER BY name
   `) as Array<{ id: number; name: string }>;
 
-  const staff = isAdmin
-    ? ((await sql`SELECT id, display_name FROM users WHERE is_active ORDER BY display_name`) as Array<{
-        id: number; display_name: string }>)
-    : [];
+  const staff = (await sql`
+    SELECT id, display_name FROM users WHERE is_active ORDER BY display_name
+  `) as Array<{ id: number; display_name: string }>;
 
   return (
     <>
@@ -70,7 +67,7 @@ export default async function TekrarPage() {
             <div style={{ padding: '0 20px 20px' }}>
               <TemplateForm
                 action={createTemplate} gonderEtiketi="Kaydet"
-                isAdmin={isAdmin} currentUserId={user.id}
+                currentUserId={user.id}
                 customers={customers} staff={staff}
               />
             </div>
@@ -85,7 +82,7 @@ export default async function TekrarPage() {
                 <thead>
                   <tr>
                     <th>Görev</th><th>Müşteri</th><th>Günler</th>
-                    {isAdmin && <th>Kim</th>}
+                    <th>Kim</th>
                     <th>Öncelik</th><th>Durum</th><th style={{ width: 1 }} />
                   </tr>
                 </thead>
@@ -99,7 +96,7 @@ export default async function TekrarPage() {
                         </td>
                         <td>{s.customer_name ?? '—'}</td>
                         <td><span className="badge b-primary">{gunAdlari(s.weekdays)}</span></td>
-                        {isAdmin && <td>{s.assignee_name ?? '—'}</td>}
+                        <td>{s.assignee_name ?? '—'}</td>
                         <td>{PRIORITY_LABEL[s.priority]}</td>
                         <td>
                           <span className={`badge ${s.is_active ? 'b-success' : 'b-muted'}`}>
@@ -114,7 +111,7 @@ export default async function TekrarPage() {
                                 {s.is_active ? 'Durdur' : 'Başlat'}
                               </button>
                             </form>
-                            {isAdmin && (
+                            {(
                               <form action={deleteTemplate}>
                                 <input type="hidden" name="id" value={s.id} />
                                 <ConfirmButton
@@ -128,7 +125,7 @@ export default async function TekrarPage() {
                         </td>
                       </tr>
                       <tr>
-                        <td colSpan={isAdmin ? 7 : 6} style={{ padding: 0, borderBottom: '1px solid var(--border)' }}>
+                        <td colSpan={7} style={{ padding: 0, borderBottom: '1px solid var(--border)' }}>
                           <details>
                             <summary style={{ padding: '8px 20px', cursor: 'pointer',
                                               fontSize: 12.5, fontWeight: 600, color: 'var(--primary)' }}>
@@ -137,7 +134,7 @@ export default async function TekrarPage() {
                             <div style={{ padding: '4px 20px 18px' }}>
                               <TemplateForm
                                 action={updateTemplate} gonderEtiketi="Güncelle" sablon={s}
-                                isAdmin={isAdmin} currentUserId={user.id}
+                                currentUserId={user.id}
                                 customers={customers} staff={staff}
                               />
                             </div>
