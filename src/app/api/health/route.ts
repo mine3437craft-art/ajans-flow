@@ -24,8 +24,13 @@ export async function GET() {
 
   const ok = veritabani === 'tamam';
 
+  // Hangi commit yayında? Vercel derlemede VERCEL_GIT_COMMIT_SHA verir;
+  // yerelde tanımsızdır. Gizli değil: deponun kendi kısa kimliği. Dağıtımın
+  // gerçekten alındığını dışarıdan doğrulamanın en kestirme yolu.
+  const surum = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 8) || 'yerel';
+
   return NextResponse.json(
-    { ok, veritabani, kullanici, oturumAnahtari },
+    { ok, veritabani, kullanici, oturumAnahtari, surum },
     { status: ok ? 200 : 503, headers: { 'Cache-Control': 'no-store' } },
   );
 }
