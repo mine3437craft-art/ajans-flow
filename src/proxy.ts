@@ -17,7 +17,8 @@ function kasaAnahtari(pathname: string): string | null {
 
 /**
  * İlk savunma hattı (Next 16 "proxy" katmanı): oturumu olmayanı /login'e,
- * yetkisiz personeli kasa sayfalarından panoya yollar. Next 16'da proxy
+ * yetkisiz personeli kasa sayfalarından sessizce panoya yollar (uyarı
+ * metni yok — kullanıcı zaten o sayfanın bağlantısını görmez). Next 16'da proxy
  * Node.js ortamında çalıştığı için veritabanına erişebiliyor — kasa
  * erişimi kişi bazlı (user_page_access) olduğundan burada gerçek bir
  * kontrol yapılıyor. Asıl güvenlik sınırı yine de sayfaların ve server
@@ -45,7 +46,7 @@ export async function proxy(request: NextRequest) {
       if (rows.length === 0) {
         const url = request.nextUrl.clone();
         url.pathname = '/';
-        url.search = '?yetkisiz=1';
+        url.search = '';
         return NextResponse.redirect(url);
       }
     }

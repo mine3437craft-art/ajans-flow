@@ -60,7 +60,7 @@ export async function requireUser(): Promise<SessionUser> {
  */
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== 'admin') redirect('/?yetkisiz=1');
+  if (user.role !== 'admin') redirect('/');
   return user;
 }
 
@@ -102,7 +102,7 @@ async function hasPageAccess(user: SessionUser, pageKey: PageKey): Promise<boole
  */
 export async function requirePageAccess(pageKey: PageKey): Promise<SessionUser> {
   const user = await requireUser();
-  if (!(await hasPageAccess(user, pageKey))) redirect('/?yetkisiz=1');
+  if (!(await hasPageAccess(user, pageKey))) redirect('/');
   return user;
 }
 

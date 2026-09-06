@@ -11,10 +11,10 @@ export const dynamic = 'force-dynamic';
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ yetkisiz?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const user = await requireUser();
-  const { yetkisiz } = await searchParams;
+  await searchParams;
   const isAdmin = user.role === 'admin';
   const monthStart = new Date().toISOString().slice(0, 7) + '-01';
 
@@ -99,12 +99,6 @@ export default async function DashboardPage({
     <>
       <PageHeader title="Pano" />
       <div className="content">
-        {yetkisiz === '1' && (
-          <div className="alert alert-danger">
-            <Icon name="alert" style={{ width: 17, height: 17, flexShrink: 0 }} />
-            <span>Bu sayfayı görüntüleme yetkiniz yok.</span>
-          </div>
-        )}
 
         <p style={{ color: 'var(--text-secondary)', marginBottom: 18 }}>
           Hoş geldin, <strong>{user.display_name}</strong>.
@@ -176,7 +170,7 @@ export default async function DashboardPage({
           <div className="stat-card">
             <div className="stat-icon i-primary"><Icon name="check" /></div>
             <div className="stat-value">{stats?.acik ?? 0}</div>
-            <div className="stat-label">{isAdmin ? 'Açık Görev' : 'Açık Görevim'}</div>
+            <div className="stat-label">Açık Görev</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon i-danger"><Icon name="alert" /></div>

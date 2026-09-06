@@ -113,7 +113,6 @@ export default async function TasksPage({
               {[
                 { k: '', l: 'Tümü' },
                 { k: 'bekliyor', l: `Bekleyen (${counts.bekliyor})` },
-                { k: 'devam', l: `Devam (${counts.devam})` },
                 { k: 'tamamlandi', l: 'Tamamlanan' },
               ].map((f) => (
                 <a
@@ -209,6 +208,11 @@ export default async function TasksPage({
                   <div className="form-group full">
                     <label>Atanan Kişi(ler) <span style={{ textTransform: 'none', fontWeight: 400 }}>(birden fazla seçilebilir)</span></label>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                      {/* "Ekip" işaretlenirse görev herkese atanır; kişi seçmeye gerek kalmaz. */}
+                      <label className="gun-secim" title="Herkese atanır">
+                        <input type="checkbox" name="assigned_to" value="ekip" />
+                        <span>👥 Ekip (herkes)</span>
+                      </label>
                       {staff.map((s) => (
                         <label key={s.id} className="gun-secim">
                           <input type="checkbox" name="assigned_to" value={s.id} defaultChecked={s.id === user.id} />
@@ -295,9 +299,9 @@ export default async function TasksPage({
                           {t.status !== 'tamamlandi' && (
                             <form action={setTaskStatus}>
                               <input type="hidden" name="id" value={t.id} />
-                              <input type="hidden" name="status" value={t.status === 'bekliyor' ? 'devam' : 'tamamlandi'} />
-                              <button className="btn btn-sm btn-secondary" type="submit">
-                                {t.status === 'bekliyor' ? 'Başlat' : 'Bitir'}
+                              <input type="hidden" name="status" value="tamamlandi" />
+                              <button className="btn btn-sm btn-success" type="submit" title="Yapıldı olarak işaretle">
+                                ✓ Yapıldı
                               </button>
                             </form>
                           )}
