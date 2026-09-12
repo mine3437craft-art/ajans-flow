@@ -175,7 +175,11 @@ CREATE INDEX IF NOT EXISTS idx_attempts ON login_attempts(username, created_at D
 -- seyi gorur, bu tablo yalnizca 'staff' rolu icin anlam tasir.
 CREATE TABLE IF NOT EXISTS user_page_access (
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  page_key   TEXT NOT NULL CHECK (page_key IN ('finans', 'borclar', 'raporlar', 'hedefler')),
+  -- Geçerli anahtarlar src/lib/permissions.ts PAGE_KEYS'te. Burada CHECK yok:
+  -- liste iki yerde tutuluyordu, 'kasa' eklenirken SQL tarafı unutulmuş ve
+  -- personele Kasa yetkisi açmak kısıt hatasıyla çöküyordu. Tek yazan yer
+  -- togglePageAccess (yalnızca yönetici) ve PAGE_KEYS ile doğruluyor.
+  page_key   TEXT NOT NULL,
   granted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (user_id, page_key)
@@ -342,3 +346,83 @@ ALTER TABLE note_guides ADD COLUMN IF NOT EXISTS shortcuts TEXT[] NOT NULL DEFAU
 -- Anlatimlar icindekiler listesinde bolumlere ayrilir (Baslarken, Araclar,
 -- Katmanlar, Maskeler...). category "hangi program", section "konu grubu".
 ALTER TABLE note_guides ADD COLUMN IF NOT EXISTS section TEXT NOT NULL DEFAULT 'Genel';
+
+-- Eski kurulumlarda kalan sayfa anahtarı kısıtı (bkz. user_page_access yorumu).
+ALTER TABLE user_page_access DROP CONSTRAINT IF EXISTS user_page_access_page_key_check;
+
+-- ---------- Yeni musteri adaylari (arama listeleri) ----------
+-- Iki liste (Ajans Flow, Minik Starlar) tek tabloda `brand` ile ayrilir.
+-- Marka listesi kodda: src/lib/adaylar.ts MARKALAR. Burada para alani YOK.
+-- phone_raw : girildigi/yapistirildigi gibi saklanir, hicbir zaman bozulmaz
+-- phone_norm: karsilastirma anahtari (src/lib/telefon.ts) — cift kayit buna bakar
+CREATE TABLE IF NOT EXISTS prospects (
+  id               BIGSERIAL PRIMARY KEY,
+  brand            TEXT NOT NULL CHECK (brand IN ('ajansflow', 'minikstarlar')),
+  name             TEXT NOT NULL CHECK (btrim(name) <> ''),
+  contact_person   TEXT,
+  phone_raw        TEXT,
+  phone_norm       TEXT,
+  phone_kind       TEXT NOT NULL DEFAULT 'bilinmiyor'
+                   CHECK (phone_kind IN ('cep', 'sabit', 'kurumsal', 'yabanci', 'bilinmiyor')),
+  city             TEXT,
+  source           TEXT,
+  link             TEXT,
+  status           TEXT NOT NULL DEFAULT 'aranmadi'
+                   CHECK (status IN ('aranmadi', 'ulasilamadi', 'dusunuyor', 'olumlu',
+                                     'musteri_oldu', 'olumsuz', 'yanlis_numara')),
+  next_call_on     DATE,
+  assigned_to      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  call_count       INTEGER NOT NULL DEFAULT 0,
+  unreached_streak INTEGER NOT NULL DEFAULT 0,
+  last_call_at     TIMESTAMPTZ,
+  last_call_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  last_note        TEXT,
+  import_batch     TEXT,
+  created_by       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- Ayni numara ayni listede iki kez olmasin. Kismi indeks: numarasi
+-- anlasilamayan kayitlar (phone_norm NULL) engellenmez.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_aday_numara
+  ON prospects(brand, phone_norm) WHERE phone_norm IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_aday_durum   ON prospects(brand, status);
+CREATE INDEX IF NOT EXISTS idx_aday_tarih   ON prospects(brand, next_call_on) WHERE next_call_on IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_aday_sorumlu ON prospects(brand, assigned_to);
+-- Ayni numaranin diger listede de olup olmadigini gostermek icin.
+CREATE INDEX IF NOT EXISTS idx_aday_numara_genel ON prospects(phone_norm) WHERE phone_norm IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_aday_parti ON prospects(import_batch) WHERE import_batch IS NOT NULL;
+
+-- Arama gecmisi. Her kayit bir olay:
+--   arama : gercek bir temas denemesi (istatistiklerde sayilan tek tur)
+--   not   : yalnizca not eklenmis
+--   durum : tablodan yapilan durum/tarih/sorumlu degisikligi ya da ice aktarma
+-- prev: degisiklikten onceki ozet alanlar — "Geri al" bunu geri yazar.
+CREATE TABLE IF NOT EXISTS prospect_events (
+  id            BIGSERIAL PRIMARY KEY,
+  prospect_id   BIGINT NOT NULL REFERENCES prospects(id) ON DELETE CASCADE,
+  brand         TEXT NOT NULL,
+  user_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  kind          TEXT NOT NULL CHECK (kind IN ('arama', 'not', 'durum')),
+  channel       TEXT CHECK (channel IN ('telefon', 'whatsapp')),
+  status_before TEXT,
+  status_after  TEXT,
+  next_call_on  DATE,
+  note          TEXT,
+  prev          JSONB,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_aday_olay      ON prospect_events(prospect_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_aday_olay_kisi ON prospect_events(user_id, created_at) WHERE kind = 'arama';
+CREATE INDEX IF NOT EXISTS idx_aday_olay_marka ON prospect_events(brand, created_at) WHERE kind = 'arama';
+
+-- Ajans Flow adaylarinda satis icin belirleyici iki bilgi. Uc durumlu:
+-- arayana kadar cevabi bilinmedigi icin 'bilinmiyor' varsayilan.
+--   has_website        : isletmenin web sitesi var mi
+--   worked_with_agency : daha once bir sosyal medya ajansiyla calismis mi
+-- Hangi listede gosterilecegi kodda: src/lib/adaylar.ts MARKALAR.ekAlanlar
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS has_website TEXT NOT NULL DEFAULT 'bilinmiyor'
+  CHECK (has_website IN ('bilinmiyor', 'var', 'yok'));
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS worked_with_agency TEXT NOT NULL DEFAULT 'bilinmiyor'
+  CHECK (worked_with_agency IN ('bilinmiyor', 'var', 'yok'));
+CREATE INDEX IF NOT EXISTS idx_aday_web ON prospects(brand, has_website);

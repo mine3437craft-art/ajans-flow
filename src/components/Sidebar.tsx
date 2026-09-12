@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
@@ -59,15 +59,20 @@ export default function Sidebar({ user, extraAccess }: { user: SessionUser; extr
         </div>
 
         <nav className="sidebar-nav">
-          {items.map((item) => {
+          {items.map((item, i) => {
             const active = item.href === '/'
               ? pathname === '/'
               : pathname.startsWith(item.href);
+            // Grup başlığı yalnızca grubun ilk öğesinde çıkar.
+            const grupBasligi = item.grup && item.grup !== items[i - 1]?.grup ? item.grup : null;
             return (
-              <Link key={item.href} href={item.href} className={`nav-item${active ? ' active' : ''}`}>
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-              </Link>
+              <Fragment key={item.href}>
+                {grupBasligi && <div className="nav-sep">{grupBasligi}</div>}
+                <Link href={item.href} className={`nav-item${active ? ' active' : ''}`}>
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                </Link>
+              </Fragment>
             );
           })}
         </nav>

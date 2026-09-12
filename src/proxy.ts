@@ -37,6 +37,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Bilinmeyen liste adresi (/musteri-bulma/xyz) sayfaya hiç girmesin:
+  // sayfa akış hâlinde başladığı için oradaki redirect HTTP durumunu
+  // değiştiremiyor, burada gerçek yönlendirme yapılıyor.
+  if (pathname.startsWith('/musteri-bulma/') && kasaAnahtari(pathname) === null) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
+
   if (session.role !== 'admin') {
     const anahtar = kasaAnahtari(pathname);
     if (anahtar) {

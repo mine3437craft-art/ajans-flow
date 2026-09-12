@@ -29,6 +29,8 @@ const TABLOLAR = [
   { ad: 'videos' },
   { ad: 'notes' },
   { ad: 'note_guides' },
+  { ad: 'prospects' },
+  { ad: 'prospect_events' },
   { ad: 'transactions' },
   { ad: 'cash_accounts' },
   { ad: 'cash_transfers' },

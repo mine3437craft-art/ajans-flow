@@ -907,3 +907,158 @@ details.rehber-kart[open] .rehber-ok { transform: rotate(180deg); }
   display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
   margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--border);
 }
+
+/* =========================================================
+   Müşteri Bulma (aday listeleri)
+   ========================================================= */
+
+a.stat-card.aday-tile { transition: var(--transition); }
+a.stat-card.aday-tile:hover { border-color: var(--border-hover); transform: translateY(-1px); box-shadow: var(--shadow); }
+
+/* ---------------- Hızlı ekleme ---------------- */
+.aday-ekle { padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--primary-subtle); }
+.aday-ekle-satir { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.aday-ekle-satir .form-control { flex: 1 1 170px; min-width: 0; background: var(--bg-card); }
+.aday-ekle .alert { margin-bottom: 12px; }
+
+/* ---------------- Tablo ---------------- */
+.aday-tablo td { vertical-align: top; }
+.aday-tablo .aday-ad { display: block; font-weight: 650; }
+.aday-tablo .aday-ad:hover { color: var(--primary); }
+.aday-tablo tr.satir-gecikti { box-shadow: inset 3px 0 0 var(--danger); }
+.aday-tablo tr.satir-bugun { box-shadow: inset 3px 0 0 var(--primary); }
+.aday-tablo tr.satir-acik { background: var(--primary-subtle); }
+
+/* Satır içi düzenlenen alanlar: metin gibi dursun, odakta belli olsun */
+.durum-secim, .sorumlu-secim, .tarih-secim {
+  font-family: inherit; border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: var(--bg-input); color: var(--text); padding: 4px 7px; font-size: 12.5px;
+  max-width: 100%;
+}
+.durum-secim { font-weight: 600; cursor: pointer; }
+.sorumlu-secim { cursor: pointer; }
+.durum-secim:hover, .sorumlu-secim:hover, .tarih-secim:hover { border-color: var(--border-hover); }
+.durum-secim:focus, .sorumlu-secim:focus, .tarih-secim:focus { outline: none; border-color: var(--border-focus); }
+button.uc-durum { border: 1px solid transparent; cursor: pointer; }
+button.uc-durum:hover { border-color: var(--border-hover); }
+
+.aday-telefon { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.tel-bag {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px;
+  background: var(--success-bg); color: var(--success);
+  border-radius: 999px; font-weight: 650; font-size: 13px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.tel-bag:hover { filter: brightness(0.96); }
+.wa-bag {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: #25D366; color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: -.3px;
+}
+
+.tarih-etiket { margin-top: 4px; font-size: 11.5px; font-weight: 650; }
+.tarih-bugun { color: var(--primary); }
+.tarih-gecikti { color: var(--danger); }
+.tarih-yakin { color: var(--warning); }
+.tarih-ileri { color: var(--text-muted); }
+
+.son-not { font-size: 12.5px; color: var(--text-secondary); max-width: 230px; line-height: 1.45; }
+.satir-eylem { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.uyari-mini { margin-top: 4px; font-size: 11px; font-weight: 650; color: var(--warning); }
+
+/* ---------------- Açılan satır: geçmiş + düzenleme ---------------- */
+.aday-detay { padding: 18px 20px; border-top: 1px solid var(--border); background: var(--bg-input); }
+.aday-gecmis { display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; }
+.gecmis-satir { padding: 9px 11px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.gecmis-ust { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.gecmis-not { margin-top: 5px; font-size: 13px; color: var(--text-secondary); }
+.not-ekle-satir { display: flex; gap: 8px; align-items: center; }
+.not-ekle-satir .form-control { flex: 1; background: var(--bg-card); }
+
+/* ---------------- Sonuç ekranı ---------------- */
+.sonuc-perde { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.4); }
+.sonuc-sayfa {
+  position: fixed; z-index: 61; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow-y: auto;
+  padding: 18px 20px 20px; background: var(--bg-card);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+}
+.sonuc-baslik { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.sonuc-baslik strong { font-size: 16px; }
+.not-kaliplari, .tarih-kaliplari { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
+.not-kaliplari .konu, .tarih-kaliplari .konu { cursor: pointer; border: 1px solid transparent; }
+.tarih-kaliplari .tarih-secim { background: var(--bg-card); border-color: var(--border); }
+.sonuc-ek { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.sonuc-ek-satir { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.sonuc-ek-satir .segment { margin: 0; }
+.sonuc-ek-satir .segment button { padding: 5px 11px; font-size: 12.5px; }
+.sonuc-dugmeleri { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.sonuc-dugme {
+  padding: 14px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-card); font-size: 14px; font-weight: 700; color: var(--text);
+  transition: var(--transition); min-height: 52px;
+}
+.sonuc-dugme:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+.sonuc-dugme.s-ulasilamadi { background: var(--warning-bg); color: var(--warning); }
+.sonuc-dugme.s-dusunuyor   { background: var(--info-bg);    color: var(--info); }
+.sonuc-dugme.s-olumlu      { background: var(--success-bg); color: var(--success); }
+.sonuc-dugme.s-musteri_oldu{ background: var(--primary);    color: #fff; }
+.sonuc-dugme.s-olumsuz     { background: var(--danger-bg);  color: var(--danger); }
+.sonuc-dugme.s-yanlis_numara { background: var(--bg-input); color: var(--text-secondary); }
+
+/* ---------------- Dar ekran: tablo → kart ---------------- */
+@media (max-width: 900px) {
+  .aday-tablo thead { display: none; }
+  .aday-tablo, .aday-tablo tbody, .aday-tablo tr, .aday-tablo td { display: block; width: 100%; }
+  .aday-tablo tr {
+    margin: 0 12px 12px; padding: 6px 0; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .aday-tablo tr:hover { background: var(--bg-card); }
+  .aday-tablo td {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    padding: 7px 14px; border-bottom: none;
+  }
+  .aday-tablo td[data-etiket]:not([data-etiket=""])::before {
+    content: attr(data-etiket); flex-shrink: 0;
+    font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+    color: var(--text-muted); padding-top: 4px;
+  }
+  .aday-tablo td > *, .aday-tablo td > form { text-align: right; }
+  .son-not { max-width: none; }
+  .aday-tablo .satir-eylem { justify-content: flex-end; width: 100%; }
+  .aday-tablo .satir-eylem .btn { flex: 1; justify-content: center; min-height: 42px; }
+  .tel-bag { min-height: 38px; }
+  /* Telefonda sonuç ekranı alttan açılır, düğmeler parmak altında kalsın */
+  .sonuc-sayfa {
+    top: auto; bottom: 0; left: 0; transform: none;
+    width: 100%; max-height: 88vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .sonuc-dugmeleri { grid-template-columns: 1fr 1fr; }
+  .aday-ekle-satir .form-control { flex: 1 1 100%; }
+}
+
+/* İçe aktarma */
+.aktarim-ozet { display: flex; flex-wrap: wrap; gap: 8px; }
+.aktarim-ozet .badge b { font-weight: 800; }
+.aktarim-eslesme { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+
+/* Panodaki aday kartı */
+.aday-pano { display: flex; flex-direction: column; gap: 8px; }
+.aday-pano-satir {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px;
+  padding: 11px 14px; background: var(--bg-input); border-radius: var(--radius-sm);
+  border: 1px solid transparent; transition: var(--transition);
+}
+.aday-pano-satir:hover { border-color: var(--primary); background: var(--primary-subtle); }
+.aday-pano-ad { font-weight: 650; }
+.aday-pano-sayi { font-size: 20px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+
+/* Telefonda özet kartları listeyi aşağı itmesin */
+@media (max-width: 700px) {
+  .aday-stat { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
+  .aday-stat .stat-card { padding: 11px 12px; border-radius: var(--radius); }
+  .aday-stat .stat-icon { width: 26px; height: 26px; border-radius: 7px; margin-bottom: 7px; }
+  .aday-stat .stat-icon svg { width: 14px; height: 14px; }
+  .aday-stat .stat-value { font-size: 21px; }
+  .aday-stat .stat-label { font-size: 11.5px; line-height: 1.35; }
+}

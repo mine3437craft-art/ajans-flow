@@ -1,10 +1,11 @@
-import { requireUser } from '@/lib/auth';
+import { requireUser, getPageAccess } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import { money, dateShort, num, TASK_STATUS_LABEL } from '@/lib/format';
 import { videoUyarilari } from '@/lib/video';
+import { MARKALAR, ACIK_DURUMLAR, bugun } from '@/lib/adaylar';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,27 @@ export default async function DashboardPage({
     ? tumUyarilar.filter((v) => benimMusteriler.has(v.customer_id))
     : tumUyarilar;
 
+
+  // Müşteri bulma: yalnızca erişimi olan listeler. "Bugün" Türkiye saatine
+  // göre; bana ait ya da henüz kimseye atanmamış olanlar sayılır.
+  const erisim = user.role === 'admin' ? null : await getPageAccess(user.id);
+  const adayListeleri = MARKALAR.filter((m) => erisim === null || erisim.has(m.izin));
+  const adaySayilari = adayListeleri.length > 0
+    ? ((await sql`
+        SELECT brand,
+               -- Sayı, bağlantının açtığı "Bugün Aranacak" görünümüyle birebir
+               -- aynı olsun diye kişiye göre süzülmüyor.
+               COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
+                 AND (next_call_on <= ${bugun()}::date OR status = 'aranmadi'))::int AS benim,
+               COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
+                 AND next_call_on < ${bugun()}::date)::int AS gecikmis,
+               COUNT(*) FILTER (WHERE status = 'olumlu')::int AS olumlu
+        FROM prospects
+        WHERE brand = ANY(${adayListeleri.map((m) => m.anahtar)}::text[])
+        GROUP BY brand
+      `) as Array<{ brand: string; benim: number; gecikmis: number; olumlu: number }>)
+    : [];
+  const adayHarita = new Map(adaySayilari.map((a) => [a.brand, a]));
   const stats = taskStats[0];
 
   // --- Yalnızca yöneticiye gönderilen finans verileri ---
@@ -129,6 +151,36 @@ export default async function DashboardPage({
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {adayListeleri.length > 0 && (
+          <div className="card">
+            <div className="card-head">
+              <h2>📞 Bugün aranacak adaylar</h2>
+              <span className="card-not">yeni müşteri bulma</span>
+            </div>
+            <div className="card-body">
+              <div className="aday-pano">
+                {adayListeleri.map((m) => {
+                  const a = adayHarita.get(m.anahtar);
+                  return (
+                    <a key={m.anahtar} href={`/musteri-bulma/${m.yol}?gorunum=bugun`} className="aday-pano-satir">
+                      <span className="aday-pano-ad">{m.ad}</span>
+                      <span className="aday-pano-sayi">{a?.benim ?? 0}</span>
+                      <span className="cell-sub">
+                        {(a?.gecikmis ?? 0) > 0 && (
+                          <span style={{ color: 'var(--danger)', fontWeight: 650 }}>
+                            {a!.gecikmis} gecikmiş ·{' '}
+                          </span>
+                        )}
+                        {a?.olumlu ?? 0} olumlu
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

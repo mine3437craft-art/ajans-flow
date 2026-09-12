@@ -110,14 +110,16 @@ export default async function SettingsPage({
             {personel.length > 0 && (
               <div className="card">
                 <div className="card-head">
-                  <h2>Kasa Yetkileri</h2>
+                  <h2>Sayfa Yetkileri</h2>
                 </div>
                 <div className="alert alert-info" style={{ margin: '16px 20px 0' }}>
                   <Icon name="lock" style={{ width: 16, height: 16, flexShrink: 0 }} />
                   <span>
-                    Bu dört sayfa (finansal veri içerdiği için) varsayılan olarak yalnızca
-                    yöneticiye açıktır. Bir personele belirli bir sayfayı açmak için altındaki
-                    düğmeye tıklayın — istediğiniz zaman geri kapatabilirsiniz.
+                    Bu sayfalar varsayılan olarak yalnızca size açıktır: para sayfaları
+                    ve müşteri adayı listeleri. Bir personele belirli bir sayfayı açmak için
+                    altındaki düğmeye tıklayın — istediğiniz zaman geri kapatabilirsiniz.
+                    Adayları arayacak kişilere &ldquo;Ajans Flow Adayları&rdquo; /
+                    &ldquo;Minik Starlar Adayları&rdquo; yetkisini vermeniz gerekir.
                   </span>
                 </div>
                 <div className="table-wrap">
