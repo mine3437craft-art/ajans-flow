@@ -77,7 +77,7 @@ export async function createTemplate(_prev: string | null, formData: FormData): 
   });
 
   // Yeni şablonun görevleri hemen görünsün.
-  await gorevleriUret();
+  await gorevleriUret(true);
   revalidatePath('/gorevler');
   revalidatePath('/gorevler/tekrar');
   return 'ok';
@@ -123,7 +123,7 @@ export async function updateTemplate(_prev: string | null, formData: FormData): 
   });
 
   // Gün seçimi değişmiş olabilir; eksik günleri tamamla.
-  await gorevleriUret();
+  await gorevleriUret(true);
   revalidatePath('/gorevler');
   revalidatePath('/gorevler/tekrar');
   return 'ok';
@@ -152,7 +152,7 @@ export async function toggleTemplate(formData: FormData) {
       WHERE template_id = ${id} AND status = 'bekliyor' AND due_date > CURRENT_DATE
     `;
   } else {
-    await gorevleriUret();
+    await gorevleriUret(true);
   }
 
   await logActivity({

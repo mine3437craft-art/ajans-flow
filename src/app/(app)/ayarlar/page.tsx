@@ -115,11 +115,10 @@ export default async function SettingsPage({
                 <div className="alert alert-info" style={{ margin: '16px 20px 0' }}>
                   <Icon name="lock" style={{ width: 16, height: 16, flexShrink: 0 }} />
                   <span>
-                    Bu sayfalar varsayılan olarak yalnızca size açıktır: para sayfaları
-                    ve müşteri adayı listeleri. Bir personele belirli bir sayfayı açmak için
-                    altındaki düğmeye tıklayın — istediğiniz zaman geri kapatabilirsiniz.
-                    Adayları arayacak kişilere &ldquo;Ajans Flow Adayları&rdquo; /
-                    &ldquo;Minik Starlar Adayları&rdquo; yetkisini vermeniz gerekir.
+                    Bu para sayfaları varsayılan olarak yalnızca size açıktır. Bir personele
+                    belirli bir sayfayı açmak için altındaki düğmeye tıklayın — istediğiniz zaman
+                    geri kapatabilirsiniz. Görevler ve Müşteri Bulma listeleri ekibin ortak işi
+                    olduğu için herkese açıktır.
                   </span>
                 </div>
                 <div className="table-wrap">

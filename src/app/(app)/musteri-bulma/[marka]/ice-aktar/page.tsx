@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requirePageAccess } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
@@ -13,14 +13,10 @@ export default async function IceAktarPage({ params }: { params: Promise<{ marka
   const { marka: yol } = await params;
   const marka = markaBul(yol);
   if (!marka) redirect('/');
-  await requirePageAccess(marka.izin);
+  await requireUser();
 
   const personel = (await sql`
-    SELECT u.id, u.display_name FROM users u
-    WHERE u.is_active AND (u.role = 'admin' OR EXISTS (
-      SELECT 1 FROM user_page_access pa WHERE pa.user_id = u.id AND pa.page_key = ${marka.izin}
-    ))
-    ORDER BY u.display_name
+    SELECT id, display_name FROM users WHERE is_active ORDER BY display_name
   `) as Array<{ id: number; display_name: string }>;
 
   return (

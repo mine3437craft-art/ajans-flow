@@ -1,4 +1,4 @@
-import { requireUser, getPageAccess } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -58,10 +58,8 @@ export default async function DashboardPage({
     : tumUyarilar;
 
 
-  // Müşteri bulma: yalnızca erişimi olan listeler. "Bugün" Türkiye saatine
-  // göre; bana ait ya da henüz kimseye atanmamış olanlar sayılır.
-  const erisim = user.role === 'admin' ? null : await getPageAccess(user.id);
-  const adayListeleri = MARKALAR.filter((m) => erisim === null || erisim.has(m.izin));
+  // Müşteri bulma listeleri herkese açık. "Bugün" Türkiye saatine göre.
+  const adayListeleri = MARKALAR;
   const adaySayilari = adayListeleri.length > 0
     ? ((await sql`
         SELECT brand,

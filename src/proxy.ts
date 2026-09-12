@@ -2,11 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { verifySession } from '@/lib/session';
 import { sql } from '@/lib/db';
 import { NAV_ITEMS } from '@/lib/permissions';
+import { MARKALAR } from '@/lib/adaylar';
 
 /** "/finans" -> 'finans' gibi, kasa sayfalarının yol -> izin anahtarı eşlemesi. */
 const KASA_YOLLARI = new Map(
   NAV_ITEMS.filter((n) => n.pageKey).map((n) => [n.href, n.pageKey!]),
 );
+
+/** Geçerli aday listesi adresleri; gerisi panoya yollanır. */
+const GECERLI_ADAY_YOLLARI = MARKALAR.map((m) => `/musteri-bulma/${m.yol}`);
 
 function kasaAnahtari(pathname: string): string | null {
   for (const [yol, anahtar] of KASA_YOLLARI) {
@@ -40,7 +44,9 @@ export async function proxy(request: NextRequest) {
   // Bilinmeyen liste adresi (/musteri-bulma/xyz) sayfaya hiç girmesin:
   // sayfa akış hâlinde başladığı için oradaki redirect HTTP durumunu
   // değiştiremiyor, burada gerçek yönlendirme yapılıyor.
-  if (pathname.startsWith('/musteri-bulma/') && kasaAnahtari(pathname) === null) {
+  if (pathname.startsWith('/musteri-bulma/') && !GECERLI_ADAY_YOLLARI.some(
+    (yol) => pathname === yol || pathname.startsWith(`${yol}/`),
+  )) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     url.search = '';

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requirePageAccess, getPageAccess } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -31,7 +31,7 @@ export default async function MusteriBulmaPage({
   // döndürüyordu (sayfa akış hâlinde başlıyor), o yüzden panoya yolluyoruz.
   if (!marka) redirect('/');
 
-  const user = await requirePageAccess(marka.izin);
+  const user = await requireUser();
   const isAdmin = user.role === 'admin';
   const sp = await searchParams;
 
@@ -134,14 +134,9 @@ export default async function MusteriBulmaPage({
              COUNT(*) FILTER (WHERE has_website = 'yok')::int AS websiz
       FROM prospects WHERE brand = ${marka.anahtar}
     ` as Promise<Array<{ toplam: number; bugun: number; gecikmis: number; websiz: number }>>,
-    // Sorumlu olarak yalnızca bu listeyi görebilenler seçilebilir; göremeyen
-    // birine atamak "kimse aramadı" demekle aynı şey olurdu.
+    // Listeler herkese açık: bütün aktif kullanıcılar sorumlu olabilir.
     sql`
-      SELECT u.id, u.display_name FROM users u
-      WHERE u.is_active AND (u.role = 'admin' OR EXISTS (
-        SELECT 1 FROM user_page_access pa WHERE pa.user_id = u.id AND pa.page_key = ${marka.izin}
-      ))
-      ORDER BY u.display_name
+      SELECT id, display_name FROM users WHERE is_active ORDER BY display_name
     ` as Promise<Array<{ id: number; display_name: string }>>,
     sql`
       SELECT DISTINCT source FROM prospects
@@ -159,9 +154,6 @@ export default async function MusteriBulmaPage({
   const sayimHarita = new Map(sayimlar.map((s) => [s.status, s.adet]));
   const o = ozet[0] ?? { toplam: 0, bugun: 0, gecikmis: 0, websiz: 0 };
   const haftaToplam = hafta.reduce((t, h) => t + h.adet, 0);
-
-  // Personelden kimse bu listeyi göremiyorsa yönetici boşuna bekler.
-  const personelErisimi = personel.some((p) => p.id !== user.id) || !isAdmin;
 
   const gecmis = acikSatir
     ? ((await sql`
@@ -201,16 +193,6 @@ export default async function MusteriBulmaPage({
       <PageHeader title={`${marka.ad} — Müşteri Bulma`} />
       <AramaKisayolu hedefId="ara" />
       <div className="content">
-        {isAdmin && !personelErisimi && (
-          <div className="alert alert-warning">
-            <Icon name="lock" style={{ width: 17, height: 17, flexShrink: 0 }} />
-            <span>
-              Bu listeyi şu an yalnızca sen görüyorsun. Arayacak kişilere
-              {' '}<a href="/ayarlar" style={{ fontWeight: 600 }}>Ayarlar → Sayfa Yetkileri</a>&apos;nden
-              {' '}&ldquo;{marka.ad} Adayları&rdquo; yetkisini ver.
-            </span>
-          </div>
-        )}
 
         <div className="stat-grid aday-stat">
           <a href={adres({ gorunum: gorunum === 'bugun' ? undefined : 'bugun', durum: undefined })}

@@ -13,7 +13,19 @@ const UFUK_GUN = 13;
  * üzerindeki tekil indeks sayesinde aynı gün için ikinci görev oluşmaz.
  * Kullanıcı üretilen bir görevi silerse tekrar üretilmez — silme kasıtlıdır.
  */
-export async function gorevleriUret(): Promise<number> {
+/**
+ * Son üretim zamanı (süreç belleğinde). Üretim, eksik günleri tamamlayan
+ * ON CONFLICT DO NOTHING'li tek bir INSERT — ama her sayfa açılışında bir
+ * yazma turu (~57 ms) demekti. 15 dakikada bir yetiyor: şablon değişince
+ * tekrar sayfası kendi üretimini zorluyor.
+ */
+let sonUretim = 0;
+const URETIM_ARALIGI = 15 * 60 * 1000;
+
+export async function gorevleriUret(zorla = false): Promise<number> {
+  if (!zorla && Date.now() - sonUretim < URETIM_ARALIGI) return 0;
+  sonUretim = Date.now();
+
   const rows = (await sql`
     INSERT INTO tasks (title, description, customer_id, assigned_to, created_by,
                        due_date, priority, status, template_id)

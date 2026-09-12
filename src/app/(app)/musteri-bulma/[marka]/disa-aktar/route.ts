@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getCurrentUser, getPageAccess } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import { markaBul, DURUM_HARITA, ACIK_DURUMLAR, EK_ALANLAR, gecerliDurum, bugun } from '@/lib/adaylar';
 import { aramaDesenleri } from '@/lib/arama';
@@ -43,9 +43,8 @@ export async function GET(
   const user = await getCurrentUser();
   if (!user) return new NextResponse('Oturum gerekli', { status: 401 });
 
-  // Liste yetkisi olmayan hiç göremez; dışa aktarma ayrıca yalnızca yönetici.
-  const erisim = user.role === 'admin' || (await getPageAccess(user.id)).has(marka.izin);
-  if (!erisim) return new NextResponse('Yetkiniz yok', { status: 403 });
+  // Listeyi herkes görebilir; tamamını tek dosya hâlinde dışarı çıkarmak
+  // yalnızca yöneticide kalıyor.
   if (user.role !== 'admin') {
     return new NextResponse('Excel’e aktarma yalnızca yöneticide.', { status: 403 });
   }

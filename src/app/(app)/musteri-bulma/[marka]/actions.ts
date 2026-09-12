@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
-import { assertUser, assertAdmin, assertPageAccess, getPageAccess, logActivity } from '@/lib/auth';
+import { assertUser, assertAdmin, logActivity } from '@/lib/auth';
 import {
   markaBul, digerMarka, DURUM_HARITA, gecerliDurum, gecerliUcDurum,
   sonrakiAramaTarihi, gunSonra, EK_ALANLAR, type Marka, type Durum, type UcDurum,
@@ -45,13 +45,13 @@ function tazele(marka: Marka) {
 }
 
 /**
- * Listeye erişim: marka formdan/adresten gelir ama izin her zaman sunucuda
- * kontrol edilir. Menüyü gizlemek koruma değildir.
+ * Listeyi doğrular. Aday listeleri ekibin ortak işi: oturumu olan herkes
+ * ekleyip arayabilir. Kalıcı silme ve Excel'e aktarma yöneticide kalır.
  */
 async function listeErisimi(fd: FormData): Promise<Marka> {
   const marka = markaBul(metin(fd, 'marka'));
   if (!marka) throw new Error('Geçersiz liste.');
-  await assertPageAccess(marka.izin);
+  await assertUser();
   return marka;
 }
 
@@ -79,7 +79,7 @@ async function adayErisimi(id: number | null): Promise<{ marka: Marka; aday: Ada
   if (!aday) throw new Error('Kayıt bulunamadı.');
   const marka = markaBul(aday.brand);
   if (!marka) throw new Error('Kaydın listesi tanınmıyor.');
-  await assertPageAccess(marka.izin);
+  await assertUser();
   return { marka, aday };
 }
 
@@ -180,10 +180,9 @@ export async function adayEkle(_prev: string | null, formData: FormData): Promis
   const uyarilar: string[] = [];
   if (!tel.gecerli && hamTelefon) uyarilar.push('Numara anlaşılamadı, kontrol et.');
   if (tel.anahtar) {
-    const diger = digerMarka(marka.anahtar);
-    const digerErisim = user.role === 'admin'
-      || (await getPageAccess(user.id)).has(diger.izin);
-    const d = await digerListedeVar(marka, tel.anahtar, digerErisim);
+    // İki liste de herkese açık olduğu için diğer listedeki kaydın adı
+    // gösterilebilir. Mevcut MÜŞTERİ adı hâlâ yalnızca yöneticiye görünür.
+    const d = await digerListedeVar(marka, tel.anahtar, true);
     if (d) uyarilar.push(d);
     const m = await mevcutMusteriUyarisi(tel.anahtar, user.role === 'admin');
     if (m) uyarilar.push(m);
@@ -275,16 +274,11 @@ export async function alanGuncelle(formData: FormData) {
   } else if (alan === 'sorumlu') {
     const kisi = deger === '' ? null : parseInt(deger, 10);
     if (kisi !== null && !Number.isInteger(kisi)) throw new Error('Geçersiz kişi.');
-    // Listeyi göremeyen birine atamak "kimse aramayacak" demek olurdu.
     if (kisi !== null) {
       const uygun = (await sql`
-        SELECT 1 FROM users u
-        WHERE u.id = ${kisi} AND u.is_active AND (u.role = 'admin' OR EXISTS (
-          SELECT 1 FROM user_page_access pa
-          WHERE pa.user_id = u.id AND pa.page_key = ${marka.izin}
-        ))
+        SELECT 1 FROM users WHERE id = ${kisi} AND is_active
       `) as unknown[];
-      if (uygun.length === 0) throw new Error('Bu kişi bu listeyi göremiyor, atanamaz.');
+      if (uygun.length === 0) throw new Error('Kullanıcı bulunamadı.');
     }
     await sql`UPDATE prospects SET assigned_to = ${kisi}, updated_at = NOW() WHERE id = ${aday.id}`;
     await sql`
@@ -425,7 +419,7 @@ export async function geriAl(formData: FormData) {
   if (!sahip[0]) throw new Error('Kayıt bulunamadı.');
   const marka = markaBul(sahip[0].brand);
   if (!marka) throw new Error('Liste tanınmıyor.');
-  await assertPageAccess(marka.izin);
+  await assertUser();
 
   await sql`
     WITH hedef AS (

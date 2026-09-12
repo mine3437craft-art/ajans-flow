@@ -6,21 +6,14 @@ import type { Role } from './types';
  * eklemek için burası yeterli — veritabanında kısıt yok (bkz. schema.sql
  * user_page_access yorumu).
  */
-export type PageKey =
-  | 'kasa' | 'finans' | 'borclar' | 'raporlar' | 'hedefler'
-  | 'aday_ajansflow' | 'aday_minikstarlar';
-export const PAGE_KEYS: PageKey[] = [
-  'kasa', 'finans', 'borclar', 'raporlar', 'hedefler',
-  'aday_ajansflow', 'aday_minikstarlar',
-];
+export type PageKey = 'kasa' | 'finans' | 'borclar' | 'raporlar' | 'hedefler';
+export const PAGE_KEYS: PageKey[] = ['kasa', 'finans', 'borclar', 'raporlar', 'hedefler'];
 export const PAGE_LABELS: Record<PageKey, string> = {
   kasa: 'Kasa',
   finans: 'Gelir / Gider',
   borclar: 'Borç & Alacak',
   raporlar: 'Raporlar',
   hedefler: 'Hedefler',
-  aday_ajansflow: 'Ajans Flow Adayları',
-  aday_minikstarlar: 'Minik Starlar Adayları',
 };
 
 export type NavItem = {
@@ -43,10 +36,9 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/gorevler',   label: 'Görevler',       icon: 'check' },
   { href: '/takvim',     label: 'İçerik Takvimi', icon: 'calendar' },
   { href: '/musteriler', label: 'Müşteriler',     icon: 'users' },
-  { href: '/musteri-bulma/ajansflow',    label: 'Ajans Flow',    icon: 'target',
-    pageKey: 'aday_ajansflow',    grup: 'Müşteri Bulma' },
-  { href: '/musteri-bulma/minikstarlar', label: 'Minik Starlar', icon: 'target',
-    pageKey: 'aday_minikstarlar', grup: 'Müşteri Bulma' },
+  // Aday listeleri ekibin ortak işi: herkes görür, herkes arar.
+  { href: '/musteri-bulma/ajansflow',    label: 'Ajans Flow',    icon: 'target', grup: 'Müşteri Bulma' },
+  { href: '/musteri-bulma/minikstarlar', label: 'Minik Starlar', icon: 'target', grup: 'Müşteri Bulma' },
   { href: '/videolar',   label: 'Video Deposu',   icon: 'video' },
   { href: '/notlar',     label: 'Notlar',         icon: 'note' },
   { href: '/kasa',       label: 'Kasa',           icon: 'wallet', pageKey: 'kasa' },

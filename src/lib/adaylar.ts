@@ -11,8 +11,6 @@ export type Marka = {
   /** URL parçası: /musteri-bulma/<yol> */
   yol: string;
   ad: string;
-  /** Sayfa erişim anahtarı (src/lib/permissions.ts PAGE_KEYS) */
-  izin: 'aday_ajansflow' | 'aday_minikstarlar';
   /**
    * Bu listede gösterilecek ek işaretler. Ajans Flow'da satışı belirleyen
    * iki soru var: web sitesi var mı, daha önce ajansla çalışmış mı. Minik
@@ -25,11 +23,11 @@ export type Marka = {
 export const MARKALAR: Marka[] = [
   {
     anahtar: 'ajansflow', yol: 'ajansflow', ad: 'Ajans Flow',
-    izin: 'aday_ajansflow', ekAlanlar: ['web', 'ajans'],
+    ekAlanlar: ['web', 'ajans'],
   },
   {
     anahtar: 'minikstarlar', yol: 'minikstarlar', ad: 'Minik Starlar',
-    izin: 'aday_minikstarlar', ekAlanlar: [],
+    ekAlanlar: [],
   },
 ];
 

@@ -89,6 +89,9 @@ export default function AdayListesi({
   geriAl: Eylem;
 }) {
   const [sonucId, setSonucId] = useState<number | null>(baslangicSonuc);
+  // Arama modu: sırayla aranacak adayların kimlikleri. Sonuç kaydedilince
+  // ekran kapanmaz, sıradaki adaya geçer.
+  const [kuyruk, setKuyruk] = useState<number[]>([]);
   const [kanal, setKanal] = useState<'telefon' | 'whatsapp'>('telefon');
   const [not, setNot] = useState('');
   const [tarihSecim, setTarihSecim] = useState('otomatik');
@@ -135,10 +138,48 @@ export default function AdayListesi({
     } catch { /* gizli sekmede çalışmayabilir, sorun değil */ }
   };
 
+  /** Bugün aranacaklar: tarihi gelmiş/geçmiş ya da hiç aranmamış, açık olanlar. */
+  const bugunAranacak = satirlar.filter(
+    (s) => DURUM_HARITA[s.status]?.acik
+      && (s.status === 'aranmadi' || (s.next_call_on ?? '9999') <= bugunTarih),
+  );
+
+  const aramayaBasla = () => {
+    const sira = bugunAranacak.map((s) => s.id);
+    if (sira.length === 0) return;
+    setKuyruk(sira);
+    sonucAc(sira[0], 'telefon');
+  };
+
+  /** Sonuç kaydedildikten sonra: kuyrukta sıradaki adaya geç, yoksa kapat. */
+  const sonrakiAday = (biten: number) => {
+    const kalan = kuyruk.filter((id) => id !== biten);
+    setKuyruk(kalan);
+    const sonraki = kalan.find((id) => satirlar.some((s) => s.id === id));
+    if (sonraki === undefined) { setSonucId(null); return; }
+    sonucAc(sonraki, 'telefon');
+  };
+
   const sonucSatiri = satirlar.find((s) => s.id === sonucId) ?? null;
+  const kuyruktaMi = sonucSatiri !== null && kuyruk.includes(sonucSatiri.id);
+  const kuyrukToplam = kuyruk.length;
 
   return (
     <>
+      {bugunAranacak.length > 0 && (
+        <div className="arama-modu-serit">
+          <div>
+            <strong>{bugunAranacak.length} aday aranacak</strong>
+            <div className="cell-sub">
+              Sırayla arar, sonucu girdikçe kendiliğinden sonrakine geçer.
+            </div>
+          </div>
+          <button type="button" className="btn btn-primary" onClick={aramayaBasla}>
+            📞 Aramaya başla
+          </button>
+        </div>
+      )}
+
       <div className="table-wrap">
         <table className="aday-tablo">
           <thead>
@@ -367,7 +408,8 @@ export default function AdayListesi({
                   e.preventDefault();
                   return;
                 }
-                setSonucId(null);
+                if (kuyruktaMi && sonucSatiri) sonrakiAday(sonucSatiri.id);
+                else setSonucId(null);
               }}
             >
               <input type="hidden" name="id" value={sonucSatiri.id} />
@@ -379,17 +421,58 @@ export default function AdayListesi({
               <input type="hidden" name="ajans" value={ajans} />
 
               <div className="sonuc-baslik">
-                <div>
+                <div style={{ minWidth: 0 }}>
+                  {kuyruktaMi && (
+                    <div className="kuyruk-sayac">
+                      Arama modu · sırada {kuyrukToplam} aday
+                    </div>
+                  )}
                   <strong>{sonucSatiri.name}</strong>
                   <div className="cell-sub">
-                    {kanal === 'whatsapp' ? 'WhatsApp sonucu' : 'Arama sonucu'}
+                    {[
+                      sonucSatiri.contact_person, sonucSatiri.city, sonucSatiri.source,
+                    ].filter(Boolean).join(' · ') || (kanal === 'whatsapp' ? 'WhatsApp' : 'Telefon')}
                     {sonucSatiri.call_count > 0 && ` · ${sonucSatiri.call_count + 1}. deneme`}
                   </div>
                 </div>
-                <button type="button" className="btn-icon" onClick={() => setSonucId(null)} aria-label="Kapat">
+                <button type="button" className="btn-icon" onClick={() => { setKuyruk([]); setSonucId(null); }}
+                        aria-label="Kapat">
                   <Icon name="close" />
                 </button>
               </div>
+
+              {/* Arama modunda numara ekranın en görünür yerinde: dokun, konuş, dön, sonucu bas. */}
+              {(() => {
+                const t = telefonCoz(sonucSatiri.phone_raw);
+                if (!t.gecerli) {
+                  return (
+                    <div className="alert alert-warning" style={{ marginBottom: 12 }}>
+                      Numara anlaşılamadı: {sonucSatiri.phone_raw ?? 'boş'} — &ldquo;Yanlış No&rdquo; ile işaretleyebilirsin.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="sonuc-ara">
+                    <a href={t.tel!} className="btn btn-success sonuc-ara-dugme"
+                       onClick={() => aramaIsaretle(sonucSatiri.id, 'telefon')}>
+                      📞 {t.gorunum}
+                    </a>
+                    {t.whatsapp && (
+                      <a href={t.whatsapp} target="_blank" rel="noopener noreferrer"
+                         className="btn btn-secondary"
+                         onClick={() => { setKanal('whatsapp'); aramaIsaretle(sonucSatiri.id, 'whatsapp'); }}>
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {sonucSatiri.last_note && (
+                <div className="sonuc-son-not">
+                  <span className="cell-sub">Son not</span> {sonucSatiri.last_note}
+                </div>
+              )}
 
               {sonucSatiri.baskasi_aradi && (
                 <div className="alert alert-warning" style={{ marginBottom: 12 }}>
