@@ -20,16 +20,19 @@ function Gonder() {
  * arka arkaya girilebilsin.
  */
 export default function AdayEkleBar({
-  action, marka, kaynaklar, personel, ekAlanlar,
+  action, marka, kaynaklar, personel, ekAlanlar, bastaAcik = false,
 }: {
   action: (prev: string | null, fd: FormData) => Promise<string | null>;
   marka: string;
   kaynaklar: string[];
   personel: Array<{ id: number; display_name: string }>;
   ekAlanlar: EkAlanAnahtari[];
+  /** Liste boşken açık gelir; doluyken tek satıra katlanır. */
+  bastaAcik?: boolean;
 }) {
   const [sonuc, formAction] = useActionState(action, null);
   const [genis, setGenis] = useState(false);
+  const [acik, setAcik] = useState(bastaAcik);
   const formRef = useRef<HTMLFormElement>(null);
   const adRef = useRef<HTMLInputElement>(null);
 
@@ -40,6 +43,7 @@ export default function AdayEkleBar({
   // yalnızca kişiye özel üç alan temizlenir.
   useEffect(() => {
     if (!ok) return;
+    setAcik(true);
     const f = formRef.current;
     if (f) {
       for (const ad of ['name', 'phone', 'note'] as const) {
@@ -49,6 +53,15 @@ export default function AdayEkleBar({
     }
     adRef.current?.focus();
   }, [ok, sonuc]);
+
+  if (!acik) {
+    return (
+      <button type="button" className="acilir-baslik aday-ekle-kapali"
+              onClick={() => setAcik(true)}>
+        + Yeni aday ekle
+      </button>
+    );
+  }
 
   return (
     <form ref={formRef} action={formAction} className="aday-ekle">
@@ -72,6 +85,8 @@ export default function AdayEkleBar({
         <button type="button" className="btn btn-sm btn-ghost" onClick={() => setGenis((v) => !v)}>
           {genis ? 'Alanları gizle' : 'Daha fazla alan'}
         </button>
+        <button type="button" className="btn btn-sm btn-ghost" onClick={() => setAcik(false)}
+                title="Ekleme alanını kapat">Kapat</button>
       </div>
 
       {genis && (

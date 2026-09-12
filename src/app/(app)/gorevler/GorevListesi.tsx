@@ -3,7 +3,10 @@
 import { useOptimistic } from 'react';
 import Icon from '@/components/Icon';
 import ConfirmButton from '@/components/ConfirmButton';
-import { dateShort, TASK_STATUS_LABEL, PRIORITY_LABEL } from '@/lib/format';
+import { TASK_STATUS_LABEL } from '@/lib/format';
+// tarihEtiketi saf bir fonksiyon (veritabanına dokunmaz), aday listesinden
+// tanıdık "Bugün / Gecikti · 3 gün" etiketini burada da kullanıyoruz.
+import { tarihEtiketi } from '@/lib/adaylar';
 
 export type GorevSatir = {
   id: number; title: string; description: string | null;
@@ -14,9 +17,6 @@ export type GorevSatir = {
 
 const STATUS_BADGE: Record<string, string> = {
   bekliyor: 'b-warning', devam: 'b-info', tamamlandi: 'b-success', iptal: 'b-muted',
-};
-const PRIORITY_BADGE: Record<string, string> = {
-  dusuk: 'b-muted', normal: 'b-info', yuksek: 'b-danger',
 };
 
 type Iyimser = { id: number; tip: 'tamamlandi' | 'silindi' };
@@ -97,8 +97,14 @@ export default function GorevListesi({
           {gorunen.map((t) => {
             const iyimserDurum = durumu(t.id);
             const bekliyor = iyimserDurum !== null;
+            const tarih = tarihEtiketi(t.due_date);
+            const siniflar = [
+              bekliyor ? 'satir-gidiyor' : '',
+              tarih?.sinif === 'tarih-gecikti' ? 'satir-gecikti'
+                : tarih?.sinif === 'tarih-bugun' ? 'satir-bugun' : '',
+            ].filter(Boolean).join(' ');
             return (
-              <tr key={t.id} className={bekliyor ? 'satir-gidiyor' : undefined}>
+              <tr key={t.id} className={siniflar || undefined}>
                 <td data-etiket="Görev">
                   <div className="cell-title">
                     {t.template_id && <span title="Tekrarlayan görev" style={{ marginRight: 5 }}>🔁</span>}
@@ -106,7 +112,7 @@ export default function GorevListesi({
                   </div>
                   {t.description && <div className="cell-sub">{t.description}</div>}
                 </td>
-                <td data-etiket="Müşteri">{t.customer_name ?? '—'}</td>
+                {t.customer_name && <td data-etiket="Müşteri">{t.customer_name}</td>}
                 <td data-etiket="Atanan">
                   {!t.assignee_name && !t.ek_atananlar ? '—' : (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -118,17 +124,21 @@ export default function GorevListesi({
                   )}
                 </td>
                 <td data-etiket="Bitiş">
-                  {dateShort(t.due_date)}
+                  {tarih
+                    ? <span className={`tarih-etiket ${tarih.sinif}`}>{tarih.metin}</span>
+                    : <span className="cell-sub">tarihsiz</span>}
                   {t.due_time && <span className="cell-sub"> {t.due_time.slice(0, 5)}</span>}
                 </td>
-                <td data-etiket="Öncelik">
-                  <span className={`badge ${PRIORITY_BADGE[t.priority]}`}>{PRIORITY_LABEL[t.priority]}</span>
-                </td>
-                <td data-etiket="Durum">
-                  <span className={`badge ${STATUS_BADGE[iyimserDurum === 'tamamlandi' ? 'tamamlandi' : t.status]}`}>
-                    {TASK_STATUS_LABEL[iyimserDurum === 'tamamlandi' ? 'tamamlandi' : t.status]}
-                  </span>
-                </td>
+                {t.priority === 'yuksek' && (
+                  <td data-etiket="Öncelik"><span className="badge b-danger">Yüksek</span></td>
+                )}
+                {(gun === 'tumu' || t.status === 'tamamlandi' || iyimserDurum === 'tamamlandi') && (
+                  <td data-etiket="Durum">
+                    <span className={`badge ${STATUS_BADGE[iyimserDurum === 'tamamlandi' ? 'tamamlandi' : t.status]}`}>
+                      {TASK_STATUS_LABEL[iyimserDurum === 'tamamlandi' ? 'tamamlandi' : t.status]}
+                    </span>
+                  </td>
+                )}
                 <td data-etiket="">
                   <div className="satir-eylem">
                     {t.status !== 'tamamlandi' && iyimserDurum !== 'tamamlandi' && (

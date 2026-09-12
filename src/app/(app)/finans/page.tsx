@@ -33,7 +33,9 @@ export default async function FinancePage({
   const kasaYetkisi =
     user.role === 'admin' || (await getPageAccess(user.id)).has('kasa');
 
-  const rows = (await sql`
+  // Beş bağımsız sorgu tek dalgada: sırayla beklemek ~5 tur (~285 ms) demekti.
+  const [rows, totals, kategoriler, customers, hesaplar] = await Promise.all([
+    sql`
     SELECT t.id, t.type, t.amount, t.category, t.description, t.occurred_on,
            c.name AS customer_name, a.name AS hesap_adi
     FROM transactions t
@@ -44,9 +46,8 @@ export default async function FinancePage({
       AND (${tur ?? null}::text IS NULL OR t.type = ${tur ?? null})
       AND (${hesapId}::int IS NULL OR t.account_id = ${hesapId}::int)
     ORDER BY t.occurred_on DESC, t.id DESC
-  `) as TxRow[];
-
-  const totals = (await sql`
+  ` as Promise<TxRow[]>,
+    sql`
     SELECT
       COALESCE(SUM(amount) FILTER (WHERE type = 'gelir'), 0)  AS gelir,
       COALESCE(SUM(amount) FILTER (WHERE type = 'gider'), 0)  AS gider,
@@ -54,30 +55,28 @@ export default async function FinancePage({
     FROM transactions
     WHERE occurred_on >= ${periodStart}::date
       AND occurred_on <  (${periodStart}::date + INTERVAL '1 month')
-  `) as Array<{ gelir: string; gider: string; kasasiz_adet: string }>;
-
-  const gelir = num(totals[0]?.gelir);
-  const gider = num(totals[0]?.gider);
-  const kasasizAdet = num(totals[0]?.kasasiz_adet);
-  const net = gelir - gider;
-
-  const kategoriler = (await sql`
+  ` as Promise<Array<{ gelir: string; gider: string; kasasiz_adet: string }>>,
+    sql`
     SELECT type, category, SUM(amount) AS toplam
     FROM transactions
     WHERE occurred_on >= ${periodStart}::date
       AND occurred_on <  (${periodStart}::date + INTERVAL '1 month')
     GROUP BY type, category
     ORDER BY SUM(amount) DESC
-  `) as Array<{ type: string; category: string; toplam: string }>;
+  ` as Promise<Array<{ type: string; category: string; toplam: string }>>,
+    sql`
+    SELECT id, name FROM customers ORDER BY name
+  ` as Promise<Array<{ id: number; name: string }>>,
+    hesapSecenekleri(),
+  ]);
+
+  const gelir = num(totals[0]?.gelir);
+  const gider = num(totals[0]?.gider);
+  const kasasizAdet = num(totals[0]?.kasasiz_adet);
+  const net = gelir - gider;
 
   const giderKategori = kategoriler.filter((k) => k.type === 'gider');
   const enBuyukGider = giderKategori.length > 0 ? num(giderKategori[0].toplam) : 0;
-
-  const customers = (await sql`
-    SELECT id, name FROM customers ORDER BY name
-  `) as Array<{ id: number; name: string }>;
-
-  const hesaplar = await hesapSecenekleri();
 
   return (
     <>

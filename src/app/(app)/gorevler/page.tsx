@@ -80,18 +80,29 @@ export default async function TasksPage({
   // Görev açarken müşteri adı seçilebilsin diye aktif müşterilerin yalnızca
   // adı listelenir — para ve iletişim bilgisi burada yok, Müşteriler
   // sayfasının kişi bazlı kuralı orada geçerli olmaya devam eder.
-  // Birbirinden bağımsız iki sorgu: sırayla beklemek boşa 57 ms.
-  const [customers, staff] = await Promise.all([
+  // Birbirinden bağımsız sorgular tek dalgada: her biri ayrı ~57 ms tur.
+  const [customers, staff, sayimlar] = await Promise.all([
     sql`SELECT id, name FROM customers WHERE status = 'aktif' ORDER BY name` as
       Promise<Array<{ id: number; name: string }>>,
     sql`SELECT id, display_name FROM users WHERE is_active ORDER BY display_name` as
       Promise<Array<{ id: number; display_name: string }>>,
+    sql`
+      SELECT COUNT(*) FILTER (WHERE status IN ('bekliyor', 'devam'))::int AS acik,
+             COUNT(*) FILTER (WHERE status = 'bekliyor')::int AS bekliyor,
+             COUNT(*) FILTER (WHERE status = 'tamamlandi')::int AS tamamlandi
+      FROM tasks
+    ` as Promise<Array<{ acik: number; bekliyor: number; tamamlandi: number }>>,
   ]);
 
+  // Sayılar listeden değil toplu sorgudan: "Tamamlanan" görünümündeyken
+  // filtrelenmiş listeden sayınca düğmede "Bekleyen (0)" yazıp tıklanınca
+  // dolu liste açılıyordu.
+  const sayim = sayimlar[0];
   const counts = {
     hepsi: tasks.length,
-    bekliyor: tasks.filter((t) => t.status === 'bekliyor').length,
-    devam: tasks.filter((t) => t.status === 'devam').length,
+    acik: sayim?.acik ?? 0,
+    bekliyor: sayim?.bekliyor ?? 0,
+    tamamlandi: sayim?.tamamlandi ?? 0,
   };
 
   return (
@@ -106,9 +117,9 @@ export default async function TasksPage({
             </h2>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[
-                { k: '', l: 'Tümü' },
+                { k: '', l: 'Açık İşler' },
                 { k: 'bekliyor', l: `Bekleyen (${counts.bekliyor})` },
-                { k: 'tamamlandi', l: 'Tamamlanan' },
+                { k: 'tamamlandi', l: `Tamamlanan (${counts.tamamlandi})` },
               ].map((f) => (
                 <a
                   key={f.k}
@@ -122,32 +133,20 @@ export default async function TasksPage({
             </div>
           </div>
 
-          <div className="filter-bar" style={{ alignItems: 'center' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px',
-                           textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-              Görünüm
-            </span>
+          {/* Tek satır: görünüm + kişi çipleri. Telefonda yana kayar; iki
+              ayrı filtre satırı ve 20 kelimelik açıklama listeyi ekranın
+              dışına atıyordu. */}
+          <div className="filter-bar filtre-kaydir">
             <a href={baglanti({ durum, kisi, gun: 'bugun' })}
-               className={`btn btn-sm ${gun === 'bugun' ? 'btn-primary' : 'btn-secondary'}`}>
+               className={`btn btn-sm ${gun === 'bugun' ? 'btn-primary' : 'btn-secondary'}`}
+               title="İleri tarihli tekrarlayan görevler kendi gününde burada belirir; bugün tamamlarsan yarınki yerini alır.">
               Bugünün İşleri
             </a>
             <a href={baglanti({ durum, kisi, gun: 'tumu' })}
                className={`btn btn-sm ${gun === 'tumu' ? 'btn-primary' : 'btn-secondary'}`}>
               Tüm Takvim
             </a>
-            {gun === 'bugun' && (
-              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', marginLeft: 4 }}>
-                İleri tarihli tekrarlayan görevler kendi gününde burada belirir —
-                bugün tamamlarsan yarınki otomatik olarak yerini alır.
-              </span>
-            )}
-          </div>
-
-          <div className="filter-bar" style={{ alignItems: 'center' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px',
-                           textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-              Kime ait
-            </span>
+            <span className="filtre-ayirici" aria-hidden />
             <a href={baglanti({ durum, kisi: undefined, gun })}
                className={`btn btn-sm ${!kisi ? 'btn-primary' : 'btn-secondary'}`}>Herkes</a>
             <a href={baglanti({ durum, kisi: 'ben', gun })}

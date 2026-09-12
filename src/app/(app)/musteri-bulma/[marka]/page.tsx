@@ -258,6 +258,7 @@ export default async function MusteriBulmaPage({
             kaynaklar={kaynaklar.map((k) => k.source)}
             personel={personel}
             ekAlanlar={marka.ekAlanlar}
+            bastaAcik={o.toplam === 0}
           />
 
           <form className="filter-bar" method="get">
@@ -274,6 +275,12 @@ export default async function MusteriBulmaPage({
             {arama && <a className="btn btn-ghost btn-sm" href={adres({ ara: undefined })}>Temizle</a>}
           </form>
 
+          {/* Dokuz durum + kişi + web/ajans çipleri arayanın ekranını
+              dolduruyordu: filtre uygulanmışsa açık, temiz listede kapalı. */}
+          <details open={filtreVar} className="filtre-katlanir">
+            <summary className="acilir-baslik">
+              Filtreler{filtreVar ? ' · açık' : ''}
+            </summary>
           <div className="konu-dizini">
             <span className="konu-dizini-baslik">Durum</span>
             <a href={adres({ durum: undefined, gorunum: undefined })} className={cip(durumFiltre === 'acik' && !gorunum)}>
@@ -319,6 +326,7 @@ export default async function MusteriBulmaPage({
               );
             })}
           </div>
+          </details>
 
           {satirlar.length === 0 ? (
             <EmptyState

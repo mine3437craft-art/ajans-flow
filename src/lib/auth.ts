@@ -1,5 +1,7 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
+import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { sql } from './db';
 import { sessionCookie, verifySession } from './session';
@@ -9,8 +11,13 @@ import type { PageKey } from './permissions';
 /**
  * Çerezdeki oturumu doğrular ve kullanıcıyı VERİTABANINDAN tazeler.
  * Rol her istekte veritabanından okunur — çerezdeki role güvenilmez.
+ *
+ * cache() ile sarılı: tek bir istek içinde kabuk layout'u, sayfanın kendisi
+ * ve aksiyonlar hep aynı kullanıcıyı istiyordu, her biri ayrı bir sorgu
+ * turuydu (~57 ms). Önbellek yalnızca o isteğin ömrü boyunca geçerli —
+ * istekler arasında taşınmaz, yani rol tazeliği bozulmuyor.
  */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const token = (await cookies()).get(sessionCookie.name)?.value;
   if (!token) return null;
 
@@ -34,7 +41,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     role: user.role,
     must_change_password: user.must_change_password,
   };
-}
+});
 
 /**
  * Oturum yoksa /login'e yollar. Şifre değiştirme zorunluluğunu KONTROL ETMEZ —
@@ -79,19 +86,18 @@ export async function assertUser(): Promise<SessionUser> {
 }
 
 /** Personele yönetici tarafından tek tek açılmış kasa sayfalarının anahtar kümesi. */
-export async function getPageAccess(userId: number): Promise<Set<PageKey>> {
+export const getPageAccess = cache(async (userId: number): Promise<Set<PageKey>> => {
   const rows = (await sql`
     SELECT page_key FROM user_page_access WHERE user_id = ${userId}
   `) as Array<{ page_key: PageKey }>;
   return new Set(rows.map((r) => r.page_key));
-}
+});
 
 async function hasPageAccess(user: SessionUser, pageKey: PageKey): Promise<boolean> {
   if (user.role === 'admin') return true;
-  const rows = (await sql`
-    SELECT 1 FROM user_page_access WHERE user_id = ${user.id} AND page_key = ${pageKey}
-  `) as unknown[];
-  return rows.length > 0;
+  // Kendi SELECT'i yerine önbellekli kümeyi kullanıyor: aynı istekte
+  // birden fazla kontrol yapılsa bile tek sorgu.
+  return (await getPageAccess(user.id)).has(pageKey);
 }
 
 /**
@@ -115,6 +121,12 @@ export async function assertPageAccess(pageKey: PageKey): Promise<SessionUser> {
   return user;
 }
 
+/**
+ * İşlem geçmişine yazar. Kayıt, yanıt kullanıcıya gittikten SONRA
+ * (Next'in after() kuyruğunda) atılıyor: denetim kaydı kullanıcıyı
+ * bekletmemeli, ama her mutasyonun kritik yolunda ~57 ms tutuyordu.
+ * 51 çağrı yerinin hiçbiri sonucu kullanmıyor, imza aynı kaldı.
+ */
 export async function logActivity(opts: {
   userId: number;
   action: string;
@@ -123,9 +135,15 @@ export async function logActivity(opts: {
   detail?: string;
   isFinancial?: boolean;
 }) {
-  await sql`
-    INSERT INTO activity_log (user_id, action, entity, entity_id, detail, is_financial)
-    VALUES (${opts.userId}, ${opts.action}, ${opts.entity},
-            ${opts.entityId ?? null}, ${opts.detail ?? null}, ${opts.isFinancial ?? false})
-  `;
+  after(async () => {
+    try {
+      await sql`
+        INSERT INTO activity_log (user_id, action, entity, entity_id, detail, is_financial)
+        VALUES (${opts.userId}, ${opts.action}, ${opts.entity},
+                ${opts.entityId ?? null}, ${opts.detail ?? null}, ${opts.isFinancial ?? false})
+      `;
+    } catch (hata) {
+      console.error('[logActivity] işlem geçmişine yazılamadı:', hata);
+    }
+  });
 }

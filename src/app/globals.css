@@ -1054,13 +1054,15 @@ button.uc-durum:hover { border-color: var(--border-hover); }
 .aday-pano-sayi { font-size: 20px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
 
 /* Telefonda özet kartları listeyi aşağı itmesin */
+/* Telefonda bütün özet kutuları: tek sütunda her biri tam genişlik olunca
+   panoda 7 kutu listeyi ekranın dışına atıyordu. */
 @media (max-width: 700px) {
-  .aday-stat { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
-  .aday-stat .stat-card { padding: 11px 12px; border-radius: var(--radius); }
-  .aday-stat .stat-icon { width: 26px; height: 26px; border-radius: 7px; margin-bottom: 7px; }
-  .aday-stat .stat-icon svg { width: 14px; height: 14px; }
-  .aday-stat .stat-value { font-size: 21px; }
-  .aday-stat .stat-label { font-size: 11.5px; line-height: 1.35; }
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
+  .stat-grid .stat-card { padding: 11px 12px; border-radius: var(--radius); }
+  .stat-grid .stat-icon { width: 26px; height: 26px; border-radius: 7px; margin-bottom: 7px; }
+  .stat-grid .stat-icon svg { width: 14px; height: 14px; }
+  .stat-grid .stat-value { font-size: 21px; overflow-wrap: anywhere; }
+  .stat-grid .stat-label { font-size: 11.5px; line-height: 1.35; }
 }
 
 /* ---------------- Görev tablosu ---------------- */
@@ -1070,7 +1072,13 @@ button.uc-durum:hover { border-color: var(--border-hover); }
 
 @media (max-width: 900px) {
   .gorev-tablo thead { display: none; }
-  .gorev-tablo, .gorev-tablo tbody, .gorev-tablo tr, .gorev-tablo td { display: block; width: 100%; }
+  .gorev-tablo, .gorev-tablo tbody, .gorev-tablo td { display: block; width: 100%; }
+  /* Telefonda sıra: görev adı, hemen altında "✓ Yapıldı", sonra ayrıntılar */
+  .gorev-tablo tr { display: flex; flex-direction: column; width: 100%; }
+  .gorev-tablo td { order: 2; }
+  .gorev-tablo td:first-child { order: 0; }
+  .gorev-tablo td:last-child { order: 1; }
+  .gorev-tablo .satir-eylem .btn-icon { min-width: 42px; min-height: 42px; }
   .gorev-tablo tr {
     margin: 0 12px 12px; padding: 6px 0; background: var(--bg-card);
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -1112,3 +1120,52 @@ button.uc-durum:hover { border-color: var(--border-hover); }
 .sonuc-son-not .cell-sub {
   display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
 }
+
+/* Satır içi alan kaydedilirken: dokunuşun boşa gitmediği görünsün */
+.alan-bekliyor { opacity: .45; transition: opacity .12s ease; pointer-events: none; }
+
+/* ---------------- Dokunma geri bildirimi ----------------
+   Dosyada hiç :active kuralı yoktu; bütün geri bildirim :hover üzerineydi.
+   Telefonda hover ya tetiklenmiyor ya dokunuştan sonra yapışıp kalıyor —
+   kullanıcı bastığını göremediği için tekrar basıyor. */
+.btn:active, .konu:active, .sonuc-dugme:active, .nav-item:active,
+.btn-icon:active, .aday-pano-satir:active, .acilir-baslik:active,
+.hesap-karti:active, .hesap-chip:active, .stat-card.aday-tile:active,
+.tel-bag:active, .uc-durum:active {
+  transform: scale(.97);
+  filter: brightness(.94);
+  transition: none;
+}
+.btn:disabled:active, .uc-durum:disabled:active { transform: none; filter: none; }
+
+/* Hover efektleri yalnızca gerçekten fare olan cihazlarda */
+@media (hover: none) {
+  .btn:hover, .konu:hover, .sonuc-dugme:hover, .nav-item:hover,
+  .btn-icon:hover, .aday-pano-satir:hover, .acilir-baslik:hover,
+  .hesap-karti:hover, .hesap-chip:hover, .tel-bag:hover,
+  tbody tr:hover, .hareket:hover, .uc-durum:hover {
+    filter: none; transform: none; background: inherit; border-color: inherit;
+  }
+  tbody tr:hover { background: transparent; }
+}
+
+/* Tarih etiketi (gecikti / bugün) artık görev listesinde de kullanılıyor */
+tr.satir-gecikti { box-shadow: inset 3px 0 0 var(--danger); }
+tr.satir-bugun { box-shadow: inset 3px 0 0 var(--primary); }
+
+/* Filtre satırı telefonda katlanmak yerine yana kaysın */
+.filtre-kaydir { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.filtre-kaydir::-webkit-scrollbar { display: none; }
+.filtre-kaydir > * { flex-shrink: 0; }
+.filtre-ayirici { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+
+/* Aday sayfası: katlanmış ekleme bandı ve filtre bloğu */
+.aday-ekle-kapali {
+  display: block; width: 100%; text-align: left; border: none;
+  border-bottom: 1px solid var(--border); background: var(--primary-subtle);
+}
+.filtre-katlanir { border-bottom: 1px solid var(--border); }
+.filtre-katlanir > summary { list-style: none; }
+.filtre-katlanir > summary::-webkit-details-marker { display: none; }
+.filtre-katlanir[open] > summary { border-bottom: 1px solid var(--border); }
+.filtre-katlanir .konu-dizini { border-bottom: none; }

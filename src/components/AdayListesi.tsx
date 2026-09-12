@@ -42,6 +42,16 @@ function Kaydediliyor({ etiket }: { etiket: string }) {
   );
 }
 
+/**
+ * Gönderim sürerken alanı soluklaştırır. Bunsuz, durum kutusunu
+ * değiştirdikten sonra sunucu cevaplayana kadar (~yarım saniye) hiçbir şey
+ * olmamış gibi görünüyordu.
+ */
+function Bekleyen({ children }: { children: React.ReactNode }) {
+  const { pending } = useFormStatus();
+  return <span className={pending ? 'alan-bekliyor' : undefined}>{children}</span>;
+}
+
 /** Değiştirilince kendiliğinden gönderilen tek alanlık form. */
 function AlanFormu({
   action, id, alan, children,
@@ -59,8 +69,19 @@ function AlanFormu({
     >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="alan" value={alan} />
-      {children}
+      <Bekleyen>{children}</Bekleyen>
     </form>
+  );
+}
+
+/** Üç durumlu rozet: tıklandığı an solar, sunucu yetişince yeni değer gelir. */
+function UcDurumDugmesi({ sinif, baslik, etiket }: { sinif: string; baslik: string; etiket: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className={`badge ${sinif} uc-durum${pending ? ' alan-bekliyor' : ''}`}
+            title={baslik} disabled={pending}>
+      {etiket}
+    </button>
   );
 }
 
@@ -258,9 +279,8 @@ export default function AdayListesi({
                           <input type="hidden" name="id" value={s.id} />
                           <input type="hidden" name="alan" value={ek} />
                           <input type="hidden" name="deger" value={sonrakiUcDurum(deger)} />
-                          <button type="submit" className={`badge ${et.rozet} uc-durum`} title={`${et.uzun} — değiştirmek için tıkla`}>
-                            {et.kisa}
-                          </button>
+                          <UcDurumDugmesi sinif={et.rozet} etiket={et.kisa}
+                                          baslik={`${et.uzun} — değiştirmek için tıkla`} />
                         </form>
                       </td>
                     );
@@ -367,7 +387,7 @@ export default function AdayListesi({
                   <input type="hidden" name="id" value={s.id} />
                   <input name="note" className="form-control" maxLength={500} required
                          placeholder="Not ekle… (aramayı etkilemez)" />
-                  <button type="submit" className="btn btn-sm btn-secondary">Not Ekle</button>
+                  <Kaydediliyor etiket="Not Ekle" />
                 </form>
               </div>
 

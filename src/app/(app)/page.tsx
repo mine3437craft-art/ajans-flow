@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import { money, dateShort, num, TASK_STATUS_LABEL } from '@/lib/format';
 import { videoUyarilari } from '@/lib/video';
-import { MARKALAR, ACIK_DURUMLAR, bugun } from '@/lib/adaylar';
+import { MARKALAR, ACIK_DURUMLAR, bugun, tarihEtiketi } from '@/lib/adaylar';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,101 +19,108 @@ export default async function DashboardPage({
   const isAdmin = user.role === 'admin';
   const monthStart = new Date().toISOString().slice(0, 7) + '-01';
 
-  // --- Herkesin görebildiği veriler --- (görevler ekibin ortak panosu: kişiye göre süzülmez)
-  const taskStats = (await sql`
-    SELECT
-      COUNT(*) FILTER (WHERE status IN ('bekliyor','devam'))                        AS acik,
-      COUNT(*) FILTER (WHERE status = 'tamamlandi' AND completed_at >= ${monthStart}::date) AS bu_ay_biten,
-      COUNT(*) FILTER (WHERE status IN ('bekliyor','devam') AND due_date < CURRENT_DATE) AS geciken
-    FROM tasks
-  `) as Array<{ acik: string; bu_ay_biten: string; geciken: string }>;
+  // Panodaki bütün sorgular birbirinden bağımsız: sırayla beklemek 10 tur
+  // (~570 ms) demekti. Yöneticiye özel olanlar da aynı dalgada, personelde
+  // hiç çalışmayacak şekilde (Promise.resolve) duruyor.
+  // Görevler ekibin ortak panosu: kişiye göre süzülmez.
+  const [
+    taskStats, myTasks, upcomingPosts, tumUyarilar, benimMusterilerSatir,
+    adaySayilari, yaklasanOdemelerSonuc, txSonuc, dpSonuc, csSonuc,
+  ] = await Promise.all([
+    sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('bekliyor','devam'))                        AS acik,
+        COUNT(*) FILTER (WHERE status = 'tamamlandi' AND completed_at >= ${monthStart}::date) AS bu_ay_biten,
+        COUNT(*) FILTER (WHERE status IN ('bekliyor','devam') AND due_date < CURRENT_DATE) AS geciken
+      FROM tasks
+    ` as Promise<Array<{ acik: string; bu_ay_biten: string; geciken: string }>>,
+    sql`
+      SELECT t.id, t.title, t.due_date, t.status, c.name AS customer_name,
+             u.display_name AS assignee_name
+      FROM tasks t
+      LEFT JOIN customers c ON c.id = t.customer_id
+      LEFT JOIN users u ON u.id = t.assigned_to
+      WHERE t.status IN ('bekliyor','devam')
+      ORDER BY t.due_date NULLS LAST LIMIT 8
+    ` as Promise<Array<{
+      id: number; title: string; due_date: string | null; status: string;
+      customer_name: string | null; assignee_name: string | null;
+    }>>,
+    sql`
+      SELECT p.id, p.title, p.platform, p.scheduled_at, c.name AS customer_name
+      FROM content_posts p
+      LEFT JOIN customers c ON c.id = p.customer_id
+      WHERE p.scheduled_at >= NOW() AND p.status <> 'iptal'
+        AND (${isAdmin}::boolean OR p.assigned_to = ${user.id})
+      ORDER BY p.scheduled_at LIMIT 6
+    ` as Promise<Array<{
+      id: number; title: string; platform: string; scheduled_at: string; customer_name: string | null;
+    }>>,
+    videoUyarilari(),
+    isAdmin
+      ? Promise.resolve([] as Array<{ id: number }>)
+      : sql`SELECT id FROM customers WHERE assigned_to = ${user.id}` as Promise<Array<{ id: number }>>,
+    sql`
+      SELECT brand,
+             -- Sayı, bağlantının açtığı "Bugün Aranacak" görünümüyle birebir
+             -- aynı olsun diye kişiye göre süzülmüyor.
+             COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
+               AND (next_call_on <= ${bugun()}::date OR status = 'aranmadi'))::int AS benim,
+             COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
+               AND next_call_on < ${bugun()}::date)::int AS gecikmis,
+             COUNT(*) FILTER (WHERE status = 'olumlu')::int AS olumlu
+      FROM prospects
+      GROUP BY brand
+    ` as Promise<Array<{ brand: string; benim: number; gecikmis: number; olumlu: number }>>,
+    // --- Yalnızca yöneticiye: personelde sorgu hiç çalışmaz, veri istemciye ulaşmaz
+    isAdmin
+      ? sql`
+          SELECT id, name, monthly_fee, next_payment_date
+          FROM customers
+          WHERE status = 'aktif' AND next_payment_date IS NOT NULL
+            AND next_payment_date <= CURRENT_DATE + INTERVAL '7 days'
+          ORDER BY next_payment_date
+        ` as Promise<Array<{ id: number; name: string; monthly_fee: string; next_payment_date: string }>>
+      : Promise.resolve([] as Array<{ id: number; name: string; monthly_fee: string; next_payment_date: string }>),
+    isAdmin
+      ? sql`
+          SELECT
+            COALESCE(SUM(amount) FILTER (WHERE type='gelir'), 0) AS gelir,
+            COALESCE(SUM(amount) FILTER (WHERE type='gider'), 0) AS gider
+          FROM transactions
+          WHERE occurred_on >= ${monthStart}::date
+            AND occurred_on < (${monthStart}::date + INTERVAL '1 month')
+        ` as Promise<Array<{ gelir: string; gider: string }>>
+      : Promise.resolve([] as Array<{ gelir: string; gider: string }>),
+    isAdmin
+      ? sql`
+          SELECT COALESCE(SUM(amount - paid_amount), 0) AS alacak
+          FROM debts WHERE direction = 'alacak' AND paid_amount < amount
+        ` as Promise<Array<{ alacak: string }>>
+      : Promise.resolve([] as Array<{ alacak: string }>),
+    isAdmin
+      ? sql`SELECT COUNT(*) AS n FROM customers WHERE status = 'aktif'` as Promise<Array<{ n: string }>>
+      : Promise.resolve([] as Array<{ n: string }>),
+  ]);
 
-  const myTasks = (await sql`
-    SELECT t.id, t.title, t.due_date, t.status, c.name AS customer_name
-    FROM tasks t
-    LEFT JOIN customers c ON c.id = t.customer_id
-    WHERE t.status IN ('bekliyor','devam')
-    ORDER BY t.due_date NULLS LAST LIMIT 8
-  `) as Array<{ id: number; title: string; due_date: string | null; status: string; customer_name: string | null }>;
-
-  const upcomingPosts = (await sql`
-    SELECT p.id, p.title, p.platform, p.scheduled_at, c.name AS customer_name
-    FROM content_posts p
-    LEFT JOIN customers c ON c.id = p.customer_id
-    WHERE p.scheduled_at >= NOW() AND p.status <> 'iptal'
-      AND (${isAdmin}::boolean OR p.assigned_to = ${user.id})
-    ORDER BY p.scheduled_at LIMIT 6
-  `) as Array<{ id: number; title: string; platform: string; scheduled_at: string; customer_name: string | null }>;
-
-  // Video stoğu azalan müşteriler. Personel yalnızca kendisine atanmış
-  // müşterilerin uyarısını görür.
-  const tumUyarilar = await videoUyarilari();
-  const benimMusteriler = isAdmin
-    ? null
-    : new Set(((await sql`
-        SELECT id FROM customers WHERE assigned_to = ${user.id}
-      `) as Array<{ id: number }>).map((c) => c.id));
+  // Video stoğu: personel yalnızca kendisine atanmış müşterilerin uyarısını görür.
+  const benimMusteriler = isAdmin ? null : new Set(benimMusterilerSatir.map((c) => c.id));
   const videoUyari = benimMusteriler
     ? tumUyarilar.filter((v) => benimMusteriler.has(v.customer_id))
     : tumUyarilar;
 
-
-  // Müşteri bulma listeleri herkese açık. "Bugün" Türkiye saatine göre.
+  // Müşteri bulma listeleri herkese açık.
   const adayListeleri = MARKALAR;
-  const adaySayilari = adayListeleri.length > 0
-    ? ((await sql`
-        SELECT brand,
-               -- Sayı, bağlantının açtığı "Bugün Aranacak" görünümüyle birebir
-               -- aynı olsun diye kişiye göre süzülmüyor.
-               COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
-                 AND (next_call_on <= ${bugun()}::date OR status = 'aranmadi'))::int AS benim,
-               COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
-                 AND next_call_on < ${bugun()}::date)::int AS gecikmis,
-               COUNT(*) FILTER (WHERE status = 'olumlu')::int AS olumlu
-        FROM prospects
-        WHERE brand = ANY(${adayListeleri.map((m) => m.anahtar)}::text[])
-        GROUP BY brand
-      `) as Array<{ brand: string; benim: number; gecikmis: number; olumlu: number }>)
-    : [];
   const adayHarita = new Map(adaySayilari.map((a) => [a.brand, a]));
   const stats = taskStats[0];
 
-  // --- Yalnızca yöneticiye gönderilen finans verileri ---
-  // Personel için sorgu hiç çalışmaz; veri istemciye ulaşmaz.
-  let finans: { gelir: number; gider: number; alacak: number; musteri: number } | null = null;
-  let yaklasanOdemeler: Array<{ id: number; name: string; monthly_fee: string; next_payment_date: string }> = [];
-  if (isAdmin) {
-    yaklasanOdemeler = (await sql`
-      SELECT id, name, monthly_fee, next_payment_date
-      FROM customers
-      WHERE status = 'aktif' AND next_payment_date IS NOT NULL
-        AND next_payment_date <= CURRENT_DATE + INTERVAL '7 days'
-      ORDER BY next_payment_date
-    `) as Array<{ id: number; name: string; monthly_fee: string; next_payment_date: string }>;
-
-    const [tx] = (await sql`
-      SELECT
-        COALESCE(SUM(amount) FILTER (WHERE type='gelir'), 0) AS gelir,
-        COALESCE(SUM(amount) FILTER (WHERE type='gider'), 0) AS gider
-      FROM transactions
-      WHERE occurred_on >= ${monthStart}::date
-        AND occurred_on < (${monthStart}::date + INTERVAL '1 month')
-    `) as Array<{ gelir: string; gider: string }>;
-
-    const [dp] = (await sql`
-      SELECT COALESCE(SUM(amount - paid_amount), 0) AS alacak
-      FROM debts WHERE direction = 'alacak' AND paid_amount < amount
-    `) as Array<{ alacak: string }>;
-
-    const [cs] = (await sql`
-      SELECT COUNT(*) AS n FROM customers WHERE status = 'aktif'
-    `) as Array<{ n: string }>;
-
-    finans = {
-      gelir: num(tx?.gelir), gider: num(tx?.gider),
-      alacak: num(dp?.alacak), musteri: parseInt(cs?.n ?? '0', 10),
-    };
-  }
+  const yaklasanOdemeler = yaklasanOdemelerSonuc;
+  const finans = isAdmin
+    ? {
+        gelir: num(txSonuc[0]?.gelir), gider: num(txSonuc[0]?.gider),
+        alacak: num(dpSonuc[0]?.alacak), musteri: parseInt(csSonuc[0]?.n ?? '0', 10),
+      }
+    : null;
 
   return (
     <>
@@ -217,23 +224,23 @@ export default async function DashboardPage({
         )}
 
         <div className="stat-grid">
-          <div className="stat-card">
+          <a href="/gorevler" className="stat-card aday-tile">
             <div className="stat-icon i-primary"><Icon name="check" /></div>
             <div className="stat-value">{stats?.acik ?? 0}</div>
             <div className="stat-label">Açık Görev</div>
-          </div>
-          <div className="stat-card">
+          </a>
+          <a href="/gorevler" className="stat-card aday-tile">
             <div className="stat-icon i-danger"><Icon name="alert" /></div>
             <div className="stat-value" style={{ color: num(stats?.geciken) > 0 ? 'var(--danger)' : undefined }}>
               {stats?.geciken ?? 0}
             </div>
             <div className="stat-label">Geciken Görev</div>
-          </div>
-          <div className="stat-card">
+          </a>
+          <a href="/gorevler?durum=tamamlandi&amp;gun=tumu" className="stat-card aday-tile">
             <div className="stat-icon i-success"><Icon name="chart" /></div>
             <div className="stat-value">{stats?.bu_ay_biten ?? 0}</div>
             <div className="stat-label">Bu Ay Tamamlanan</div>
-          </div>
+          </a>
 
           {finans && (
             <>
@@ -263,7 +270,10 @@ export default async function DashboardPage({
 
         <div className="grid-2">
           <div className="card">
-            <div className="card-head"><h2>Yaklaşan Görevler</h2></div>
+            <div className="card-head">
+              <h2>Bugün ve geciken işler</h2>
+              <a href="/gorevler" className="btn btn-sm btn-secondary">Görevler →</a>
+            </div>
             {myTasks.length === 0 ? (
               <EmptyState icon="✅" title="Açık görev yok" text="Şu an bekleyen bir işiniz görünmüyor." />
             ) : (
@@ -276,11 +286,18 @@ export default async function DashboardPage({
                           <div className="cell-title">{t.title}</div>
                           {t.customer_name && <div className="cell-sub">{t.customer_name}</div>}
                         </td>
-                        <td style={{ whiteSpace: 'nowrap' }}>{dateShort(t.due_date)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          {(() => {
+                            const e = tarihEtiketi(t.due_date);
+                            return e
+                              ? <span className={`tarih-etiket ${e.sinif}`}>{e.metin}</span>
+                              : <span className="cell-sub">tarihsiz</span>;
+                          })()}
+                        </td>
                         <td>
-                          <span className={`badge ${t.status === 'devam' ? 'b-info' : 'b-muted'}`}>
-                            {TASK_STATUS_LABEL[t.status]}
-                          </span>
+                          {t.assignee_name
+                            ? <span className="badge b-muted">{t.assignee_name}</span>
+                            : <span className="cell-sub">atanmamış</span>}
                         </td>
                       </tr>
                     ))}
