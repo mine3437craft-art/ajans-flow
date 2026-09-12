@@ -106,7 +106,7 @@ export default async function NotesPage({
     const hepsi: Record<string, string | undefined> = { ara: arama, kim, konu: konuAnahtari, ...degisiklik };
     for (const [k, v] of Object.entries(hepsi)) if (v) p.set(k, v);
     const q = p.toString();
-    return `/notlar${q ? \`?\${q}\` : ''}`;
+    return q ? `/notlar?${q}` : '/notlar';
   };
 
   const filtreler = [

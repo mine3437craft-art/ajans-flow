@@ -78,10 +78,15 @@ export async function createTask(formData: FormData) {
     `;
   }
 
-  try { await logActivity({
-    userId: user.id, action: 'ekle', entity: 'görev',
-    entityId: taskId, detail: title,
-  });
+  // İşlem geçmişine yazmak başarısız olursa görev yine kaydedilmiş olsun.
+  try {
+    await logActivity({
+      userId: user.id, action: 'ekle', entity: 'görev',
+      entityId: taskId, detail: title,
+    });
+  } catch (hata) {
+    console.error('[gorevler] işlem geçmişine yazılamadı:', hata);
+  }
   revalidatePath('/gorevler');
   revalidatePath('/');
 }
@@ -102,7 +107,11 @@ export async function setTaskStatus(formData: FormData) {
     WHERE id = ${id}
   `;
 
-  try { await logActivity({ userId: user.id, action: 'güncelle', entity: 'görev', entityId: id, detail: status });
+  try {
+    await logActivity({ userId: user.id, action: 'güncelle', entity: 'görev', entityId: id, detail: status });
+  } catch (hata) {
+    console.error('[gorevler] işlem geçmişine yazılamadı:', hata);
+  }
   revalidatePath('/gorevler');
   revalidatePath('/');
 }
@@ -115,7 +124,11 @@ export async function deleteTask(formData: FormData) {
 
   // task_assignees kayıtları ON DELETE CASCADE ile birlikte silinir.
   await sql`DELETE FROM tasks WHERE id = ${id}`;
-  try { await logActivity({ userId: user.id, action: 'sil', entity: 'görev', entityId: id });
+  try {
+    await logActivity({ userId: user.id, action: 'sil', entity: 'görev', entityId: id });
+  } catch (hata) {
+    console.error('[gorevler] işlem geçmişine yazılamadı:', hata);
+  }
   revalidatePath('/gorevler');
   revalidatePath('/');
 }
