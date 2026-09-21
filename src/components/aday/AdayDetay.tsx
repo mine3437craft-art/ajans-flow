@@ -4,8 +4,10 @@ import { startTransition, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import ConfirmButton from '@/components/ConfirmButton';
 import {
-  DURUM_HARITA, EK_ALANLAR, UC_DURUMLAR, ekAlanDegeri, gecenSure,
+  DURUM_HARITA, EK_ALANLAR, UC_DURUMLAR, EKSIKLER, SEKTORLER, ekAlanDegeri, gecenSure,
 } from '@/lib/adaylar';
+import { linkKopyala } from './acilir';
+import { sunumAdresi, sunumYolu } from './WhatsAppMenu';
 import { formVerisi, type AdayRow, type Eylemler, type Kullanici, type Marka, type Olay } from './tipler';
 
 function Gonder({ etiket }: { etiket: string }) {
@@ -18,7 +20,7 @@ function Gonder({ etiket }: { etiket: string }) {
 }
 
 const TUR_ETIKET: Record<string, string> = {
-  arama: '📞 Arama', mesaj: '💬 WhatsApp', not: '📝 Not', durum: '✎ Güncelleme',
+  arama: '📞 Arama', mesaj: '💬 Mesaj', not: '📝 Not', durum: '✎ Güncelleme',
 };
 
 /** Geçmişteki tek olay; notu yazan kişi ya da yönetici düzenleyip silebilir. */
@@ -51,7 +53,10 @@ function OlaySatiri({
     <div className="gecmis-satir">
       <div className="gecmis-ust">
         <strong>{olay.kisi ?? '—'}</strong>
-        <span className="badge b-muted">{TUR_ETIKET[olay.kind] ?? olay.kind}</span>
+        <span className="badge b-muted">
+          {olay.kind === 'mesaj' && olay.channel === 'instagram' ? '📸 Instagram'
+            : olay.kind === 'mesaj' ? '💬 WhatsApp' : TUR_ETIKET[olay.kind] ?? olay.kind}
+        </span>
         {durumAd && olay.status_after !== olay.status_before && (
           <span className={`badge ${DURUM_HARITA[olay.status_after!]?.rozet ?? 'b-muted'}`}>→ {durumAd}</span>
         )}
@@ -109,6 +114,7 @@ export default function AdayDetay({
 }) {
   const [sonuc, formAction] = useActionState(eylemler.adayGuncelle, null);
   const ok = sonuc?.startsWith('ok|') ?? false;
+  const sunum = marka.analiz ? sunumYolu(aday) : null;
 
   return (
     <div className="aday-detay">
@@ -142,41 +148,84 @@ export default function AdayDetay({
             <div className="form-grid">
               <div className="form-group full">
                 <label htmlFor={`d-ad-${aday.id}`}>Ad / firma *</label>
-                <input id={`d-ad-${aday.id}`} name="name" className="form-control" required
+                <input key={`ad:${aday.name}`} id={`d-ad-${aday.id}`} name="name" className="form-control" required
                        maxLength={150} defaultValue={aday.name} />
               </div>
               <div className="form-group">
                 <label htmlFor={`d-tel-${aday.id}`}>Telefon</label>
-                <input id={`d-tel-${aday.id}`} name="phone" className="form-control" inputMode="tel"
+                <input key={`tel:${aday.phone_raw}`} id={`d-tel-${aday.id}`} name="phone" className="form-control" inputMode="tel"
                        defaultValue={aday.phone_raw ?? ''} />
               </div>
               <div className="form-group">
                 <label htmlFor={`d-yet-${aday.id}`}>Yetkili</label>
-                <input id={`d-yet-${aday.id}`} name="contact_person" className="form-control"
+                <input key={`yet:${aday.contact_person}`} id={`d-yet-${aday.id}`} name="contact_person" className="form-control"
                        maxLength={120} defaultValue={aday.contact_person ?? ''}
                        placeholder="Mesajda &ldquo;Merhaba …&rdquo; diye geçer" />
               </div>
               <div className="form-group">
                 <label htmlFor={`d-seh-${aday.id}`}>Şehir / ilçe</label>
-                <input id={`d-seh-${aday.id}`} name="city" className="form-control"
+                <input key={`seh:${aday.city}`} id={`d-seh-${aday.id}`} name="city" className="form-control"
                        maxLength={80} defaultValue={aday.city ?? ''} />
               </div>
               <div className="form-group">
                 <label htmlFor={`d-kay-${aday.id}`}>Kaynak</label>
-                <input id={`d-kay-${aday.id}`} name="source" className="form-control"
+                <input key={`kay:${aday.source}`} id={`d-kay-${aday.id}`} name="source" className="form-control"
                        maxLength={120} defaultValue={aday.source ?? ''} />
               </div>
+              <div className="form-group">
+                <label htmlFor={`d-ig-${aday.id}`}>Instagram</label>
+                <input key={`ig:${aday.instagram}`} id={`d-ig-${aday.id}`} name="instagram" className="form-control" maxLength={120}
+                       autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                       defaultValue={aday.instagram ? `@${aday.instagram}` : ''}
+                       placeholder="@kullaniciadi ya da profil linki" />
+              </div>
+              <div className="form-group">
+                <label htmlFor={`d-tk-${aday.id}`}>Takipçi sayısı</label>
+                <input key={`tk:${aday.ig_followers}`} id={`d-tk-${aday.id}`} name="ig_followers"
+                       className="form-control" autoCapitalize="none" maxLength={24}
+                       defaultValue={aday.ig_followers ?? ''} placeholder="ör. 850, 1.2k, 12,5 B" />
+              </div>
               <div className="form-group full">
-                <label htmlFor={`d-lnk-${aday.id}`}>Instagram / web</label>
-                <input id={`d-lnk-${aday.id}`} name="link" className="form-control"
+                <label htmlFor={`d-lnk-${aday.id}`}>Web sitesi / diğer bağlantı</label>
+                <input key={`lnk:${aday.link}`} id={`d-lnk-${aday.id}`} name="link" className="form-control"
                        maxLength={300} defaultValue={aday.link ?? ''} />
               </div>
+              {marka.analiz && (
+                <>
+                  <input type="hidden" name="analiz_formu" value="1" />
+                  <div className="form-group full">
+                    <label htmlFor={`d-sek-${aday.id}`}>Sektör</label>
+                    <select key={`sek:${aday.sector}`} id={`d-sek-${aday.id}`} name="sector" className="form-control"
+                            defaultValue={aday.sector ?? ''}>
+                      <option value="">— Seçilmedi —</option>
+                      {SEKTORLER.map((s) => <option key={s.anahtar} value={s.anahtar}>{s.simge} {s.ad}</option>)}
+                    </select>
+                  </div>
+                  {/* Tablodan eksik işaretlenince yalnızca bu bölüm yenilenir; eksik_once
+                      ile sunucu yalnızca burada değiştirilenleri uygular. */}
+                  <fieldset key={`eksik:${aday.gaps.join(',')}`} className="form-group full eksik-alani">
+                    <legend>Eksikler <span className="cell-sub">— müşteriye gönderilen sunumda öneri olarak görünür</span></legend>
+                    {aday.gaps.map((k) => <input key={k} type="hidden" name="eksik_once" value={k} />)}
+                    <div className="eksik-secim">
+                      {/* Web sitesi yokluğu aşağıdaki "Web sitesi var mı?" sorusundan */}
+                      {EKSIKLER.filter((e) => !e.sanal).map((e) => (
+                        <label key={e.anahtar} className="eksik-dugme">
+                          <input type="checkbox" name="eksik" value={e.anahtar}
+                                 defaultChecked={aday.gaps.includes(e.anahtar)} />
+                          <span aria-hidden>{e.simge}</span> {e.ad}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                </>
+              )}
               {marka.ekAlanlar.map((anahtar) => {
                 const alan = EK_ALANLAR[anahtar];
                 return (
                   <div className="form-group" key={anahtar}>
                     <label htmlFor={`d-${anahtar}-${aday.id}`}>{alan.simge} {alan.soru}</label>
-                    <select id={`d-${anahtar}-${aday.id}`} name={alan.sutun} className="form-control"
+                    <select key={`${anahtar}:${ekAlanDegeri(aday, anahtar)}`}
+                            id={`d-${anahtar}-${aday.id}`} name={alan.sutun} className="form-control"
                             defaultValue={ekAlanDegeri(aday, anahtar)}>
                       {UC_DURUMLAR.map((v) => <option key={v} value={v}>{alan.etiket[v].uzun}</option>)}
                     </select>
@@ -186,6 +235,25 @@ export default function AdayDetay({
             </div>
             <div className="form-actions"><Gonder etiket="Bilgileri kaydet" /></div>
           </form>
+          {sunum && (
+            <div className="analiz-sunum" style={{ marginTop: 12 }}>
+              <div>
+                <strong>Kişisel sunum linki</strong>
+                <div className="cell-sub">
+                  {aday.site_views > 0
+                    ? `👀 ${aday.site_views} kez açıldı · son ${gecenSure(aday.site_last_view_at)}`
+                    : 'Henüz açılmadı. Mesaj şablonundaki {site} bu linki koyar.'}
+                </div>
+              </div>
+              <div className="analiz-sunum-eylem">
+                <button type="button" className="btn btn-sm btn-secondary"
+                        onClick={() => linkKopyala(sunumAdresi(aday) ?? sunum)}>
+                  Kopyala
+                </button>
+                <a className="btn btn-sm btn-ghost" href={sunum} target="_blank" rel="noopener noreferrer">Aç ↗</a>
+              </div>
+            </div>
+          )}
           {kullanici.yonetici && (
             <form action={eylemler.adaySil} style={{ marginTop: 10 }}>
               <input type="hidden" name="id" value={aday.id} />

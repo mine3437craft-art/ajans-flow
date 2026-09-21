@@ -13,7 +13,8 @@ export default async function IceAktarPage({ params }: { params: Promise<{ marka
   const { marka: yol } = await params;
   const marka = markaBul(yol);
   if (!marka) redirect('/');
-  await requireUser();
+  const user = await requireUser();
+  if (user.role === 'caller' && marka.anahtar !== 'minikstarlar') redirect('/musteri-bulma/minikstarlar');
 
   const personel = (await sql`
     SELECT id, display_name FROM users WHERE is_active ORDER BY display_name

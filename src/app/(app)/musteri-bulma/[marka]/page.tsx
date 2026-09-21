@@ -10,7 +10,8 @@ import AramaKisayolu from '@/components/AramaKisayolu';
 import { aramaDesenleri } from '@/lib/arama';
 import {
   MARKALAR, markaBul, DURUMLAR, DURUM_HARITA, ACIK_DURUMLAR, HEMEN_ARANACAK,
-  EK_ALANLAR, gecerliDurum, gecerliUcDurum, bugun, type EkAlanAnahtari,
+  EK_ALANLAR, EKSIKLER, eksikBul, saklanirEksik, SEKTORLER, gecerliDurum, gecerliUcDurum, gecerliSektor,
+  bugun, type EkAlanAnahtari,
 } from '@/lib/adaylar';
 import {
   adayEkle, alanGuncelle, sonucKaydet, notEkle, adaySil, adayGuncelle, geriAl,
@@ -60,6 +61,12 @@ export default async function MusteriBulmaPage({
   const webFiltre = ekFiltre('web');
   const ajansFiltre = ekFiltre('ajans');
   const sosyalFiltre = ekFiltre('sosyal');
+  // Analiz filtreleri (Ajans Flow): tek eksik ve sektör. "Web sitesi yok"
+  // eksiği has_website sütunundan okunur (bkz. EKSIKLER sanal).
+  const eksikFiltre = marka.analiz && eksikBul(sp.eksik) ? sp.eksik! : '';
+  const eksikDiziFiltre = saklanirEksik(eksikFiltre) ? eksikFiltre : '';
+  const eksikWebFiltre = eksikFiltre === 'web_yok';
+  const sektorFiltre = marka.analiz && gecerliSektor(sp.sektor) ? sp.sektor! : '';
 
   const desenler = aramaDesenleri(arama);
   // Aramada 3+ rakam varsa numara olarak da denenir: "532 123" da bulur.
@@ -71,12 +78,14 @@ export default async function MusteriBulmaPage({
   const sadeceAcik = durumFiltre === 'acik';
   const sorumluId = /^\d+$/.test(sorumluFiltre) ? parseInt(sorumluFiltre, 10) : null;
 
-  const [satirlar, sayimlar, ozet, personel, kaynaklar, hafta, sablonlar] = await Promise.all([
+  const [satirlar, sayimlar, ozet, personel, kaynaklar, hafta, sablonlar, analizSayim] = await Promise.all([
     sql`
       SELECT p.id::int AS id, p.name, p.contact_person, p.phone_raw, p.phone_norm, p.phone_kind,
              p.city, p.source, p.link, p.status, p.next_call_on, p.assigned_to,
              p.call_count, p.unreached_streak, p.last_call_at, p.last_note,
              p.has_website, p.worked_with_agency, p.social_active, p.created_at,
+             p.instagram, p.ig_followers, p.sector, p.gaps, p.share_code,
+             p.site_views, p.site_last_view_at,
              s.display_name AS sorumlu_ad,
              son.id::int AS son_olay_id,
              son.kind AS son_olay_tur,
@@ -112,15 +121,25 @@ export default async function MusteriBulmaPage({
         AND (${webFiltre}::text = '' OR p.has_website = ${webFiltre}::text)
         AND (${ajansFiltre}::text = '' OR p.worked_with_agency = ${ajansFiltre}::text)
         AND (${sosyalFiltre}::text = '' OR p.social_active = ${sosyalFiltre}::text)
+        AND (${eksikDiziFiltre}::text = '' OR ${eksikDiziFiltre}::text = ANY(p.gaps))
+        AND (${eksikWebFiltre}::boolean = FALSE OR p.has_website = 'yok')
+        AND (${sektorFiltre}::text = '' OR p.sector = ${sektorFiltre}::text)
         AND (
           cardinality(${desenler}::text[]) = 0
           OR tr_fold(p.name || ' ' || COALESCE(p.contact_person, '') || ' '
                      || COALESCE(p.city, '') || ' ' || COALESCE(p.source, '') || ' '
+                     || COALESCE(p.instagram, '') || ' '
                      || COALESCE(p.last_note, '')) ~ ALL(${desenler}::text[])
           OR (${numaraArama}::text IS NOT NULL AND p.phone_norm LIKE ${'%' + (numaraArama ?? '') + '%'})
         )
       ORDER BY
-        CASE ${sirala}::text WHEN 'yeni' THEN 0 WHEN 'son' THEN 1 WHEN 'ad' THEN 2 ELSE 3 END,
+        CASE ${sirala}::text WHEN 'yeni' THEN 0 WHEN 'son' THEN 1 WHEN 'ad' THEN 2
+                             WHEN 'firsat' THEN 4 WHEN 'ilgi' THEN 5 ELSE 3 END,
+        -- Fırsat: en çok eksiği olan (web sitesi yokluğu dahil) önce
+        CASE WHEN ${sirala}::text = 'firsat'
+             THEN cardinality(p.gaps) + (p.has_website = 'yok')::int END DESC NULLS LAST,
+        -- İlgi: kişisel sunumu en son açan önce
+        CASE WHEN ${sirala}::text = 'ilgi' THEN p.site_last_view_at END DESC NULLS LAST,
         CASE WHEN ${sirala}::text = 'yeni' THEN p.created_at END DESC NULLS LAST,
         CASE WHEN ${sirala}::text = 'son' THEN son.created_at END DESC NULLS LAST,
         CASE WHEN ${sirala}::text = 'ad' THEN tr_fold(p.name) END ASC NULLS LAST,
@@ -163,9 +182,23 @@ export default async function MusteriBulmaPage({
       SELECT id, title, body, sets_status FROM prospect_templates
       WHERE brand = ${marka.anahtar} ORDER BY sort_order, id
     ` as Promise<Sablon[]>,
+    // Filtre çiplerindeki sayılar: eksik başına ve sektör başına aday.
+    marka.analiz
+      ? (sql`
+          SELECT 'eksik' AS tur, g AS anahtar, COUNT(*)::int AS adet
+          FROM prospects, unnest(gaps) AS g WHERE brand = ${marka.anahtar} GROUP BY g
+          UNION ALL
+          SELECT 'sektor', sector, COUNT(*)::int FROM prospects
+          WHERE brand = ${marka.anahtar} AND sector IS NOT NULL GROUP BY sector
+          UNION ALL
+          SELECT 'izlendi', 'sunum', COUNT(*)::int FROM prospects
+          WHERE brand = ${marka.anahtar} AND site_views > 0
+        ` as Promise<Array<{ tur: string; anahtar: string; adet: number }>>)
+      : Promise.resolve([] as Array<{ tur: string; anahtar: string; adet: number }>),
   ]);
 
   const sayimHarita = new Map(sayimlar.map((s) => [s.status, s.adet]));
+  const analizHarita = new Map(analizSayim.map((a) => [`${a.tur}:${a.anahtar}`, a.adet]));
   const o = ozet[0] ?? { toplam: 0, bugun: 0, gecikmis: 0, websiz: 0 };
   const haftaToplam = hafta.reduce((t, h) => t + h.adet, 0);
 
@@ -194,6 +227,7 @@ export default async function MusteriBulmaPage({
       ara: arama || undefined, durum: durumFiltre === 'acik' ? undefined : durumFiltre,
       gorunum: gorunum || undefined, sorumlu: sorumluFiltre || undefined,
       web: webFiltre || undefined, ajans: ajansFiltre || undefined, sosyal: sosyalFiltre || undefined,
+      eksik: eksikFiltre || undefined, sektor: sektorFiltre || undefined,
       sirala: sirala === 'sira' ? undefined : sirala,
       ...degisiklik,
     };
@@ -204,7 +238,7 @@ export default async function MusteriBulmaPage({
 
   const cip = (aktif: boolean) => `btn btn-sm ${aktif ? 'btn-primary' : 'btn-secondary'}`;
   const filtreVar = Boolean(arama || gorunum || sorumluFiltre || webFiltre || ajansFiltre
-    || sosyalFiltre || durumFiltre !== 'acik');
+    || sosyalFiltre || eksikFiltre || sektorFiltre || durumFiltre !== 'acik');
 
   // Huni: açık aşamalar soldan sağa, sonra sonuçlar. Genişlik adaya oranlı.
   const huni = DURUMLAR.map((d) => ({ ...d, adet: sayimHarita.get(d.anahtar) ?? 0 }));
@@ -257,6 +291,12 @@ export default async function MusteriBulmaPage({
               <a href={`/musteri-bulma/${marka.yol}/sablonlar`} className="btn btn-sm btn-secondary">
                 💬 Mesaj şablonları <b style={{ opacity: .6 }}>{sablonlar.length}</b>
               </a>
+              {marka.analiz && (
+                <a href="/tanitim" target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary"
+                   title="Müşterilere gönderilen tanıtım sitesi">
+                  🌐 Tanıtım sitesi
+                </a>
+              )}
               <a href={`/musteri-bulma/${marka.yol}/ice-aktar`} className="btn btn-sm btn-secondary">
                 📋 Excel&apos;den yapıştır
               </a>
@@ -293,6 +333,7 @@ export default async function MusteriBulmaPage({
             kaynaklar={kaynaklar.map((k) => k.source)}
             personel={personel}
             ekAlanlar={marka.ekAlanlar}
+            analiz={marka.analiz}
             bastaAcik={o.toplam === 0}
           />
 
@@ -303,9 +344,11 @@ export default async function MusteriBulmaPage({
             {webFiltre && <input type="hidden" name="web" value={webFiltre} />}
             {ajansFiltre && <input type="hidden" name="ajans" value={ajansFiltre} />}
             {sosyalFiltre && <input type="hidden" name="sosyal" value={sosyalFiltre} />}
+            {eksikFiltre && <input type="hidden" name="eksik" value={eksikFiltre} />}
+            {sektorFiltre && <input type="hidden" name="sektor" value={sektorFiltre} />}
             {sirala !== 'sira' && <input type="hidden" name="sirala" value={sirala} />}
             <input id="ara" name="ara" className="form-control" defaultValue={arama} autoComplete="off"
-                   placeholder="İsim, telefon veya notta ara…   ( / tuşuyla buraya gel )"
+                   placeholder="İsim, telefon, Instagram veya notta ara…   ( / tuşuyla buraya gel )"
                    aria-label="Adaylarda ara" style={{ flex: '1 1 280px' }} />
             <button className="btn btn-primary btn-sm" type="submit">Ara</button>
             {arama && <a className="btn btn-ghost btn-sm" href={adres({ ara: undefined })}>Temizle</a>}
@@ -360,11 +403,46 @@ export default async function MusteriBulmaPage({
                 })}
               </div>
             )}
+            {marka.analiz && (
+              <>
+                <div className="konu-dizini">
+                  <span className="konu-dizini-baslik">Eksiği olanlar</span>
+                  {EKSIKLER.map((e) => {
+                    const adet = e.sanal === 'web' ? o.websiz : analizHarita.get(`eksik:${e.anahtar}`) ?? 0;
+                    if (adet === 0 && eksikFiltre !== e.anahtar) return null;
+                    return (
+                      <a key={e.anahtar} href={adres({ eksik: eksikFiltre === e.anahtar ? undefined : e.anahtar })}
+                         className={cip(eksikFiltre === e.anahtar)}>
+                        {e.simge} {e.ad} <b>{adet}</b>
+                      </a>
+                    );
+                  })}
+                  {EKSIKLER.every((e) => (e.sanal === 'web' ? o.websiz : analizHarita.get(`eksik:${e.anahtar}`) ?? 0) === 0) && (
+                    <span className="cell-sub">Henüz eksik işaretlenmedi — tablodaki &ldquo;Analiz et&rdquo;e dokun.</span>
+                  )}
+                </div>
+                {SEKTORLER.some((x) => analizHarita.has(`sektor:${x.anahtar}`)) && (
+                  <div className="konu-dizini">
+                    <span className="konu-dizini-baslik">Sektör</span>
+                    {SEKTORLER.filter((x) => analizHarita.has(`sektor:${x.anahtar}`) || sektorFiltre === x.anahtar).map((x) => (
+                      <a key={x.anahtar} href={adres({ sektor: sektorFiltre === x.anahtar ? undefined : x.anahtar })}
+                         className={cip(sektorFiltre === x.anahtar)}>
+                        {x.simge} {x.ad} <b>{analizHarita.get(`sektor:${x.anahtar}`) ?? 0}</b>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
             <div className="konu-dizini">
               <span className="konu-dizini-baslik">Sırala</span>
               {[
                 { k: 'sira', l: 'Aranacak sırası' }, { k: 'son', l: 'Son işlem' },
                 { k: 'yeni', l: 'En yeni eklenen' }, { k: 'ad', l: 'Ada göre' },
+                ...(marka.analiz ? [
+                  { k: 'firsat', l: 'En çok eksiği olan' },
+                  { k: 'ilgi', l: `Sunuma bakanlar${analizHarita.get('izlendi:sunum') ? ` (${analizHarita.get('izlendi:sunum')})` : ''}` },
+                ] : []),
               ].map((x) => (
                 <a key={x.k} href={adres({ sirala: x.k === 'sira' ? undefined : x.k })} className={cip(sirala === x.k)}>
                   {x.l}
@@ -382,7 +460,7 @@ export default async function MusteriBulmaPage({
           ) : (
             <AdayListesi
               satirlar={satirlar}
-              marka={{ yol: marka.yol, ad: marka.ad, ekAlanlar: marka.ekAlanlar }}
+              marka={{ yol: marka.yol, ad: marka.ad, ekAlanlar: marka.ekAlanlar, analiz: marka.analiz }}
               personel={personel}
               kullanici={{ id: user.id, ad: user.display_name, yonetici: isAdmin }}
               sablonlar={sablonlar}

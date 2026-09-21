@@ -8,9 +8,10 @@ import WhatsAppMenu from './aday/WhatsAppMenu';
 import TopluCubuk, { WaKuyruk } from './aday/TopluCubuk';
 import SonucEkrani from './aday/SonucEkrani';
 import AdayDetay from './aday/AdayDetay';
+import AnalizHucresi from './aday/AnalizHucresi';
 import {
   DURUMLAR, DURUM_HARITA, EK_ALANLAR, HEMEN_ARANACAK, ekAlanDegeri, sonrakiUcDurum,
-  tarihEtiketi, gecenSure,
+  tarihEtiketi, gecenSure, takipciEtiketi,
 } from '@/lib/adaylar';
 import { telefonCoz } from '@/lib/telefon';
 import { vurguDuzenleri, katlanmisKelimeler } from '@/lib/arama';
@@ -74,8 +75,9 @@ const SON_ISLEM: Record<string, string> = { arama: '📞', mesaj: '💬', not: '
 /** "Son İşlem" sütunu: ekip çoğunlukla durum ve not kullanıyor, yalnızca aramaya bakmak yanıltıyordu. */
 function sonIslem(s: AdayRow): { ust: string; alt: string } | null {
   if (!s.son_olay_tur || !s.son_olay_zaman) return null;
-  const ikon = SON_ISLEM[s.son_olay_tur] ?? '•';
-  const ne = s.son_olay_tur === 'mesaj' ? 'WhatsApp mesajı'
+  const ikon = s.son_olay_kanal === 'instagram' ? '📸' : SON_ISLEM[s.son_olay_tur] ?? '•';
+  const ne = s.son_olay_tur === 'mesaj'
+    ? (s.son_olay_kanal === 'instagram' ? 'Instagram mesajı' : 'WhatsApp mesajı')
     : s.son_olay_tur === 'not' ? 'Not'
     : DURUM_HARITA[s.son_olay_durum ?? '']?.ad ?? (s.son_olay_tur === 'arama' ? 'Arama' : 'Güncelleme');
   return { ust: `${ikon} ${ne}`, alt: `${s.son_olay_kisi ?? '—'} · ${gecenSure(s.son_olay_zaman)}` };
@@ -104,7 +106,9 @@ export default function AdayListesi({
   // Arama modu: sonuç kaydedilince sıradaki adaya geçilir.
   const [kuyruk, setKuyruk] = useState<number[]>([]);
   const [secili, setSecili] = useState<Set<number>>(new Set());
-  const [waKuyruk, setWaKuyruk] = useState<{ sablon: Sablon | null; adaylar: AdayRow[] } | null>(null);
+  const [waKuyruk, setWaKuyruk] = useState<{
+    sablon: Sablon | null; adaylar: AdayRow[]; kanal: 'whatsapp' | 'instagram';
+  } | null>(null);
   // Sonuç ekranı açıldığı andaki satır: WhatsApp şablonu adayı süzgeçten
   // düşürürse ekran konuşmanın ortasında kapanmasın.
   const [sonucAnlik, setSonucAnlik] = useState<AdayRow | null>(null);
@@ -221,8 +225,10 @@ export default function AdayListesi({
               </th>
               <th>Durum</th>
               <th>Ad / Firma</th>
-              <th>Telefon</th>
-              {marka.ekAlanlar.map((ek) => <th key={ek}>{EK_ALANLAR[ek].baslik}</th>)}
+              <th>İletişim</th>
+              {marka.analiz
+                ? <th>Analiz</th>
+                : marka.ekAlanlar.map((ek) => <th key={ek}>{EK_ALANLAR[ek].baslik}</th>)}
               <th>Arama Tarihi</th>
               <th>Son İşlem</th>
               <th>Not</th>
@@ -260,37 +266,56 @@ export default function AdayListesi({
                   </td>
 
                   <td data-etiket="Ad / Firma">
-                    <a href={acik ? adres : `${adres}${adres.includes('?') ? '&' : '?'}ac=${s.id}`}
-                       className="cell-title aday-ad" title="Geçmiş ve bilgiler">
-                      <Vurgu metin={s.name} desenler={desenler} kelimeler={kelimeler} />
-                    </a>
-                    <div className="cell-sub">
-                      {[s.contact_person, s.city, s.source].filter(Boolean).join(' · ') || ' '}
-                      {s.link && (
-                        <> · <a href={/^https?:\/\//i.test(s.link) ? s.link : `https://${s.link}`}
-                                target="_blank" rel="noopener noreferrer">bağlantı</a></>
+                    <div className="hucre-blok">
+                      <a href={acik ? adres : `${adres}${adres.includes('?') ? '&' : '?'}ac=${s.id}`}
+                         className="cell-title aday-ad" title="Geçmiş ve bilgiler">
+                        <Vurgu metin={s.name} desenler={desenler} kelimeler={kelimeler} />
+                      </a>
+                      <div className="cell-sub">
+                        {[s.contact_person, s.city, s.source].filter(Boolean).join(' · ') || ' '}
+                        {s.link && (
+                          <> · <a href={/^https?:\/\//i.test(s.link) ? s.link : `https://${s.link}`}
+                                  target="_blank" rel="noopener noreferrer">bağlantı</a></>
+                        )}
+                      </div>
+                      {s.instagram && (
+                        <a className="ig-hesap" href={`https://www.instagram.com/${s.instagram}/`}
+                           target="_blank" rel="noopener noreferrer" title="Instagram profilini aç">
+                          @{s.instagram}
+                          {s.ig_followers !== null && <span> · {takipciEtiketi(s.ig_followers)} takipçi</span>}
+                        </a>
                       )}
                     </div>
                   </td>
 
-                  <td data-etiket="Telefon">
-                    {tel.gecerli ? (
-                      <div className="aday-telefon">
-                        <a href={tel.tel!} className="tel-bag" onClick={() => aramaIsaretle(s.id, 'telefon')}>
-                          📞 {tel.gorunum}
-                        </a>
-                        <WhatsAppMenu aday={s} sablonlar={sablonlar} gonderen={kullanici.ad}
-                                      marka={marka.ad} kaydet={eylemler.mesajKaydet} />
-                      </div>
-                    ) : (
-                      <span className="badge b-warning" title="Numara anlaşılamadı">
-                        {s.phone_raw ? `${s.phone_raw} · kontrol et` : 'numara yok'}
-                      </span>
-                    )}
+                  <td data-etiket="İletişim">
+                    <div className="aday-telefon">
+                      {tel.gecerli ? (
+                        <>
+                          <a href={tel.tel!} className="tel-bag" onClick={() => aramaIsaretle(s.id, 'telefon')}>
+                            📞 {tel.gorunum}
+                          </a>
+                          <WhatsAppMenu aday={s} sablonlar={sablonlar} gonderen={kullanici.ad}
+                                        marka={marka} kaydet={eylemler.mesajKaydet} />
+                        </>
+                      ) : (
+                        <span className="badge b-warning" title="Numara anlaşılamadı">
+                          {s.phone_raw ? `${s.phone_raw} · kontrol et` : 'numara yok'}
+                        </span>
+                      )}
+                      <WhatsAppMenu aday={s} sablonlar={sablonlar} gonderen={kullanici.ad} kanal="instagram"
+                                    marka={marka} kaydet={eylemler.mesajKaydet} />
+                    </div>
                     {s.diger_listede && <div className="cell-sub">diğer listede de var</div>}
                   </td>
 
-                  {marka.ekAlanlar.map((ek) => {
+                  {marka.analiz && (
+                    <td data-etiket="Analiz">
+                      <AnalizHucresi aday={s} kaydet={eylemler.alanGuncelle} />
+                    </td>
+                  )}
+
+                  {!marka.analiz && marka.ekAlanlar.map((ek) => {
                     const alan = EK_ALANLAR[ek];
                     const deger = ekAlanDegeri(s, ek);
                     const et = alan.etiket[deger];
@@ -317,16 +342,23 @@ export default function AdayListesi({
                   </td>
 
                   <td data-etiket="Son İşlem">
-                    {islem ? (
-                      <>
-                        <div className="son-islem">{islem.ust}</div>
-                        <div className="cell-sub">{islem.alt}</div>
-                      </>
-                    ) : <span className="cell-sub">işlem yok</span>}
-                    {s.unreached_streak >= 3 && (
-                      <span className="badge b-warning">{s.unreached_streak} kez açmadı</span>
-                    )}
-                    {s.baskasi_aradi && <div className="uyari-mini">{s.son_olay_kisi} az önce ilgilendi</div>}
+                    <div className="hucre-blok">
+                      {islem ? (
+                        <>
+                          <div className="son-islem">{islem.ust}</div>
+                          <div className="cell-sub">{islem.alt}</div>
+                        </>
+                      ) : <span className="cell-sub">işlem yok</span>}
+                      {s.unreached_streak >= 3 && (
+                        <span className="badge b-warning">{s.unreached_streak} kez açmadı</span>
+                      )}
+                      {s.baskasi_aradi && <div className="uyari-mini">{s.son_olay_kisi} az önce ilgilendi</div>}
+                      {s.site_views > 0 && (
+                        <div className="sunum-izlendi" title={`Kişisel sunum linki ${s.site_views} kez açıldı`}>
+                          👀 Sunuma baktı · {gecenSure(s.site_last_view_at)}
+                        </div>
+                      )}
+                    </div>
                   </td>
 
                   <td data-etiket="Not">
@@ -373,7 +405,9 @@ export default function AdayListesi({
 
       {acikAday && (
         <AdayDetay
-          key={`${acikAday.id}:${acikAday.has_website}:${acikAday.worked_with_agency}:${acikAday.social_active}:${acikAday.name}:${acikAday.phone_raw}`}
+          // Yalnızca adaya göre: alanlar kendi değerleriyle anahtarlı (AdayDetay),
+          // tablodan bir değişiklik yazılmamış not / form metnini silmesin.
+          key={acikAday.id}
           aday={acikAday} gecmis={gecmis} marka={marka} kullanici={kullanici} eylemler={eylemler} />
       )}
 
@@ -405,7 +439,7 @@ export default function AdayListesi({
           kullanici={kullanici}
           eylemler={eylemler}
           temizle={() => setSecili(new Set())}
-          waBaslat={(sablon) => setWaKuyruk({ sablon, adaylar: satirlar.filter((s) => secili.has(s.id)) })}
+          waBaslat={(sablon, k) => setWaKuyruk({ sablon, kanal: k, adaylar: satirlar.filter((s) => secili.has(s.id)) })}
         />
       )}
 
@@ -413,6 +447,7 @@ export default function AdayListesi({
         <WaKuyruk
           adaylar={waKuyruk.adaylar}
           sablon={waKuyruk.sablon}
+          kanal={waKuyruk.kanal}
           kullanici={kullanici}
           marka={marka}
           kaydet={eylemler.mesajKaydet}

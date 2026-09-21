@@ -10,6 +10,8 @@ export type AdayRow = {
   son_olay_id: number | null; son_olay_tur: string | null; son_olay_kanal: string | null;
   son_olay_zaman: string | null; son_olay_durum: string | null; son_olay_kisi: string | null;
   geri_alinabilir: boolean | null; baskasi_aradi: boolean | null; diger_listede: boolean | null;
+  instagram: string | null; ig_followers: number | null; sector: string | null; gaps: string[];
+  share_code: string | null; site_views: number; site_last_view_at: string | null;
 };
 
 export type Sablon = { id: number; title: string; body: string; sets_status: string | null };
@@ -39,7 +41,7 @@ export type Eylemler = {
   mesajKaydet: Eylem;
 };
 
-export type Marka = { yol: string; ad: string; ekAlanlar: EkAlanAnahtari[] };
+export type Marka = { yol: string; ad: string; ekAlanlar: EkAlanAnahtari[]; analiz: boolean };
 export type Kullanici = { id: number; ad: string; yonetici: boolean };
 export type Kisi = { id: number; display_name: string };
 

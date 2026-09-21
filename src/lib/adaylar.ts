@@ -18,17 +18,22 @@ export type Marka = {
    * buraya eklemek yeterli, başka değişiklik gerekmiyor.
    */
   ekAlanlar: EkAlanAnahtari[];
+  /**
+   * Ajans Flow'da satış adayın eksiklerine (QR menü yok, Reels yok…)
+   * dayanıyor: sektör, eksik listesi ve kişisel tanıtım linki bu listede.
+   */
+  analiz: boolean;
 };
 
 export const MARKALAR: Marka[] = [
   {
     anahtar: 'ajansflow', yol: 'ajansflow', ad: 'Ajans Flow',
-    ekAlanlar: ['web', 'ajans'],
+    ekAlanlar: ['web', 'ajans'], analiz: true,
   },
   {
     anahtar: 'minikstarlar', yol: 'minikstarlar', ad: 'Minik Starlar',
     // Ekip "sosyal medyası aktif" notunu 15 kez elle yazmıştı.
-    ekAlanlar: ['sosyal'],
+    ekAlanlar: ['sosyal'], analiz: false,
   },
 ];
 
@@ -295,25 +300,37 @@ export function mesajAdi(ad: string): string {
   const hepsiBuyuk = harfler === harfler.toLocaleUpperCase('tr');
   const hepsiKucuk = harfler === harfler.toLocaleLowerCase('tr');
   if (!hepsiBuyuk && !hepsiKucuk) return ad.trim();
+  // Büyük "I" Türkçe klavyede "ı"dır (KAĞITHANE → Kağıthane), ama adda hiç
+  // Türkçe harf yoksa yazan İngilizce klavye kullanmıştır ve "I" = "i"dir
+  // (DENT 50 CLINIC → Dent 50 Clinic, yoksa "Clınıc" oluyordu).
+  const dil = /[İŞĞÜÖÇışğüöç]/.test(harfler) ? 'tr' : 'en';
   return ad.trim().split(/\s+/).map((k, i) => {
-    const kucuk = k.toLocaleLowerCase('tr');
+    const kucuk = k.toLocaleLowerCase(dil);
     // Bağlaçlar küçük ("Çiçek Kreş ve Anaokulu"); ilk kelime hariç.
     if (i > 0 && BAGLACLAR.has(kucuk)) return kucuk;
-    // Kısaltma: 2 harf (GS, FB, TS) ya da ünlüsüz 3 harf (BJK). "EVİ" gibi
-    // ünlülü 3 harfli kelime normal kelimedir.
+    // Kısaltma: ünlüsüz 2-3 harf (GS, FB, TS, BJK). Ünlülü kısa kelimeler
+    // (GO, ET, EV, EVİ) normal kelimedir: "Mas Go Kart".
     const unlusuz = !/[aeıioöuüAEIİOÖUÜ]/.test(k);
-    if (k.length <= 2 || (k.length === 3 && unlusuz)) return k.toLocaleUpperCase('tr');
-    return kucuk.charAt(0).toLocaleUpperCase('tr') + kucuk.slice(1);
+    if (k.length <= 3 && unlusuz) return k.toLocaleUpperCase('tr');
+    // İlk harf: büyük yazılmışsa yazıldığı gibi kalır; küçük yazılmışsa
+    // Türkçe kuralla büyür (ince → İnce).
+    const ilk = hepsiBuyuk ? k.charAt(0) : k.charAt(0).toLocaleUpperCase('tr');
+    return ilk + kucuk.slice(1);
   }).join(' ');
 }
 
 /**
- * Şablondaki yer tutucuları doldurur: {ad} {yetkili} {gonderen} {marka}.
+ * Şablondaki yer tutucuları doldurur: {ad} {yetkili} {gonderen} {marka},
+ * Ajans Flow'da ayrıca {eksikler} ("QR menü, web sitesi ve Reels video
+ * içerikleri") ve {site} (adayın kişisel tanıtım linki).
  * Yetkili bilinmiyorsa "Merhaba {yetkili}," → "Merhaba," olur.
  */
 export function sablonDoldur(
   govde: string,
-  degerler: { ad: string; yetkili: string | null; gonderen: string; marka: string },
+  degerler: {
+    ad: string; yetkili: string | null; gonderen: string; marka: string;
+    eksikler?: string; site?: string;
+  },
 ): string {
   // Değerler işlevle veriliyor: adda "$&" gibi bir dizi olsa replace onu
   // özel desen sanıp metni bozuyordu.
@@ -324,6 +341,8 @@ export function sablonDoldur(
     .replace(/\{yetkili\}/g, () => yetkili)
     .replace(/\{gonderen\}/g, () => degerler.gonderen)
     .replace(/\{marka\}/g, () => degerler.marka)
+    .replace(/\{eksikler\}/g, () => degerler.eksikler ?? eksikMetni([]))
+    .replace(/\{site\}/g, () => degerler.site ?? '')
     .replace(/[ \t]+([,.!?])/g, '$1')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
@@ -333,4 +352,217 @@ export function sablonDoldur(
 export function doldurulmamisYer(metin: string): string | null {
   const m = metin.match(/\[[^\]\n]{2,}\]/);
   return m ? m[0] : null;
+}
+
+/* ---------------- Ajans Flow analizi: sektör ve eksikler ---------------- */
+
+export type Sektor = { anahtar: string; ad: string; simge: string };
+
+export const SEKTORLER: Sektor[] = [
+  { anahtar: 'kafe', ad: 'Kafe / Restoran', simge: '☕' },
+  { anahtar: 'saglik', ad: 'Diş / Sağlık', simge: '🦷' },
+  { anahtar: 'spor', ad: 'Spor Salonu', simge: '🏋️' },
+  { anahtar: 'egitim', ad: 'Anaokulu / Eğitim', simge: '🎒' },
+  { anahtar: 'guzellik', ad: 'Güzellik / Kuaför', simge: '💇' },
+  { anahtar: 'otomotiv', ad: 'Otomotiv', simge: '🚗' },
+  { anahtar: 'hukuk', ad: 'Hukuk / Danışmanlık', simge: '⚖️' },
+  { anahtar: 'emlak', ad: 'Emlak / İnşaat', simge: '🏠' },
+  { anahtar: 'magaza', ad: 'Mağaza / E-ticaret', simge: '🛍️' },
+  { anahtar: 'turizm', ad: 'Otel / Turizm', simge: '🏨' },
+  { anahtar: 'diger', ad: 'Diğer', simge: '🏢' },
+];
+export const SEKTOR_HARITA: Record<string, Sektor> =
+  Object.fromEntries(SEKTORLER.map((s) => [s.anahtar, s]));
+
+// `in` yerine Object.hasOwn: "constructor", "toString" gibi nesne
+// prototipindeki adlar geçerli anahtar sayılmasın.
+export function gecerliSektor(v: unknown): v is string {
+  return typeof v === 'string' && Object.hasOwn(SEKTOR_HARITA, v);
+}
+
+export type Eksik = {
+  anahtar: string;
+  /** Ekibin gördüğü ad: "QR menü yok" */
+  ad: string;
+  /** Tablodaki kısa çip */
+  kisa: string;
+  simge: string;
+  /** Mesajdaki {eksikler} içinde: "özellikle QR menü, web sitesi … tarafında" */
+  mesaj: string;
+  /** Müşterinin kişisel tanıtım sayfasında gördüğü öneri */
+  baslik: string;
+  aciklama: string;
+  hizmet: string;
+  /**
+   * 'web': gaps dizisinde TUTULMAZ, has_website = 'yok' demektir. Web sitesi
+   * sorusu zaten üç durumlu alan olarak vardı; iki yerde tutulup çelişmesin.
+   */
+  sanal?: 'web';
+};
+
+export const EKSIKLER: Eksik[] = [
+  {
+    anahtar: 'qr_menu', ad: 'QR menü yok', kisa: 'QR menü', simge: '📱', mesaj: 'QR menü',
+    baslik: 'QR dijital menü',
+    aciklama: 'Masadaki QR kodla açılan, fotoğraflı ve çok dilli menü. Fiyat değişince baskı beklemeden anında güncellenir.',
+    hizmet: 'QR / Dijital Menü',
+  },
+  {
+    anahtar: 'web_yok', ad: 'Web sitesi yok', kisa: 'Web yok', simge: '🌐', mesaj: 'web sitesi',
+    baslik: 'Profesyonel web sitesi',
+    aciklama: 'Google’da sizi arayan müşterinin bulup güvenebileceği, telefonda hızlı açılan bir site.',
+    hizmet: 'Web Sitesi Tasarımı & Yazılım', sanal: 'web',
+  },
+  {
+    anahtar: 'web_eski', ad: 'Web sitesi eski / mobilde bozuk', kisa: 'Web eski', simge: '🧱',
+    mesaj: 'web sitesinin yenilenmesi',
+    baslik: 'Web sitesini yenileme',
+    aciklama: 'Mevcut sitenizi hızlı, mobil uyumlu ve bugünün tasarım diline uygun hâle getirme.',
+    hizmet: 'Web Sitesi Tasarımı & Yazılım',
+  },
+  {
+    anahtar: 'instagram_zayif', ad: 'Instagram geliştirilebilir', kisa: 'Instagram', simge: '📈',
+    mesaj: 'Instagram hesabının büyütülmesi',
+    baslik: 'Instagram’ı büyütme',
+    aciklama: 'Profil düzeni, öne çıkanlar, biyografi ve içerik planıyla hesabı markanıza yakışır hâle getirme.',
+    hizmet: 'Sosyal Medya Yönetimi',
+  },
+  {
+    anahtar: 'duzensiz', ad: 'Düzenli paylaşım yok', kisa: 'Paylaşım', simge: '🗓️',
+    mesaj: 'düzenli paylaşım planı',
+    baslik: 'Düzenli içerik takvimi',
+    aciklama: 'Her hafta planlı paylaşım: müşterileriniz sizi sürekli görür, hesabınız canlı kalır.',
+    hizmet: 'İçerik Stratejisi & Planlama',
+  },
+  {
+    anahtar: 'reels_yok', ad: 'Reels / video yok', kisa: 'Reels', simge: '🎬',
+    mesaj: 'Reels video içerikleri',
+    baslik: 'Reels ve video',
+    aciklama: 'Instagram’ın en çok öne çıkardığı format: kısa, dikkat çeken, profesyonel kurgulu videolar.',
+    hizmet: 'Video & Reels Prodüksiyon',
+  },
+  {
+    anahtar: 'cekim_yok', ad: 'Profesyonel çekim yok', kisa: 'Çekim', simge: '📸',
+    mesaj: 'profesyonel çekim',
+    baslik: 'Profesyonel çekim',
+    aciklama: 'Ürününüzü, mekânınızı ve ekibinizi doğru ışık ve kadrajla gösteren fotoğraf ve videolar.',
+    hizmet: 'Profesyonel Fotoğraf Çekimi',
+  },
+  {
+    anahtar: 'google_zayif', ad: 'Google profili zayıf', kisa: 'Google', simge: '📍',
+    mesaj: 'Google işletme profili',
+    baslik: 'Google İşletme Profili',
+    aciklama: 'Haritalarda doğru bilgiler, güncel fotoğraflar ve yorum yönetimiyle yakınınızdaki müşteriyi kapınıza getirme.',
+    hizmet: 'Google İşletme Profili',
+  },
+  {
+    anahtar: 'reklam_yok', ad: 'Reklam vermiyor', kisa: 'Reklam', simge: '🎯',
+    mesaj: 'Instagram reklamları',
+    baslik: 'Hedefli reklam',
+    aciklama: 'Bütçenizi doğru semtte, doğru kitleye harcayan Meta ve Google reklamları.',
+    hizmet: 'Reklam Yönetimi (Meta & Google)',
+  },
+  {
+    anahtar: 'kimlik_zayif', ad: 'Logo / kurumsal kimlik zayıf', kisa: 'Kimlik', simge: '🎨',
+    mesaj: 'logo / kurumsal kimlik',
+    baslik: 'Kurumsal kimlik',
+    aciklama: 'Logo, renkler ve yazı dili tutarlı olunca marka akılda kalır ve güven verir.',
+    hizmet: 'Grafik Tasarım & Kurumsal Kimlik',
+  },
+  {
+    anahtar: 'menu_katalog', ad: 'Menü / katalog tasarımı yok', kisa: 'Menü', simge: '📖',
+    mesaj: 'menü tasarımı',
+    baslik: 'Menü ve katalog tasarımı',
+    aciklama: 'Okunaklı, dikkat çekici ve markanıza uygun basılı ya da dijital menü ve kataloglar.',
+    hizmet: 'Grafik Tasarım & Kurumsal Kimlik',
+  },
+];
+
+export const EKSIK_HARITA: Record<string, Eksik> =
+  Object.fromEntries(EKSIKLER.map((e) => [e.anahtar, e]));
+
+/** Katalogdaki eksik (sanal olanlar dahil) ya da null. */
+export function eksikBul(v: unknown): Eksik | null {
+  return typeof v === 'string' && Object.hasOwn(EKSIK_HARITA, v) ? EKSIK_HARITA[v] : null;
+}
+
+/** gaps dizisinde saklanabilecek (sanal olmayan) eksik mi. */
+export function saklanirEksik(v: unknown): v is string {
+  const e = eksikBul(v);
+  return e !== null && !e.sanal;
+}
+
+/**
+ * Adayın eksikleri, katalog sırasıyla. Web sitesi yokluğu has_website
+ * alanından gelir. Bilinmeyen (katalogdan kaldırılmış) anahtarlar atlanır.
+ */
+export function adayEksikleri(a: { gaps: string[] | null; has_website: UcDurum }): Eksik[] {
+  const set = new Set(a.gaps ?? []);
+  const webYok = a.has_website === 'yok';
+  return EKSIKLER.filter((e) => {
+    if (e.sanal === 'web') return webYok;
+    // Sitesi olmayan adaya "siteniz eski" önerisi çıkmasın.
+    if (e.anahtar === 'web_eski' && webYok) return false;
+    return set.has(e.anahtar);
+  });
+}
+
+/**
+ * Mesajdaki {eksikler}: "QR menü, web sitesi ve Reels video içerikleri".
+ * İlk mesaj kısa kalsın diye en çok üç eksik yazılır (katalog sırası
+ * önem sırasıdır); hepsi kişisel sunum sayfasında görünüyor.
+ * Liste boşsa genel bir ifade — şablon cümlesi yine anlamlı kalsın.
+ */
+export function eksikMetni(eksikler: Eksik[], enCok = 3): string {
+  const parcalar = eksikler.slice(0, enCok).map((e) => e.mesaj);
+  if (parcalar.length === 0) return 'sosyal medya ve dijital görünürlük';
+  if (parcalar.length === 1) return parcalar[0];
+  return `${parcalar.slice(0, -1).join(', ')} ve ${parcalar[parcalar.length - 1]}`;
+}
+
+/**
+ * Instagram kullanıcı adını ayıklar: "@kule.cafe", "kule.cafe",
+ * "https://www.instagram.com/kule.cafe/?hl=tr" → "kule.cafe".
+ * Instagram adları: harf, rakam, nokta, alt çizgi; en çok 30 karakter.
+ */
+export function instagramCoz(ham: string | null | undefined): string | null {
+  let v = (ham ?? '').trim();
+  if (!v) return null;
+  const adres = v.match(/instagram\.com\/([^/?#\s]+)/i);
+  if (adres) v = adres[1];
+  // Başka bir web adresi (maymotors.tr gibi noktalı Instagram adları geçerli).
+  else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(v) || /^www\./i.test(v)) return null;
+  v = v.replace(/^@+/, '').replace(/\/+$/, '').toLowerCase();
+  if (['p', 'reel', 'reels', 'stories', 'explore', 'accounts'].includes(v)) return null;
+  return /^[a-z0-9._]{1,30}$/.test(v) ? v : null;
+}
+
+/** 1250 → "1,3 B", 2400000 → "2,4 Mn" */
+export function takipciEtiketi(n: number | null | undefined): string | null {
+  if (n === null || n === undefined || !Number.isFinite(n)) return null;
+  return new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+}
+
+/**
+ * "1.2k", "1,2 B", "12.500", "3 bin" gibi yazılışları sayıya çevirir.
+ * Anlaşılmazsa null.
+ */
+export function takipciCoz(ham: string | null | undefined): number | null {
+  // Instagram'dan kopyalanan "12,5 B takipçi", "1.2K followers", "10K+" da olur.
+  const v = (ham ?? '').trim().toLocaleLowerCase('tr')
+    .replace(/(takipçi|takipci|followers?)$/u, '').replace(/\+$/, '').replace(/\s+/g, '');
+  if (!v) return null;
+  const m = v.match(/^(\d+(?:[.,]\d+)*)(k|b|bin|m|mn|milyon)?$/);
+  if (!m) return null;
+  let sayi = m[1];
+  const carpan = m[2] ? (/^(k|b|bin)$/.test(m[2]) ? 1_000 : 1_000_000) : 1;
+  if (carpan === 1) {
+    // Çarpansız: nokta/virgül binlik ayırıcı ("12.500").
+    sayi = sayi.replace(/[.,]/g, '');
+  } else {
+    // Çarpanlı: son ayırıcı ondalık ("1,2k").
+    sayi = sayi.replace(',', '.');
+  }
+  const n = Math.round(Number(sayi) * carpan);
+  return Number.isFinite(n) && n >= 0 && n < 1_000_000_000 ? n : null;
 }

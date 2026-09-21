@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import Icon from '@/components/Icon';
-import { SONUCLAR, NOT_KALIPLARI, EK_ALANLAR, UC_DURUMLAR, ekAlanDegeri, type UcDurum } from '@/lib/adaylar';
+import {
+  SONUCLAR, NOT_KALIPLARI, EK_ALANLAR, UC_DURUMLAR, EKSIKLER, ekAlanDegeri, type UcDurum,
+} from '@/lib/adaylar';
 import { telefonCoz } from '@/lib/telefon';
 import WhatsAppMenu from './WhatsAppMenu';
 import type { AdayRow, Eylem, Kullanici, Marka, Sablon } from './tipler';
@@ -22,7 +24,7 @@ export default function SonucEkrani({
   kaydet, mesajKaydet, aramaIsaretle, kaydedildi, kapat,
 }: {
   aday: AdayRow;
-  kanalBaslangic: 'telefon' | 'whatsapp';
+  kanalBaslangic: 'telefon' | 'whatsapp' | 'instagram';
   kuyrukta: boolean;
   kuyrukToplam: number;
   marka: Marka;
@@ -41,6 +43,16 @@ export default function SonucEkrani({
   const [tarihSecim, setTarihSecim] = useState('otomatik');
   const [elleTarih, setElleTarih] = useState('');
   const [ek, setEk] = useState<Partial<Record<'web' | 'ajans' | 'sosyal', UcDurum>>>({});
+  // Görüşmede öğrenilen eksikler. null = dokunulmadı, kayıttaki liste kalır.
+  // taban: ilk dokunuştaki liste — fark ona göre hesaplanır, ekran açıkken
+  // tablodan eklenen bir işaret "kaldırıldı" sanılmasın.
+  const [eksik, setEksik] = useState<{ taban: string[]; secim: string[] } | null>(null);
+  const gorunenEksik = eksik?.secim ?? aday.gaps;
+  const eksikDegistir = (anahtar: string, ekle: boolean) => setEksik((o) => {
+    const taban = o?.taban ?? aday.gaps;
+    const secim = o?.secim ?? aday.gaps;
+    return { taban, secim: ekle ? [...secim, anahtar] : secim.filter((k) => k !== anahtar) };
+  });
 
   const tel = telefonCoz(aday.phone_raw);
 
@@ -66,6 +78,18 @@ export default function SonucEkrani({
           <input type="hidden" name="web" value={ek.web ?? ''} />
           <input type="hidden" name="ajans" value={ek.ajans ?? ''} />
           <input type="hidden" name="sosyal" value={ek.sosyal ?? ''} />
+          {/* Yalnızca bu ekranda değiştirilenler: ekran açıkken tablodan yapılan
+              işaretler ezilmesin. */}
+          {eksik !== null && (
+            <>
+              {eksik.secim.filter((k) => !eksik.taban.includes(k)).map((k) => (
+                <input key={`+${k}`} type="hidden" name="eksik_ekle" value={k} />
+              ))}
+              {eksik.taban.filter((k) => !eksik.secim.includes(k)).map((k) => (
+                <input key={`-${k}`} type="hidden" name="eksik_cikar" value={k} />
+              ))}
+            </>
+          )}
 
           <div className="sonuc-baslik">
             <div style={{ minWidth: 0 }}>
@@ -73,7 +97,7 @@ export default function SonucEkrani({
               <strong>{aday.name}</strong>
               <div className="cell-sub">
                 {[aday.contact_person, aday.city, aday.source].filter(Boolean).join(' · ')
-                  || (kanal === 'whatsapp' ? 'WhatsApp' : 'Telefon')}
+                  || (kanal === 'whatsapp' ? 'WhatsApp' : kanal === 'instagram' ? 'Instagram' : 'Telefon')}
                 {aday.call_count > 0 && ` · ${aday.call_count + 1}. deneme`}
               </div>
             </div>
@@ -96,13 +120,28 @@ export default function SonucEkrani({
               </a>
               <span onClickCapture={() => setKanal('whatsapp')}>
                 <WhatsAppMenu aday={aday} sablonlar={sablonlar} gonderen={kullanici.ad}
-                              marka={marka.ad} kaydet={mesajKaydet} />
+                              marka={marka} kaydet={mesajKaydet} />
+              </span>
+              <span onClickCapture={() => setKanal('instagram')}>
+                <WhatsAppMenu aday={aday} sablonlar={sablonlar} gonderen={kullanici.ad} kanal="instagram"
+                              marka={marka} kaydet={mesajKaydet} />
               </span>
             </div>
           ) : (
-            <div className="alert alert-warning" style={{ marginBottom: 12 }}>
-              Numara anlaşılamadı: {aday.phone_raw ?? 'boş'} — &ldquo;Yanlış No&rdquo; ile işaretleyebilirsin.
-            </div>
+            <>
+              <div className="alert alert-warning" style={{ marginBottom: 12 }}>
+                Numara anlaşılamadı: {aday.phone_raw ?? 'boş'} — &ldquo;Yanlış No&rdquo; ile işaretleyebilirsin.
+              </div>
+              {aday.instagram && (
+                <div className="sonuc-ara">
+                  <span onClickCapture={() => setKanal('instagram')}>
+                    <WhatsAppMenu aday={aday} sablonlar={sablonlar} gonderen={kullanici.ad} kanal="instagram"
+                                  marka={marka} kaydet={mesajKaydet} />
+                  </span>
+                  <span className="cell-sub">@{aday.instagram} — Instagram&apos;dan yaz</span>
+                </div>
+              )}
+            </>
           )}
 
           {aday.last_note && (
@@ -143,6 +182,24 @@ export default function SonucEkrani({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {marka.analiz && (
+            <div style={{ marginTop: 14 }}>
+              <div className="secim-basligi">Konuşmada öğrendiğin eksikler</div>
+              <div className="eksik-secim">
+                {EKSIKLER.filter((e) => !e.sanal).map((e) => {
+                  const secili = gorunenEksik.includes(e.anahtar);
+                  return (
+                    <button key={e.anahtar} type="button" aria-pressed={secili}
+                            className={`eksik-dugme${secili ? ' secili' : ''}`}
+                            onClick={() => eksikDegistir(e.anahtar, !secili)}>
+                      <span aria-hidden>{e.simge}</span> {e.ad}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

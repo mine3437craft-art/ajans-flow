@@ -77,7 +77,11 @@ export async function login(_prev: string | null, formData: FormData): Promise<s
     return 'Sunucu ayarı eksik: oturum anahtarı (SESSION_SECRET) tanımlı değil ' +
            'veya 32 karakterden kısa. Yöneticinin bunu düzeltmesi gerekiyor.';
   }
-  (await cookies()).set(sessionCookie.name, token, sessionCookie.options);
+  const cerezler = await cookies();
+  cerezler.set(sessionCookie.name, token, sessionCookie.options);
+  // Yetki vermeyen "bu cihaz ekipte" işareti (1 yıl): oturum 12 saatte düşse
+  // de ekip kendi gönderdiği sunum linkini açınca müşteri açmış sayılmasın.
+  cerezler.set('af_ekip', '1', { ...sessionCookie.options, maxAge: 60 * 60 * 24 * 365 });
 
   await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${user.id}`;
   await sql`

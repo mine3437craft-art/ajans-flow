@@ -73,5 +73,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // /login, statik dosyalar ve Next iç yolları hariç her şey korumalı.
-  matcher: ['/((?!login|api/health|_next/static|_next/image|favicon.ico).*)'],
+  // /tanitim ve /t/<kod>: müşterilere gönderilen herkese açık tanıtım sitesi.
+  matcher: ['/((?!login|tanitim|t/|api/health|_next/static|_next/image|favicon.ico).*)'],
 };

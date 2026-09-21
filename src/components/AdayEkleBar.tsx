@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { EK_ALANLAR, UC_DURUMLAR, type EkAlanAnahtari } from '@/lib/adaylar';
+import { EK_ALANLAR, UC_DURUMLAR, EKSIKLER, SEKTORLER, type EkAlanAnahtari } from '@/lib/adaylar';
 
 function Gonder() {
   const { pending } = useFormStatus();
@@ -20,13 +20,15 @@ function Gonder() {
  * arka arkaya girilebilsin.
  */
 export default function AdayEkleBar({
-  action, marka, kaynaklar, personel, ekAlanlar, bastaAcik = false,
+  action, marka, kaynaklar, personel, ekAlanlar, analiz = false, bastaAcik = false,
 }: {
   action: (prev: string | null, fd: FormData) => Promise<string | null>;
   marka: string;
   kaynaklar: string[];
   personel: Array<{ id: number; display_name: string }>;
   ekAlanlar: EkAlanAnahtari[];
+  /** Ajans Flow: sektör ve eksikler ekleme sırasında işaretlenebilsin. */
+  analiz?: boolean;
   /** Liste boşken açık gelir; doluyken tek satıra katlanır. */
   bastaAcik?: boolean;
 }) {
@@ -46,9 +48,15 @@ export default function AdayEkleBar({
     setAcik(true);
     const f = formRef.current;
     if (f) {
-      for (const ad of ['name', 'phone', 'note'] as const) {
+      for (const ad of ['name', 'phone', 'note', 'instagram', 'ig_followers', 'contact_person'] as const) {
         const alan = f.elements.namedItem(ad);
         if (alan instanceof HTMLInputElement) alan.value = '';
+      }
+      // Eksikler ve web / ajans soruları kişiye özel: sıfırlanır.
+      f.querySelectorAll<HTMLInputElement>('input[name="eksik"]').forEach((k) => { k.checked = false; });
+      for (const ad of ['has_website', 'worked_with_agency', 'social_active', 'sector'] as const) {
+        const alan = f.elements.namedItem(ad);
+        if (alan instanceof HTMLSelectElement) alan.selectedIndex = 0;
       }
     }
     adRef.current?.focus();
@@ -79,6 +87,9 @@ export default function AdayEkleBar({
                placeholder="Ad / firma *" aria-label="Ad / firma" />
         <input name="phone" className="form-control" inputMode="tel" autoComplete="off"
                placeholder="Telefon" aria-label="Telefon" />
+        <input name="instagram" className="form-control" autoComplete="off" autoCapitalize="none"
+               autoCorrect="off" spellCheck={false} maxLength={120}
+               placeholder="@instagram" aria-label="Instagram kullanıcı adı" />
         <input name="note" className="form-control" maxLength={500}
                placeholder="Not (isteğe bağlı)" aria-label="Not" />
         <Gonder />
@@ -89,8 +100,30 @@ export default function AdayEkleBar({
                 title="Ekleme alanını kapat">Kapat</button>
       </div>
 
+      {analiz && (
+        <div className="aday-ekle-analiz">
+          <select name="sector" className="form-control" defaultValue="" aria-label="Sektör">
+            <option value="">Sektör…</option>
+            {SEKTORLER.map((s) => <option key={s.anahtar} value={s.anahtar}>{s.simge} {s.ad}</option>)}
+          </select>
+          <div className="eksik-secim" role="group" aria-label="Eksikler">
+            {EKSIKLER.map((e) => (
+              <label key={e.anahtar} className="eksik-dugme">
+                <input type="checkbox" name="eksik" value={e.anahtar} />
+                <span aria-hidden>{e.simge}</span> {e.ad}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {genis && (
         <div className="form-grid" style={{ marginTop: 12 }}>
+          <div className="form-group">
+            <label htmlFor="ae-takipci">Instagram takipçi</label>
+            <input id="ae-takipci" name="ig_followers" className="form-control" autoCapitalize="none"
+                   maxLength={24} placeholder="ör. 850, 1.2k, 12,5 B" />
+          </div>
           <div className="form-group">
             <label htmlFor="ae-yetkili">Yetkili kişi</label>
             <input id="ae-yetkili" name="contact_person" className="form-control" maxLength={120} />
@@ -108,7 +141,7 @@ export default function AdayEkleBar({
             </datalist>
           </div>
           <div className="form-group">
-            <label htmlFor="ae-link">Instagram / web</label>
+            <label htmlFor="ae-link">Web sitesi / diğer bağlantı</label>
             <input id="ae-link" name="link" className="form-control" maxLength={300} />
           </div>
           <div className="form-group">

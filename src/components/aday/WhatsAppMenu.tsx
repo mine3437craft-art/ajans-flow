@@ -1,9 +1,34 @@
 'use client';
 
-import { startTransition, useEffect, useRef, useState } from 'react';
-import { sablonDoldur, doldurulmamisYer, DURUM_HARITA } from '@/lib/adaylar';
+import { startTransition, useState } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  sablonDoldur, doldurulmamisYer, DURUM_HARITA, adayEksikleri, eksikMetni,
+} from '@/lib/adaylar';
 import { telefonCoz } from '@/lib/telefon';
+import { useAcilir, panoyaKopyala, bildir } from './acilir';
 import { formVerisi, type AdayRow, type Eylem, type Sablon } from './tipler';
+
+export type Kanal = 'whatsapp' | 'instagram';
+
+/** Mesajı hazırlamak için gereken marka bilgisi. */
+export type MesajMarkasi = { ad: string; analiz: boolean };
+
+/** Adayın kişisel tanıtım sayfasının yolu (bağlantılar için, göreli). */
+export function sunumYolu(aday: Pick<AdayRow, 'share_code'>): string | null {
+  return aday.share_code ? `/t/${aday.share_code}` : null;
+}
+
+/**
+ * Mesaja konan tam adres. Yalnızca tıklama anında / açık menüde çağrılır:
+ * sunucuda çizilen HTML'de window yok (orada göreli yol kullanılıyor).
+ */
+export function sunumAdresi(aday: Pick<AdayRow, 'share_code'>): string | null {
+  const yol = sunumYolu(aday);
+  if (!yol) return null;
+  const koken = typeof window !== 'undefined' ? window.location.origin : 'https://ajans-flow.vercel.app';
+  return `${koken}${yol}`;
+}
 
 /** wa.me bağlantısını mesaj metniyle kurar. */
 export function whatsappAdresi(aday: Pick<AdayRow, 'phone_raw'>, metin: string): string | null {
@@ -12,13 +37,35 @@ export function whatsappAdresi(aday: Pick<AdayRow, 'phone_raw'>, metin: string):
   return metin ? `${t.whatsapp}?text=${encodeURIComponent(metin)}` : t.whatsapp;
 }
 
+/** Instagram'da doğrudan mesaj (DM) ekranı. Metin önceden yazılamıyor. */
+export function instagramAdresi(aday: Pick<AdayRow, 'instagram'>): string | null {
+  return aday.instagram ? `https://ig.me/m/${encodeURIComponent(aday.instagram)}` : null;
+}
+
 /** Şablonu bu aday için doldurur. */
 export function mesajMetni(
-  sablon: Sablon | null, aday: Pick<AdayRow, 'name' | 'contact_person'>,
-  gonderen: string, marka: string,
+  sablon: Sablon | null, aday: AdayRow, gonderen: string, marka: MesajMarkasi,
 ): string {
   if (!sablon) return '';
-  return sablonDoldur(sablon.body, { ad: aday.name, yetkili: aday.contact_person, gonderen, marka });
+  return sablonDoldur(sablon.body, {
+    ad: aday.name, yetkili: aday.contact_person, gonderen, marka: marka.ad,
+    eksikler: eksikMetni(marka.analiz ? adayEksikleri(aday) : []),
+    site: marka.analiz ? sunumAdresi(aday) ?? '' : '',
+  });
+}
+
+/** Hazır şablonda "[buraya teklif…]" gibi doldurulmamış yer kaldıysa sorar. */
+function bosYerOnayi(metin: string): boolean {
+  const bos = doldurulmamisYer(metin);
+  return !bos || window.confirm(
+    `Mesajda doldurulmamış yer var: ${bos}\n\nŞablonu Mesaj şablonları sayfasından düzenleyebilirsin. Yine de açılsın mı?`,
+  );
+}
+
+function kayitGonder(kaydet: Eylem, aday: AdayRow, sablon: Sablon | null, kanal: Kanal) {
+  startTransition(async () => {
+    await kaydet(formVerisi({ id: aday.id, sablon_id: sablon?.id ?? null, kanal }));
+  });
 }
 
 /**
@@ -28,97 +75,79 @@ export function mesajMetni(
  * açılır pencere engelleyicisine takılır.
  */
 export function whatsappGonder(
-  aday: AdayRow, sablon: Sablon | null, gonderen: string, marka: string, kaydet: Eylem,
+  aday: AdayRow, sablon: Sablon | null, gonderen: string, marka: MesajMarkasi, kaydet: Eylem,
 ): boolean {
   const metin = mesajMetni(sablon, aday, gonderen, marka);
-  // Hazır "Detaylar" şablonunda "[buraya teklif…]" gibi doldurulmamış yer
-  // kaldıysa müşteriye öyle gitmesin.
-  const bos = doldurulmamisYer(metin);
-  if (bos && !window.confirm(
-    `Mesajda doldurulmamış yer var: ${bos}\n\nŞablonu Mesaj şablonları sayfasından düzenleyebilirsin. Yine de açılsın mı?`,
-  )) return false;
+  if (!bosYerOnayi(metin)) return false;
   const adres = whatsappAdresi(aday, metin);
   if (!adres) return false;
   window.open(adres, '_blank', 'noopener');
-  startTransition(async () => {
-    await kaydet(formVerisi({ id: aday.id, sablon_id: sablon?.id ?? null }));
-  });
+  kayitGonder(kaydet, aday, sablon, 'whatsapp');
   return true;
 }
 
 /**
- * Satırdaki WhatsApp düğmesi: dokununca şablon listesi açılır, birine
- * basınca WhatsApp o mesajla açılır. Ön izleme şablonun bu adaya göre
- * doldurulmuş hâlini gösterir.
+ * Instagram DM: Instagram bağlantıyla hazır metin almıyor. Mesaj panoya
+ * kopyalanır, sohbet açılır — kişi yapıştırıp gönderir.
+ */
+export function instagramGonder(
+  aday: AdayRow, sablon: Sablon | null, gonderen: string, marka: MesajMarkasi, kaydet: Eylem,
+): boolean {
+  const adres = instagramAdresi(aday);
+  if (!adres) return false;
+  const metin = mesajMetni(sablon, aday, gonderen, marka);
+  if (!bosYerOnayi(metin)) return false;
+  // Kopyalama tıklama anında başlar, sekme hemen ardından açılır.
+  const kopya = metin ? panoyaKopyala(metin) : null;
+  window.open(adres, '_blank', 'noopener');
+  void kopya?.then((ok) => bildir(ok
+    ? 'Mesaj kopyalandı — Instagram’da sohbete yapıştırıp gönder.'
+    : 'Mesaj kopyalanamadı: menüdeki ön izlemeden seçip kopyala.', ok ? 3500 : 6000));
+  kayitGonder(kaydet, aday, sablon, 'instagram');
+  return true;
+}
+
+/**
+ * Satırdaki mesaj düğmesi (WhatsApp ya da Instagram): dokununca şablon
+ * listesi açılır, birine basınca mesaj o metinle hazırlanır. Ön izleme
+ * şablonun bu adaya göre doldurulmuş hâlini gösterir.
  */
 export default function WhatsAppMenu({
-  aday, sablonlar, gonderen, marka, kaydet,
+  aday, sablonlar, gonderen, marka, kaydet, kanal = 'whatsapp',
 }: {
   aday: AdayRow;
   sablonlar: Sablon[];
   gonderen: string;
-  marka: string;
+  marka: MesajMarkasi;
   kaydet: Eylem;
+  kanal?: Kanal;
 }) {
-  const [acik, setAcik] = useState(false);
   const [onizleme, setOnizleme] = useState<Sablon | null>(null);
-  // Menü tablonun taşma kutusunun içinde kalıp kırpılıyordu: sabit konumla
-  // düğmenin yanına yerleşiyor, dar ekranda alttan panel olarak açılıyor.
-  const [konum, setKonum] = useState<{ top: number; left: number } | null>(null);
-  const kutu = useRef<HTMLDivElement>(null);
-  const dugme = useRef<HTMLButtonElement>(null);
+  const { acik, setAcik, konum, kutu, dugme, panel, degistir } = useAcilir(340, 420);
 
-  const konumla = () => {
-    const r = dugme.current?.getBoundingClientRect();
-    if (!r) return;
-    const genislik = 340;
-    const yukseklik = 420;
-    const left = Math.max(8, Math.min(r.right - genislik, window.innerWidth - genislik - 8));
-    const asagi = r.bottom + 6 + yukseklik < window.innerHeight;
-    const top = asagi ? r.bottom + 6 : Math.max(8, r.top - 6 - yukseklik);
-    setKonum({ top, left });
-  };
-
-  // Dışarı dokununca / Esc ile / kaydırınca kapansın. pointerdown: iOS
-  // Safari boş alana dokunuşta mousedown göndermiyor.
-  useEffect(() => {
-    if (!acik) return;
-    const disari = (e: PointerEvent) => {
-      if (kutu.current && !kutu.current.contains(e.target as Node)) setAcik(false);
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setAcik(false); };
-    const kapat = () => setAcik(false);
-    document.addEventListener('pointerdown', disari);
-    document.addEventListener('keydown', esc);
-    window.addEventListener('resize', kapat);
-    return () => {
-      document.removeEventListener('pointerdown', disari);
-      document.removeEventListener('keydown', esc);
-      window.removeEventListener('resize', kapat);
-    };
-  }, [acik]);
-
-  if (!telefonCoz(aday.phone_raw).whatsapp) return null;
+  const ig = kanal === 'instagram';
+  if (ig ? !aday.instagram : !telefonCoz(aday.phone_raw).whatsapp) return null;
 
   const gonder = (s: Sablon | null) => {
-    whatsappGonder(aday, s, gonderen, marka, kaydet);
+    if (ig) instagramGonder(aday, s, gonderen, marka, kaydet);
+    else whatsappGonder(aday, s, gonderen, marka, kaydet);
     setAcik(false);
   };
 
   return (
     <div className="wa-menu" ref={kutu}>
-      <button ref={dugme} type="button" className="wa-bag" title="WhatsApp mesajı" aria-expanded={acik}
-              onClick={() => {
-                if (!acik) konumla();
-                setAcik((v) => !v);
-                setOnizleme(sablonlar[0] ?? null);
-              }}>
-        WA
+      <button ref={dugme} type="button" className={ig ? 'ig-bag' : 'wa-bag'}
+              title={ig ? `Instagram'dan mesaj: @${aday.instagram}` : 'WhatsApp mesajı'}
+              aria-expanded={acik}
+              onClick={() => { degistir(); setOnizleme(sablonlar[0] ?? null); }}>
+        {ig ? 'IG' : 'WA'}
       </button>
-      {acik && (
-        <div className="wa-acilir" role="menu"
+      {acik && createPortal(
+        <div ref={panel} className={`wa-acilir${ig ? ' ig-acilir' : ''}`} role="menu"
              style={konum ? { top: konum.top, left: konum.left } : undefined}>
-          <div className="wa-acilir-baslik">WhatsApp — {aday.name}</div>
+          <div className="wa-acilir-baslik">
+            {ig ? `Instagram — @${aday.instagram}` : `WhatsApp — ${aday.name}`}
+          </div>
           <div className="wa-sablonlar">
             {sablonlar.map((s) => (
               <button key={s.id} type="button" role="menuitem" className="wa-sablon"
@@ -131,14 +160,19 @@ export default function WhatsAppMenu({
               </button>
             ))}
             <button type="button" role="menuitem" className="wa-sablon wa-bos" onClick={() => gonder(null)}>
-              <span>Boş mesaj</span>
+              <span>{ig ? 'Sadece sohbeti aç' : 'Boş mesaj'}</span>
             </button>
           </div>
           {onizleme && (
             <div className="wa-onizleme">{mesajMetni(onizleme, aday, gonderen, marka)}</div>
           )}
-          <div className="wa-not">WhatsApp mesaj hazır açılır — Gönder&apos;e basman yeterli.</div>
-        </div>
+          <div className="wa-not">
+            {ig
+              ? 'Mesaj panoya kopyalanır ve Instagram sohbeti açılır — yapıştırıp gönder.'
+              : 'WhatsApp mesaj hazır açılır — Gönder’e basman yeterli.'}
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

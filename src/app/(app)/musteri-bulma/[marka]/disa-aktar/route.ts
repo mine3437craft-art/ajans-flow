@@ -3,7 +3,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import {
   markaBul, DURUM_HARITA, ACIK_DURUMLAR, HEMEN_ARANACAK, EK_ALANLAR, gecerliDurum, gecerliUcDurum,
-  ekAlanDegeri, bugun, type EkAlanAnahtari, type UcDurum,
+  ekAlanDegeri, bugun, eksikBul, saklanirEksik, SEKTOR_HARITA, gecerliSektor, adayEksikleri,
+  type EkAlanAnahtari, type UcDurum,
 } from '@/lib/adaylar';
 import { aramaDesenleri } from '@/lib/arama';
 import { telefonCoz } from '@/lib/telefon';
@@ -64,6 +65,11 @@ export async function GET(
   const ajansFiltre = ekFiltre('ajans');
   const sosyalFiltre = ekFiltre('sosyal');
   const gorunum = sp.get('gorunum') ?? '';
+  // Ekrandaki analiz filtreleri (Ajans Flow) — sayfadaki kuralla aynı.
+  const eksikFiltre = marka.analiz && eksikBul(sp.get('eksik')) ? sp.get('eksik')! : '';
+  const eksikDiziFiltre = saklanirEksik(eksikFiltre) ? eksikFiltre : '';
+  const eksikWebFiltre = eksikFiltre === 'web_yok';
+  const sektorFiltre = marka.analiz && gecerliSektor(sp.get('sektor')) ? sp.get('sektor')! : '';
 
   const desenler = aramaDesenleri(arama);
   const rakamlar = arama.replace(/\D/g, '').replace(/^0+/, '').replace(/^90/, '');
@@ -76,6 +82,7 @@ export async function GET(
     SELECT p.name, p.contact_person, p.phone_raw, p.status, p.next_call_on,
            p.city, p.source, p.link, p.last_note, p.call_count, p.unreached_streak,
            p.has_website, p.worked_with_agency, p.social_active, p.last_call_at, p.created_at,
+           p.instagram, p.ig_followers, p.sector, p.gaps, p.site_views,
            s.display_name AS sorumlu, a.display_name AS son_arayan
     FROM prospects p
     LEFT JOIN users s ON s.id = p.assigned_to
@@ -93,21 +100,26 @@ export async function GET(
       AND (${webFiltre}::text = '' OR p.has_website = ${webFiltre}::text)
       AND (${ajansFiltre}::text = '' OR p.worked_with_agency = ${ajansFiltre}::text)
       AND (${sosyalFiltre}::text = '' OR p.social_active = ${sosyalFiltre}::text)
+      AND (${eksikDiziFiltre}::text = '' OR ${eksikDiziFiltre}::text = ANY(p.gaps))
+      AND (${eksikWebFiltre}::boolean = FALSE OR p.has_website = 'yok')
+      AND (${sektorFiltre}::text = '' OR p.sector = ${sektorFiltre}::text)
       AND (
         cardinality(${desenler}::text[]) = 0
         OR tr_fold(p.name || ' ' || COALESCE(p.contact_person, '') || ' '
                    || COALESCE(p.city, '') || ' ' || COALESCE(p.source, '') || ' '
+                   || COALESCE(p.instagram, '') || ' '
                    || COALESCE(p.last_note, '')) ~ ALL(${desenler}::text[])
         OR (${numaraArama}::text IS NOT NULL AND p.phone_norm LIKE ${'%' + (numaraArama ?? '') + '%'})
       )
     ORDER BY p.created_at
-  `) as Array<Record<string, string | number | null>>;
+  `) as Array<Record<string, string | number | string[] | null>>;
 
   const basliklar = [
     'Ad / Firma', 'Yetkili', 'Telefon', 'Durum', 'Tekrar Ara', 'Son Not',
     'Arama Sayısı', 'Son Arama', 'Son Arayan', 'Sorumlu', 'Şehir / İlçe', 'Kaynak',
-    'Instagram / Web',
+    'Web / Bağlantı', 'Instagram', 'Takipçi',
     ...marka.ekAlanlar.map((e) => EK_ALANLAR[e].baslik),
+    ...(marka.analiz ? ['Sektör', 'Eksikler', 'Sunum Açılma'] : []),
     'Eklenme Tarihi',
   ];
 
@@ -122,10 +134,18 @@ export async function GET(
       r.last_note, r.call_count,
       tarihTR(r.last_call_at as string | null), r.son_arayan, r.sorumlu,
       r.city, r.source, r.link,
+      // '@' ile başlasa formül korumasına takılıp başına ' alıyordu: çıplak ad.
+      r.instagram, r.ig_followers,
       ...marka.ekAlanlar.map((e) => {
         const deger = ekAlanDegeri(r as unknown as Record<'has_website' | 'worked_with_agency' | 'social_active', UcDurum>, e);
         return EK_ALANLAR[e].etiket[deger]?.uzun ?? deger;
       }),
+      ...(marka.analiz ? [
+        r.sector ? SEKTOR_HARITA[String(r.sector)]?.ad ?? r.sector : '',
+        adayEksikleri({ gaps: (r.gaps as string[] | null) ?? [], has_website: r.has_website as UcDurum })
+          .map((e) => e.ad).join(', '),
+        r.site_views,
+      ] : []),
       tarihTR(r.created_at as string | null),
     ];
     return alanlar.map(hucre).join(';');

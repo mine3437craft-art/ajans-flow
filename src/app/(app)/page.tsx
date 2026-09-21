@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import { money, dateShort, num, TASK_STATUS_LABEL } from '@/lib/format';
 import { videoUyarilari } from '@/lib/video';
-import { MARKALAR, ACIK_DURUMLAR, HEMEN_ARANACAK, bugun, tarihEtiketi } from '@/lib/adaylar';
+import { MARKALAR, ACIK_DURUMLAR, HEMEN_ARANACAK, DURUM_HARITA, bugun, tarihEtiketi, gecenSure } from '@/lib/adaylar';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +25,7 @@ export default async function DashboardPage({
   // Görevler ekibin ortak panosu: kişiye göre süzülmez.
   const [
     taskStats, myTasks, upcomingPosts, tumUyarilar, benimMusterilerSatir,
-    adaySayilari, yaklasanOdemelerSonuc, txSonuc, dpSonuc, csSonuc,
+    adaySayilari, yaklasanOdemelerSonuc, txSonuc, dpSonuc, csSonuc, sunumaBakanlar,
   ] = await Promise.all([
     sql`
       SELECT
@@ -101,6 +101,13 @@ export default async function DashboardPage({
     isAdmin
       ? sql`SELECT COUNT(*) AS n FROM customers WHERE status = 'aktif'` as Promise<Array<{ n: string }>>
       : Promise.resolve([] as Array<{ n: string }>),
+    // Kişisel sunum linkini son 7 günde açan adaylar: sıcak müşteri, hemen aranmalı.
+    sql`
+      SELECT id::int AS id, name, status, site_views, site_last_view_at
+      FROM prospects
+      WHERE brand = 'ajansflow' AND site_last_view_at > NOW() - INTERVAL '7 days'
+      ORDER BY site_last_view_at DESC LIMIT 5
+    ` as Promise<Array<{ id: number; name: string; status: string; site_views: number; site_last_view_at: string }>>,
   ]);
 
   // Video stoğu: personel yalnızca kendisine atanmış müşterilerin uyarısını görür.
@@ -186,6 +193,20 @@ export default async function DashboardPage({
                   );
                 })}
               </div>
+              {sunumaBakanlar.length > 0 && (
+                <div className="sunum-bakanlar">
+                  <div className="secim-basligi">👀 Sunumu açan adaylar — sıcakken ara</div>
+                  {sunumaBakanlar.map((a) => (
+                    <a key={a.id} className="sunum-bakan"
+                       href={`/musteri-bulma/ajansflow?durum=tumu&sirala=ilgi&ac=${a.id}#aday-${a.id}`}>
+                      <strong>{a.name}</strong>
+                      <span className="cell-sub">
+                        {DURUM_HARITA[a.status]?.ad ?? a.status} · {a.site_views} kez · son {gecenSure(a.site_last_view_at)}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

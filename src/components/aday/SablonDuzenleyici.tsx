@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import ConfirmButton from '@/components/ConfirmButton';
-import { sablonDoldur, DURUM_HARITA } from '@/lib/adaylar';
+import { sablonDoldur, DURUM_HARITA, adayEksikleri, eksikMetni, type UcDurum } from '@/lib/adaylar';
 
 type SablonKaydi = {
   id: number; title: string; body: string; sets_status: string | null; yazan?: string | null;
@@ -19,14 +19,19 @@ function Gonder({ yeni }: { yeni: boolean }) {
 }
 
 const YER_TUTUCULAR = ['{ad}', '{yetkili}', '{gonderen}', '{marka}'];
+/** Ajans Flow: adayın işaretlenen eksikleri ve kişisel sunum linki. */
+const ANALIZ_YER_TUTUCULARI = ['{eksikler}', '{site}'];
 
 /** Tek şablon kartı: solda metin, sağda bir adayla doldurulmuş ön izleme. */
 export default function SablonDuzenleyici({
   sablon, marka, ornek, gonderen, silebilir, kaydet, sil,
 }: {
   sablon: SablonKaydi | null;
-  marka: { yol: string; ad: string };
-  ornek: { name: string; contact_person: string | null };
+  marka: { yol: string; ad: string; analiz: boolean };
+  ornek: {
+    name: string; contact_person: string | null;
+    gaps: string[]; has_website: UcDurum; share_code: string | null;
+  };
   gonderen: string;
   silebilir: boolean;
   kaydet: (prev: string | null, fd: FormData) => Promise<string | null>;
@@ -36,6 +41,10 @@ export default function SablonDuzenleyici({
   const [sonuc, formAction] = useActionState(kaydet, null);
   const [acik, setAcik] = useState(!yeni);
   const [govde, setGovde] = useState(sablon?.body ?? '');
+  // Ön izlemedeki {site} için adres kökü: sunucuda bilinmiyor, hidrasyon
+  // uyuşmazlığı olmasın diye tarayıcıda sonradan doldurulur.
+  const [koken, setKoken] = useState('');
+  useEffect(() => { setKoken(window.location.origin); }, []);
   const alan = useRef<HTMLTextAreaElement>(null);
   const ok = sonuc?.startsWith('ok|') ?? false;
 
@@ -64,6 +73,8 @@ export default function SablonDuzenleyici({
 
   const onizleme = sablonDoldur(govde || ' ', {
     ad: ornek.name, yetkili: ornek.contact_person, gonderen, marka: marka.ad,
+    eksikler: eksikMetni(marka.analiz ? adayEksikleri(ornek) : []),
+    site: marka.analiz ? `${koken}/t/${ornek.share_code ?? 'ornek'}` : '',
   });
 
   return (
@@ -93,7 +104,7 @@ export default function SablonDuzenleyici({
                       placeholder="Merhaba {yetkili}, ben {gonderen}…" aria-label="Mesaj metni" />
             <div className="yer-tutucular">
               <span className="cell-sub">Ekle:</span>
-              {YER_TUTUCULAR.map((y) => (
+              {[...YER_TUTUCULAR, ...(marka.analiz ? ANALIZ_YER_TUTUCULARI : [])].map((y) => (
                 <button key={y} type="button" className="konu" onClick={() => ekle(y)}>{y}</button>
               ))}
             </div>

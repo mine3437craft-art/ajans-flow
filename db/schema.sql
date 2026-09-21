@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   username             TEXT UNIQUE NOT NULL,
   display_name         TEXT NOT NULL,
   password_hash        TEXT NOT NULL,
-  role                 TEXT NOT NULL CHECK (role IN ('admin', 'staff')),
+  role                 TEXT NOT NULL CHECK (role IN ('admin', 'staff', 'caller')),
   must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
   is_active            BOOLEAN NOT NULL DEFAULT TRUE,
   -- Sifre degisince artan sayac; eski oturum cerezlerini gecersiz kilar.
@@ -505,4 +505,55 @@ WHERE NOT EXISTS (SELECT 1 FROM prospect_templates t WHERE t.brand = v.brand)
 
 -- Bir kez tohumlandı: ekip bütün şablonları silerse db:setup geri getirmesin.
 INSERT INTO app_config (anahtar, deger) VALUES ('sablonlar_tohumlandi', '1')
+ON CONFLICT (anahtar) DO NOTHING;
+
+-- ---------- Aday listeleri: üçüncü tur (Ajans Flow analizi) ----------
+-- Ekip adayın eksiklerini notlara düz yazı olarak yazıyordu ("web sitesi
+-- var ama eski", "Reels içerik yok"). Artık işaretlenebilir liste:
+--   gaps         : eksik anahtarları (src/lib/adaylar.ts EKSIKLER). Web
+--                  sitesi yokluğu burada DEĞİL, has_website = 'yok' ile tutulur.
+--   instagram    : kullanıcı adı, @ ve adres olmadan (Instagram'dan mesaj için)
+--   sector       : sektör anahtarı (src/lib/adaylar.ts SEKTORLER)
+--   ig_followers : Instagram takipçi sayısı (elle girilir)
+--   share_code   : müşteriye gönderilen kişisel tanıtım linki /t/<kod>
+--   site_views   : o linkin kaç kez açıldığı (ekip ve önizleme botları hariç)
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS gaps TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS instagram TEXT;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS sector TEXT;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS ig_followers INTEGER
+  CHECK (ig_followers IS NULL OR ig_followers >= 0);
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS share_code TEXT
+  DEFAULT substr(md5(random()::text || clock_timestamp()::text), 1, 12);
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS site_views INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS site_last_view_at TIMESTAMPTZ;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_aday_paylasim ON prospects(share_code) WHERE share_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_aday_eksik ON prospects USING GIN (gaps);
+CREATE INDEX IF NOT EXISTS idx_aday_instagram ON prospects(brand, lower(instagram)) WHERE instagram IS NOT NULL;
+
+-- Instagram'dan (DM) atılan mesajlar da kayda geçer.
+ALTER TABLE prospect_events DROP CONSTRAINT IF EXISTS prospect_events_channel_check;
+ALTER TABLE prospect_events ADD CONSTRAINT prospect_events_channel_check
+  CHECK (channel IN ('telefon', 'whatsapp', 'instagram'));
+
+-- Arayıcı rolü (yalnızca Minik Starlar listesi): satır içi CHECK eski
+-- kurulumlarda güncellenmediği için kısıt yeniden kuruluyor.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'staff', 'caller'));
+
+-- Eksiklerle ve kişisel sunum linkiyle çalışan iki yeni Ajans Flow şablonu.
+-- Bir kez eklenir: ekip silerse db:setup geri getirmez.
+INSERT INTO prospect_templates (brand, title, body, sets_status, sort_order)
+SELECT v.brand, v.title, v.body, v.sets_status, v.sort_order
+FROM (VALUES
+  ('ajansflow', 'Instagram — Analiz',
+   E'Merhaba, {ad} hesabınızı inceledik 👋 Ben {gonderen}, Ajans Flow''dan yazıyorum. Özellikle {eksikler} tarafında işletmenize ciddi katkı sağlayabileceğimizi düşünüyoruz.\n\nSize özel kısa bir sunum hazırladık: {site}\n\nUygun olduğunuz bir zamanda 10 dakikalık bir görüşme yapabilir miyiz?',
+   'detay_iletildi', 5),
+  ('ajansflow', 'Kişisel sunum',
+   E'Merhaba {yetkili}, konuştuğumuz gibi {ad} için hazırladığımız sunumu iletiyorum: {site}\n\nİnceledikten sonra aklınıza takılanları buradan yazabilirsiniz. İyi çalışmalar,\n{gonderen} — Ajans Flow',
+   'detay_iletildi', 25)
+) AS v(brand, title, body, sets_status, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM prospect_templates t WHERE t.brand = v.brand AND t.title = v.title)
+  AND NOT EXISTS (SELECT 1 FROM app_config WHERE anahtar = 'sablonlar_tohumlandi_2');
+
+INSERT INTO app_config (anahtar, deger) VALUES ('sablonlar_tohumlandi_2', '1')
 ON CONFLICT (anahtar) DO NOTHING;

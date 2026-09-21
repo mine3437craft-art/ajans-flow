@@ -6,6 +6,7 @@ import { assertUser, assertAdmin, logActivity } from '@/lib/auth';
 import {
   markaBul, digerMarka, DURUM_HARITA, gecerliDurum, gecerliUcDurum,
   sonrakiAramaTarihi, gunSonra, bugun, elleGecisTarihi, EK_ALANLAR,
+  eksikBul, SEKTOR_HARITA, saklanirEksik, gecerliSektor, instagramCoz, takipciCoz,
   type Marka, type Durum, type UcDurum,
 } from '@/lib/adaylar';
 import { telefonCoz } from '@/lib/telefon';
@@ -54,13 +55,72 @@ function onceki(a: AdaySatir) {
     unreached_streak: a.unreached_streak, call_count: a.call_count,
     last_note: a.last_note, last_call_at: a.last_call_at, last_call_by: a.last_call_by,
     has_website: a.has_website, worked_with_agency: a.worked_with_agency,
-    social_active: a.social_active,
+    social_active: a.social_active, gaps: a.gaps ?? [],
   };
+}
+
+/**
+ * Formdaki eksik işaretleri (aynı adla birden çok "eksik" kutusu). Web
+ * sitesi yokluğu dizide tutulmaz, ayrıca döner.
+ */
+function eksikIsaretleri(fd: FormData): { gaps: string[]; webYok: boolean } {
+  const hepsi = fd.getAll('eksik').map(String);
+  return {
+    gaps: [...new Set(hepsi.filter(saklanirEksik))],
+    webYok: hepsi.includes('web_yok'),
+  };
+}
+
+/**
+ * Eksik işaretlerinin değişen kısmı: formun açıldığı andaki liste (`once`)
+ * ile gönderilen liste karşılaştırılır. Kayda yalnızca fark uygulanır —
+ * bu arada tablodan ya da başka bir ekip arkadaşından gelen işaret ezilmesin.
+ */
+function eksikFarki(fd: FormData, onceAlani: string): { ekle: string[]; cikar: string[] } {
+  const yeni = eksikIsaretleri(fd).gaps;
+  const once = [...new Set(fd.getAll(onceAlani).map(String).filter(saklanirEksik))];
+  return {
+    ekle: yeni.filter((k) => !once.includes(k)),
+    cikar: once.filter((k) => !yeni.includes(k)),
+  };
+}
+
+const TAKIPCI_HATASI = 'Takipçi sayısı anlaşılamadı (ör. 850, 1.2k, 12,5 B).';
+const INSTAGRAM_HATASI = 'Instagram kullanıcı adı anlaşılamadı (ör. kulecafe ya da instagram.com/kulecafe).';
+
+/**
+ * Takipçi sayısı: "1.2k", "12.500", "12,5 B takipçi" gibi yazılışlar da
+ * kabul. Yazılmış ama anlaşılamamışsa `hata` — sessizce silinmesin.
+ */
+function takipci(fd: FormData): { deger: number | null; hata: boolean } {
+  const ham = metin(fd, 'ig_followers');
+  const deger = takipciCoz(ham);
+  return { deger, hata: ham !== '' && deger === null };
+}
+
+/**
+ * Instagram alanı boşsa ve "bağlantı" alanına Instagram adresi yazılmışsa
+ * kullanıcı adı oradan alınır — ekip adresi çoğu zaman oraya yapıştırıyor.
+ */
+function instagramAdi(fd: FormData): string | null {
+  return instagramCoz(metin(fd, 'instagram'))
+    ?? (/instagram\.com\//i.test(metin(fd, 'link')) ? instagramCoz(metin(fd, 'link')) : null);
 }
 
 /** Postgres tekil indeks ihlali. */
 function ciftKayitMi(hata: unknown): boolean {
   return typeof hata === 'object' && hata !== null && (hata as { code?: string }).code === '23505';
+}
+
+/**
+ * Arayıcı rolü (ör. yalnızca Minik Starlar'ı arayan dış ekip) diğer listeye
+ * dokunamaz. Sayfa zaten yönlendiriyor; burası server action'ların sınırı.
+ */
+function listeGorebilir(user: { role: string }, marka: Marka): boolean {
+  return !(user.role === 'caller' && marka.anahtar !== 'minikstarlar');
+}
+function listeYetkisi(user: { role: string }, marka: Marka) {
+  if (!listeGorebilir(user, marka)) throw new Error('Bu listeye erişimin yok.');
 }
 
 function tazele(marka: Marka) {
@@ -75,7 +135,7 @@ function tazele(marka: Marka) {
 async function listeErisimi(fd: FormData): Promise<Marka> {
   const marka = markaBul(metin(fd, 'marka'));
   if (!marka) throw new Error('Geçersiz liste.');
-  await assertUser();
+  listeYetkisi(await assertUser(), marka);
   return marka;
 }
 
@@ -85,6 +145,7 @@ type AdaySatir = {
   unreached_streak: number; call_count: number; last_note: string | null;
   last_call_at: string | null; last_call_by: number | null;
   has_website: UcDurum; worked_with_agency: UcDurum; social_active: UcDurum;
+  gaps: string[]; instagram: string | null;
 };
 
 /**
@@ -97,14 +158,14 @@ async function adayErisimi(id: number | null): Promise<{ marka: Marka; aday: Ada
   const rows = (await sql`
     SELECT id, brand, name, status, next_call_on, assigned_to, unreached_streak,
            call_count, last_note, last_call_at, last_call_by, has_website, worked_with_agency,
-           social_active
+           social_active, gaps, instagram
     FROM prospects WHERE id = ${id}
   `) as AdaySatir[];
   const aday = rows[0];
   if (!aday) throw new Error('Kayıt bulunamadı.');
   const marka = markaBul(aday.brand);
   if (!marka) throw new Error('Kaydın listesi tanınmıyor.');
-  await assertUser();
+  listeYetkisi(await assertUser(), marka);
   return { marka, aday };
 }
 
@@ -118,6 +179,17 @@ async function ayniNumara(brand: string, norm: string, hariçId?: number) {
       AND (${hariçId ?? null}::bigint IS NULL OR p.id <> ${hariçId ?? null}::bigint)
     LIMIT 1
   `) as Array<{ id: number; name: string; status: string; sorumlu: string | null }>;
+  return rows[0] ?? null;
+}
+
+/** Aynı Instagram hesabı bu listede var mı. */
+async function ayniInstagram(brand: string, ad: string, hariçId?: number) {
+  const rows = (await sql`
+    SELECT p.name FROM prospects p
+    WHERE p.brand = ${brand} AND lower(p.instagram) = ${ad.toLowerCase()}
+      AND (${hariçId ?? null}::bigint IS NULL OR p.id <> ${hariçId ?? null}::bigint)
+    LIMIT 1
+  `) as Array<{ name: string }>;
   return rows[0] ?? null;
 }
 
@@ -174,20 +246,34 @@ export async function adayEkle(_prev: string | null, formData: FormData): Promis
     }
   }
 
+  const instagram = instagramAdi(formData);
+  if (metin(formData, 'instagram') && !instagram) return INSTAGRAM_HATASI;
+  if (instagram) {
+    const ayni = await ayniInstagram(marka.anahtar, instagram);
+    if (ayni) return `Bu Instagram hesabı zaten listede: ${ayni.name}`;
+  }
+  const tk = takipci(formData);
+  if (tk.hata) return TAKIPCI_HATASI;
+  // Sektör ve eksikler yalnızca analizli listede (Ajans Flow).
+  const { gaps, webYok } = marka.analiz ? eksikIsaretleri(formData) : { gaps: [], webYok: false };
+  const sektor = marka.analiz && gecerliSektor(metin(formData, 'sector')) ? metin(formData, 'sector') : null;
+
   const not = bosNull(formData, 'note');
   let rows: Array<{ id: number }>;
   try {
     rows = (await sql`
       INSERT INTO prospects
         (brand, name, contact_person, phone_raw, phone_norm, phone_kind, city, source, link,
-         has_website, worked_with_agency, social_active, assigned_to, last_note, created_by)
+         has_website, worked_with_agency, social_active, assigned_to, last_note, created_by,
+         instagram, ig_followers, sector, gaps)
       VALUES (${marka.anahtar}, ${ad}, ${bosNull(formData, 'contact_person')},
               ${hamTelefon}, ${tel.anahtar}, ${tel.tur},
               ${bosNull(formData, 'city')}, ${bosNull(formData, 'source')}, ${bosNull(formData, 'link')},
-              ${ucDurumu(formData, 'has_website', 'bilinmiyor')},
+              ${webYok ? 'yok' : ucDurumu(formData, 'has_website', 'bilinmiyor')},
               ${ucDurumu(formData, 'worked_with_agency', 'bilinmiyor')},
               ${ucDurumu(formData, 'social_active', 'bilinmiyor')},
-              ${sayi(formData, 'assigned_to')}, ${not}, ${user.id})
+              ${sayi(formData, 'assigned_to')}, ${not}, ${user.id},
+              ${instagram}, ${tk.deger}, ${sektor}, ${gaps}::text[])
       RETURNING id
     `) as Array<{ id: number }>;
   } catch (hata) {
@@ -206,9 +292,10 @@ export async function adayEkle(_prev: string | null, formData: FormData): Promis
   const uyarilar: string[] = [];
   if (!tel.gecerli && hamTelefon) uyarilar.push('Numara anlaşılamadı, kontrol et.');
   if (tel.anahtar) {
-    // İki liste de herkese açık olduğu için diğer listedeki kaydın adı
-    // gösterilebilir. Mevcut MÜŞTERİ adı hâlâ yalnızca yöneticiye görünür.
-    const d = await digerListedeVar(marka, tel.anahtar, true);
+    // Diğer listedeki kaydın adı yalnızca o listeye erişebilene gösterilir
+    // (arayıcı rolü Ajans Flow listesini göremez). Mevcut MÜŞTERİ adı
+    // yalnızca yöneticiye görünür.
+    const d = await digerListedeVar(marka, tel.anahtar, listeGorebilir(user, digerMarka(marka.anahtar)));
     if (d) uyarilar.push(d);
     const m = await mevcutMusteriUyarisi(tel.anahtar, user.role === 'admin');
     if (m) uyarilar.push(m);
@@ -235,6 +322,29 @@ export async function adayGuncelle(_prev: string | null, formData: FormData): Pr
     const mevcut = await ayniNumara(marka.anahtar, tel.anahtar, aday.id);
     if (mevcut) return `Bu numara listede başka bir kayıtta: ${mevcut.name}`;
   }
+  const hamInstagram = metin(formData, 'instagram');
+  let instagram = instagramAdi(formData);
+  if (hamInstagram && !instagram) return INSTAGRAM_HATASI;
+  // Yalnızca kullanıcı adı değiştiyse tekrar kontrolü: içe aktarmayla
+  // gelmiş eski bir tekrar, adayın diğer bilgilerini kaydetmeyi engellemesin.
+  if (instagram && instagram !== aday.instagram) {
+    const ayni = await ayniInstagram(marka.anahtar, instagram, aday.id);
+    if (ayni) {
+      if (hamInstagram) return `Bu Instagram hesabı listede başka bir kayıtta: ${ayni.name}`;
+      instagram = aday.instagram; // bağlantı alanından çıkarılmıştı: kendiliğinden doldurma
+    }
+  }
+  const tk = takipci(formData);
+  if (tk.hata) return TAKIPCI_HATASI;
+  // Analiz alanları yalnızca formda varsa yazılır: Minik Starlar formu
+  // (ve eski sekmede açık kalmış form) eksik listesini boşaltmasın.
+  const analizFormu = marka.analiz && formData.has('analiz_formu');
+  const { ekle, cikar } = analizFormu ? eksikFarki(formData, 'eksik_once') : { ekle: [], cikar: [] };
+  // Instagram alanı olmayan (eski) form kayıttaki kullanıcı adını silmesin.
+  const instagramVar = formData.has('instagram') || instagram !== null;
+  const sektor = analizFormu
+    ? (gecerliSektor(metin(formData, 'sector')) ? metin(formData, 'sector') : null)
+    : undefined;
 
   try {
     await sql`
@@ -243,6 +353,15 @@ export async function adayGuncelle(_prev: string | null, formData: FormData): Pr
         phone_raw = ${hamTelefon}, phone_norm = ${tel.anahtar}, phone_kind = ${tel.tur},
         city = ${bosNull(formData, 'city')}, source = ${bosNull(formData, 'source')},
         link = ${bosNull(formData, 'link')},
+        instagram = CASE WHEN ${instagramVar}::boolean THEN ${instagram}::text ELSE instagram END,
+        ig_followers = CASE WHEN ${formData.has('ig_followers')}::boolean
+                            THEN ${tk.deger}::int ELSE ig_followers END,
+        sector = CASE WHEN ${analizFormu}::boolean THEN ${sektor ?? null}::text ELSE sector END,
+        gaps = ARRAY(
+          SELECT g FROM unnest(gaps || ${ekle}::text[]) WITH ORDINALITY AS t(g, sira)
+          WHERE g IS NOT NULL AND NOT (g = ANY(${cikar}::text[]))
+          GROUP BY g ORDER BY min(sira)
+        ),
         has_website = ${ucDurumu(formData, 'has_website', aday.has_website)},
         worked_with_agency = ${ucDurumu(formData, 'worked_with_agency', aday.worked_with_agency)},
         social_active = ${ucDurumu(formData, 'social_active', aday.social_active)},
@@ -333,6 +452,43 @@ export async function alanGuncelle(formData: FormData) {
               ${`${EK_ALANLAR[alan].baslik}: ${EK_ALANLAR[alan].etiket[deger].uzun}`},
               ${JSON.stringify(prev)}::jsonb)
     `;
+  } else if (alan === 'sektor') {
+    if (!marka.analiz) throw new Error('Bu alan bu listede kullanılmıyor.');
+    const sektor = deger === '' ? null : deger;
+    if (sektor !== null && !gecerliSektor(sektor)) throw new Error('Geçersiz sektör.');
+    await sql`UPDATE prospects SET sector = ${sektor}, updated_at = NOW() WHERE id = ${aday.id}`;
+    await sql`
+      INSERT INTO prospect_events (prospect_id, brand, user_id, kind, note)
+      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'durum',
+              ${`Sektör: ${sektor ? SEKTOR_HARITA[sektor].ad : 'kaldırıldı'}`})
+    `;
+  } else if (alan === 'eksik') {
+    // Tek eksiği açar/kapatır. Dizi istemcinin gördüğüne göre değil, o
+    // anki kayda göre değişir: iki çipe art arda basılınca biri kaybolmasın.
+    const eksik = eksikBul(deger);
+    if (!eksik || !marka.analiz) throw new Error('Geçersiz eksik.');
+    const acik = metin(formData, 'acik') === '1';
+    if (eksik.sanal === 'web') {
+      // "Web sitesi yok" = has_website 'yok'. Kaldırılınca "bilinmiyor"a
+      // döner; "var" ise zaten Web sitesi sorusundan işaretlenir.
+      const yeni = acik ? 'yok' : (aday.has_website === 'yok' ? 'bilinmiyor' : aday.has_website);
+      await sql`UPDATE prospects SET has_website = ${yeni}, updated_at = NOW() WHERE id = ${aday.id}`;
+    } else {
+      await sql`
+        UPDATE prospects SET
+          gaps = CASE WHEN ${acik}::boolean
+                      THEN (CASE WHEN ${eksik.anahtar} = ANY(gaps) THEN gaps ELSE array_append(gaps, ${eksik.anahtar}) END)
+                      ELSE array_remove(gaps, ${eksik.anahtar}) END,
+          updated_at = NOW()
+        WHERE id = ${aday.id}
+      `;
+    }
+    await sql`
+      INSERT INTO prospect_events (prospect_id, brand, user_id, kind, note, prev)
+      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'durum',
+              ${`${acik ? 'Eksik işaretlendi' : 'Eksik kaldırıldı'}: ${eksik.ad}`},
+              ${JSON.stringify(prev)}::jsonb)
+    `;
   } else {
     throw new Error('Geçersiz alan.');
   }
@@ -385,7 +541,8 @@ export async function sonucKaydet(formData: FormData) {
   const durum = metin(formData, 'durum');
   if (!gecerliDurum(durum) || durum === 'aranmadi') throw new Error('Geçersiz sonuç.');
 
-  const kanal = metin(formData, 'kanal') === 'whatsapp' ? 'whatsapp' : 'telefon';
+  const kanalHam = metin(formData, 'kanal');
+  const kanal = kanalHam === 'whatsapp' || kanalHam === 'instagram' ? kanalHam : 'telefon';
   const not = bosNull(formData, 'note');
   const tarih = tarihSecimi(metin(formData, 'tarih_secim') || 'otomatik',
     metin(formData, 'tarih'), durum, aday.unreached_streak);
@@ -393,6 +550,10 @@ export async function sonucKaydet(formData: FormData) {
   const web = gecerliUcDurum(metin(formData, 'web')) ? metin(formData, 'web') : null;
   const ajans = gecerliUcDurum(metin(formData, 'ajans')) ? metin(formData, 'ajans') : null;
   const sosyal = gecerliUcDurum(metin(formData, 'sosyal')) ? metin(formData, 'sosyal') : null;
+  // Görüşmede öğrenilen eksikler: yalnızca sonuç ekranında değiştirilenler
+  // (eklenen / kaldırılan) gelir; ekran açıkken tablodan yapılan işaret ezilmez.
+  const ekle = marka.analiz ? [...new Set(formData.getAll('eksik_ekle').map(String).filter(saklanirEksik))] : [];
+  const cikar = marka.analiz ? [...new Set(formData.getAll('eksik_cikar').map(String).filter(saklanirEksik))] : [];
 
   const prev = onceki(aday);
 
@@ -417,6 +578,11 @@ export async function sonucKaydet(formData: FormData) {
         has_website = COALESCE(${web}, has_website),
         worked_with_agency = COALESCE(${ajans}, worked_with_agency),
         social_active = COALESCE(${sosyal}, social_active),
+        gaps = ARRAY(
+          SELECT g FROM unnest(gaps || ${ekle}::text[]) WITH ORDINALITY AS t(g, sira)
+          WHERE g IS NOT NULL AND NOT (g = ANY(${cikar}::text[]))
+          GROUP BY g ORDER BY min(sira)
+        ),
         updated_at = NOW()
       WHERE id = ${aday.id}
       RETURNING name
@@ -447,7 +613,7 @@ export async function geriAl(formData: FormData) {
   if (!sahip[0]) throw new Error('Kayıt bulunamadı.');
   const marka = markaBul(sahip[0].brand);
   if (!marka) throw new Error('Liste tanınmıyor.');
-  await assertUser();
+  listeYetkisi(user, marka);
 
   await sql`
     WITH hedef AS (
@@ -481,6 +647,10 @@ export async function geriAl(formData: FormData) {
         has_website = COALESCE(h.prev->>'has_website', p.has_website),
         worked_with_agency = COALESCE(h.prev->>'worked_with_agency', p.worked_with_agency),
         social_active = COALESCE(h.prev->>'social_active', p.social_active),
+        -- Eski olaylarda eksik listesi yok: o zaman olduğu gibi kalır.
+        gaps = CASE WHEN h.prev ? 'gaps'
+                    THEN ARRAY(SELECT jsonb_array_elements_text(h.prev->'gaps'))
+                    ELSE p.gaps END,
         updated_at = NOW()
       FROM hedef h WHERE p.id = h.prospect_id
       RETURNING p.id
@@ -556,9 +726,16 @@ async function aktarimiHazirla(marka: Marka, formData: FormData) {
   const kaynak = bosNull(formData, 'kaynak');
 
   // Bu listede ve diğer listede var olan numaralar
-  const mevcut = (await sql`
-    SELECT phone_norm, brand FROM prospects WHERE phone_norm IS NOT NULL
-  `) as Array<{ phone_norm: string; brand: string }>;
+  const [mevcut, mevcutIg] = await Promise.all([
+    sql`SELECT phone_norm, brand FROM prospects WHERE phone_norm IS NOT NULL` as
+      Promise<Array<{ phone_norm: string; brand: string }>>,
+    sql`SELECT lower(instagram) AS ig FROM prospects WHERE brand = ${marka.anahtar} AND instagram IS NOT NULL` as
+      Promise<Array<{ ig: string }>>,
+  ]);
+  // Aynı Instagram hesabı listede (ya da yapıştırmada) zaten varsa kullanıcı
+  // adı ikinci kayda yazılmaz, adres "bağlantı" alanında kalır — elle
+  // eklemedeki tekrar kuralıyla aynı; sonra düzenleme de engellenmez.
+  const gorulenIg = new Set(mevcutIg.map((m) => m.ig));
   const buListe = new Set(mevcut.filter((m) => m.brand === marka.anahtar).map((m) => m.phone_norm));
   const digerListe = new Set(mevcut.filter((m) => m.brand !== marka.anahtar).map((m) => m.phone_norm));
 
@@ -570,7 +747,7 @@ async function aktarimiHazirla(marka: Marka, formData: FormData) {
   const eklenecekler: Array<{
     ad: string; yetkili: string | null; hamTel: string | null; norm: string | null;
     tur: string; sehir: string | null; kaynak: string | null; link: string | null; not: string | null;
-    durumEtiket: string;
+    instagram: string | null; durumEtiket: string;
   }> = [];
 
   for (const k of kayitlar) {
@@ -601,7 +778,15 @@ async function aktarimiHazirla(marka: Marka, formData: FormData) {
       hamTel, norm: tel.anahtar, tur: tel.tur,
       sehir: (k.city ?? '').trim() || null,
       kaynak: (k.source ?? '').trim() || kaynak,
-      link: (k.link ?? '').trim() || null,
+      // Bağlantı sütunundaki Instagram adresi / @adı kendi alanına geçer
+      // (Instagram'dan mesaj düğmesi onu kullanıyor).
+      ...(() => {
+        const hamLink = (k.link ?? '').trim() || null;
+        const ig = hamLink && /instagram\.com\/|^@/i.test(hamLink) ? instagramCoz(hamLink) : null;
+        if (!ig || gorulenIg.has(ig)) return { link: hamLink, instagram: null };
+        gorulenIg.add(ig);
+        return { link: null, instagram: ig };
+      })(),
       not: (k.note ?? '').trim() || null,
       durumEtiket: etiket,
     });
@@ -664,9 +849,9 @@ export async function iceAktar(
   const eklenen = (await sql`
     INSERT INTO prospects
       (brand, name, contact_person, phone_raw, phone_norm, phone_kind, city, source, link,
-       last_note, assigned_to, import_batch, created_by)
+       last_note, assigned_to, import_batch, created_by, instagram)
     SELECT ${marka.anahtar}, x.ad, x.yetkili, x.ham_tel, x.norm, x.tur, x.sehir, x.kaynak, x.link,
-           x.notu, ${sorumlu}, ${parti}, ${user.id}
+           x.notu, ${sorumlu}, ${parti}, ${user.id}, x.instagram
     FROM unnest(
       ${sirali.map((e) => e.ad)}::text[],
       ${sirali.map((e) => e.yetkili)}::text[],
@@ -676,8 +861,9 @@ export async function iceAktar(
       ${sirali.map((e) => e.sehir)}::text[],
       ${sirali.map((e) => e.kaynak)}::text[],
       ${sirali.map((e) => e.link)}::text[],
-      ${sirali.map((e) => e.not)}::text[]
-    ) AS x(ad, yetkili, ham_tel, norm, tur, sehir, kaynak, link, notu)
+      ${sirali.map((e) => e.not)}::text[],
+      ${sirali.map((e) => e.instagram)}::text[]
+    ) AS x(ad, yetkili, ham_tel, norm, tur, sehir, kaynak, link, notu, instagram)
     ON CONFLICT (brand, phone_norm) WHERE phone_norm IS NOT NULL DO NOTHING
     RETURNING id
   `) as Array<{ id: string }>;
@@ -763,6 +949,7 @@ async function notOlayi(olayId: number | null, user: { id: number; role: string 
   }
   const marka = markaBul(o.brand);
   if (!marka) throw new Error('Liste tanınmıyor.');
+  listeYetkisi(user, marka);
   return { ...o, marka };
 }
 
@@ -1012,8 +1199,9 @@ export async function mesajKaydet(formData: FormData) {
   const { marka, aday } = await adayErisimi(id);
   const user = await assertUser();
 
+  const kanal = metin(formData, 'kanal') === 'instagram' ? 'instagram' : 'whatsapp';
   const sablonId = sayi(formData, 'sablon_id');
-  let baslik = 'WhatsApp mesajı';
+  let baslik = kanal === 'instagram' ? 'Instagram mesajı' : 'WhatsApp mesajı';
   let hedefDurum: Durum | null = null;
   if (sablonId !== null) {
     const rows = (await sql`
@@ -1038,8 +1226,9 @@ export async function mesajKaydet(formData: FormData) {
     WITH olay AS (
       INSERT INTO prospect_events
         (prospect_id, brand, user_id, kind, channel, status_before, status_after, next_call_on, note, prev)
-      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'mesaj', 'whatsapp',
-              ${aday.status}, ${yeniDurum}, ${yeniTarih}, ${`💬 ${baslik}`},
+      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'mesaj', ${kanal},
+              ${aday.status}, ${yeniDurum}, ${yeniTarih},
+              ${kanal === 'instagram' ? `📸 Instagram · ${baslik}` : `💬 ${baslik}`},
               ${JSON.stringify(onceki(aday))}::jsonb)
       RETURNING id
     )
@@ -1104,4 +1293,32 @@ export async function sablonSil(formData: FormData) {
   `;
   revalidatePath(`/musteri-bulma/${marka.yol}`);
   revalidatePath(`/musteri-bulma/${marka.yol}/sablonlar`);
+}
+
+/* ======================================================= tanıtım sitesi */
+
+/**
+ * Tanıtım sitesinde gösterilecek WhatsApp numarası (yalnızca yönetici).
+ * Boş bırakılırsa silinir ve sitede yalnızca Instagram DM düğmesi kalır.
+ */
+export async function tanitimAyarKaydet(_prev: string | null, formData: FormData): Promise<string | null> {
+  const admin = await assertAdmin();
+  const ham = metin(formData, 'whatsapp');
+  if (!ham) {
+    await sql`DELETE FROM app_config WHERE anahtar = 'tanitim_whatsapp'`;
+  } else {
+    const t = telefonCoz(ham);
+    if (!t.whatsapp) return 'WhatsApp için bir cep numarası gir (ör. 0532 123 45 67).';
+    await sql`
+      INSERT INTO app_config (anahtar, deger) VALUES ('tanitim_whatsapp', ${t.gorunum})
+      ON CONFLICT (anahtar) DO UPDATE SET deger = EXCLUDED.deger
+    `;
+  }
+  await logActivity({
+    userId: admin.id, action: 'güncelle', entity: 'tanıtım sitesi',
+    detail: ham ? 'WhatsApp numarası güncellendi' : 'WhatsApp numarası kaldırıldı',
+  });
+  revalidatePath('/tanitim');
+  revalidatePath('/musteri-bulma/ajansflow/sablonlar');
+  return `ok|${Date.now()}|`;
 }
