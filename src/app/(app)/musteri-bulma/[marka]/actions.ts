@@ -5,7 +5,8 @@ import { sql } from '@/lib/db';
 import { assertUser, assertAdmin, logActivity } from '@/lib/auth';
 import {
   markaBul, digerMarka, DURUM_HARITA, gecerliDurum, gecerliUcDurum,
-  sonrakiAramaTarihi, gunSonra, EK_ALANLAR, type Marka, type Durum, type UcDurum,
+  sonrakiAramaTarihi, gunSonra, bugun, elleGecisTarihi, EK_ALANLAR,
+  type Marka, type Durum, type UcDurum,
 } from '@/lib/adaylar';
 import { telefonCoz } from '@/lib/telefon';
 import {
@@ -20,11 +21,17 @@ function bosNull(fd: FormData, key: string): string | null {
   const v = metin(fd, key);
   return v === '' ? null : v;
 }
-/** YYYY-AA-GG ve gerçekten var olan bir takvim günü mü? */
+/**
+ * YYYY-AA-GG, gerçekten var olan bir gün ve makul bir aralıkta mı (2020 —
+ * bugünden 3 yıl sonrası). Tarih kutusuna elle yazarken tarayıcı ara
+ * değerleri (0002-09-21, 0020-09-21…) de gönderiyor; bunlar kaydedilmesin.
+ */
 function tarihGecerli(v: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
   const d = new Date(`${v}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) return false;
+  const yil = Number(v.slice(0, 4));
+  return yil >= 2020 && yil <= new Date().getUTCFullYear() + 3;
 }
 
 function sayi(fd: FormData, key: string): number | null {
@@ -32,6 +39,23 @@ function sayi(fd: FormData, key: string): number | null {
   if (!v) return null;
   const n = parseInt(v, 10);
   return Number.isInteger(n) ? n : null;
+}
+
+/** Formdaki üç durumlu alan; geçersiz ya da hiç yoksa `varsayilan`. */
+function ucDurumu(fd: FormData, key: string, varsayilan: UcDurum): UcDurum {
+  const v = metin(fd, key);
+  return gecerliUcDurum(v) ? v : varsayilan;
+}
+
+/** Geri alma için kaydın o anki özeti. Yeni alan eklenince tek yerden. */
+function onceki(a: AdaySatir) {
+  return {
+    status: a.status, next_call_on: a.next_call_on, assigned_to: a.assigned_to,
+    unreached_streak: a.unreached_streak, call_count: a.call_count,
+    last_note: a.last_note, last_call_at: a.last_call_at, last_call_by: a.last_call_by,
+    has_website: a.has_website, worked_with_agency: a.worked_with_agency,
+    social_active: a.social_active,
+  };
 }
 
 /** Postgres tekil indeks ihlali. */
@@ -60,7 +84,7 @@ type AdaySatir = {
   next_call_on: string | null; assigned_to: number | null;
   unreached_streak: number; call_count: number; last_note: string | null;
   last_call_at: string | null; last_call_by: number | null;
-  has_website: UcDurum; worked_with_agency: UcDurum;
+  has_website: UcDurum; worked_with_agency: UcDurum; social_active: UcDurum;
 };
 
 /**
@@ -72,7 +96,8 @@ async function adayErisimi(id: number | null): Promise<{ marka: Marka; aday: Ada
   if (id === null) throw new Error('Geçersiz kayıt.');
   const rows = (await sql`
     SELECT id, brand, name, status, next_call_on, assigned_to, unreached_streak,
-           call_count, last_note, last_call_at, last_call_by, has_website, worked_with_agency
+           call_count, last_note, last_call_at, last_call_by, has_website, worked_with_agency,
+           social_active
     FROM prospects WHERE id = ${id}
   `) as AdaySatir[];
   const aday = rows[0];
@@ -155,12 +180,13 @@ export async function adayEkle(_prev: string | null, formData: FormData): Promis
     rows = (await sql`
       INSERT INTO prospects
         (brand, name, contact_person, phone_raw, phone_norm, phone_kind, city, source, link,
-         has_website, worked_with_agency, assigned_to, last_note, created_by)
+         has_website, worked_with_agency, social_active, assigned_to, last_note, created_by)
       VALUES (${marka.anahtar}, ${ad}, ${bosNull(formData, 'contact_person')},
               ${hamTelefon}, ${tel.anahtar}, ${tel.tur},
               ${bosNull(formData, 'city')}, ${bosNull(formData, 'source')}, ${bosNull(formData, 'link')},
-              ${gecerliUcDurum(metin(formData, 'has_website')) ? metin(formData, 'has_website') : 'bilinmiyor'},
-              ${gecerliUcDurum(metin(formData, 'worked_with_agency')) ? metin(formData, 'worked_with_agency') : 'bilinmiyor'},
+              ${ucDurumu(formData, 'has_website', 'bilinmiyor')},
+              ${ucDurumu(formData, 'worked_with_agency', 'bilinmiyor')},
+              ${ucDurumu(formData, 'social_active', 'bilinmiyor')},
               ${sayi(formData, 'assigned_to')}, ${not}, ${user.id})
       RETURNING id
     `) as Array<{ id: number }>;
@@ -217,8 +243,9 @@ export async function adayGuncelle(_prev: string | null, formData: FormData): Pr
         phone_raw = ${hamTelefon}, phone_norm = ${tel.anahtar}, phone_kind = ${tel.tur},
         city = ${bosNull(formData, 'city')}, source = ${bosNull(formData, 'source')},
         link = ${bosNull(formData, 'link')},
-        has_website = ${gecerliUcDurum(metin(formData, 'has_website')) ? metin(formData, 'has_website') : aday.has_website},
-        worked_with_agency = ${gecerliUcDurum(metin(formData, 'worked_with_agency')) ? metin(formData, 'worked_with_agency') : aday.worked_with_agency},
+        has_website = ${ucDurumu(formData, 'has_website', aday.has_website)},
+        worked_with_agency = ${ucDurumu(formData, 'worked_with_agency', aday.worked_with_agency)},
+        social_active = ${ucDurumu(formData, 'social_active', aday.social_active)},
         updated_at = NOW()
       WHERE id = ${aday.id}
     `;
@@ -227,6 +254,13 @@ export async function adayGuncelle(_prev: string | null, formData: FormData): Pr
     throw hata;
   }
 
+  // Geçmişe iz: bu olay geri alınamaz (prev yok — ad/telefon anlık görüntüde
+  // olmadığı için yarım geri alma olurdu), ama en son olay olduğu için daha
+  // eski bir olayın "Geri al"ı bu düzenlemeyi sessizce ezemez.
+  await sql`
+    INSERT INTO prospect_events (prospect_id, brand, user_id, kind, note)
+    VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'durum', 'Bilgiler güncellendi')
+  `;
   await logActivity({ userId: user.id, action: 'güncelle', entity: 'aday', entityId: aday.id, detail: ad });
   tazele(marka);
   return `ok|${aday.id}|`;
@@ -244,18 +278,13 @@ export async function alanGuncelle(formData: FormData) {
 
   const alan = metin(formData, 'alan');
   const deger = metin(formData, 'deger');
-  const prev = {
-    status: aday.status, next_call_on: aday.next_call_on, assigned_to: aday.assigned_to,
-    unreached_streak: aday.unreached_streak, call_count: aday.call_count,
-    last_note: aday.last_note, last_call_at: aday.last_call_at, last_call_by: aday.last_call_by,
-    has_website: aday.has_website, worked_with_agency: aday.worked_with_agency,
-  };
+  const prev = onceki(aday);
 
   if (alan === 'durum') {
     if (!gecerliDurum(deger)) throw new Error('Geçersiz durum.');
-    const tanim = DURUM_HARITA[deger];
-    // Kapanan durumlarda tekrar arama tarihi anlamsız, temizlenir.
-    const tarih = tanim.acik ? aday.next_call_on : null;
+    // Kapalı durumda tarih temizlenir, "tekrar aranacak" bugün, diğer açık
+    // durumlarda tarih yoksa varsayılanı — tarihsiz aday hiçbir kuyruğa girmiyordu.
+    const tarih = elleGecisTarihi(deger, aday.next_call_on);
     await sql`
       UPDATE prospects SET status = ${deger}, next_call_on = ${tarih}, updated_at = NOW()
       WHERE id = ${aday.id}
@@ -285,14 +314,16 @@ export async function alanGuncelle(formData: FormData) {
       INSERT INTO prospect_events (prospect_id, brand, user_id, kind, prev)
       VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'durum', ${JSON.stringify(prev)}::jsonb)
     `;
-  } else if (alan === 'web' || alan === 'ajans') {
+  } else if (alan === 'web' || alan === 'ajans' || alan === 'sosyal') {
     if (!gecerliUcDurum(deger)) throw new Error('Geçersiz değer.');
     if (!marka.ekAlanlar.includes(alan)) throw new Error('Bu alan bu listede kullanılmıyor.');
     const sutun = EK_ALANLAR[alan].sutun;
     if (sutun === 'has_website') {
       await sql`UPDATE prospects SET has_website = ${deger}, updated_at = NOW() WHERE id = ${aday.id}`;
-    } else {
+    } else if (sutun === 'worked_with_agency') {
       await sql`UPDATE prospects SET worked_with_agency = ${deger}, updated_at = NOW() WHERE id = ${aday.id}`;
+    } else {
+      await sql`UPDATE prospects SET social_active = ${deger}, updated_at = NOW() WHERE id = ${aday.id}`;
     }
     // Olay kaydı şart: yazılmazsa bu değişiklik geçmişte görünmez ve daha
     // önceki olay "en son olay" kalıp "Geri al" bunu sessizce geri alır.
@@ -361,13 +392,9 @@ export async function sonucKaydet(formData: FormData) {
 
   const web = gecerliUcDurum(metin(formData, 'web')) ? metin(formData, 'web') : null;
   const ajans = gecerliUcDurum(metin(formData, 'ajans')) ? metin(formData, 'ajans') : null;
+  const sosyal = gecerliUcDurum(metin(formData, 'sosyal')) ? metin(formData, 'sosyal') : null;
 
-  const prev = {
-    status: aday.status, next_call_on: aday.next_call_on, assigned_to: aday.assigned_to,
-    unreached_streak: aday.unreached_streak, call_count: aday.call_count,
-    last_note: aday.last_note, last_call_at: aday.last_call_at, last_call_by: aday.last_call_by,
-    has_website: aday.has_website, worked_with_agency: aday.worked_with_agency,
-  };
+  const prev = onceki(aday);
 
   const rows = (await sql`
     WITH olay AS (
@@ -389,6 +416,7 @@ export async function sonucKaydet(formData: FormData) {
         assigned_to = COALESCE(assigned_to, ${user.id}),
         has_website = COALESCE(${web}, has_website),
         worked_with_agency = COALESCE(${ajans}, worked_with_agency),
+        social_active = COALESCE(${sosyal}, social_active),
         updated_at = NOW()
       WHERE id = ${aday.id}
       RETURNING name
@@ -423,7 +451,7 @@ export async function geriAl(formData: FormData) {
 
   await sql`
     WITH hedef AS (
-      SELECT e.id, e.prospect_id, e.prev
+      SELECT e.id, e.prospect_id, e.prev, e.kind
       FROM prospect_events e
       WHERE e.id = ${olayId}
         AND e.user_id = ${user.id}
@@ -440,11 +468,19 @@ export async function geriAl(formData: FormData) {
         assigned_to = NULLIF(h.prev->>'assigned_to', '')::int,
         unreached_streak = COALESCE(NULLIF(h.prev->>'unreached_streak', '')::int, 0),
         call_count = COALESCE(NULLIF(h.prev->>'call_count', '')::int, 0),
-        last_note = h.prev->>'last_note',
+        -- Son not anlık görüntüden değil kalan olaylardan: arada düzenlenen
+        -- ya da silinen not geri gelmesin. Olay kalmadıysa (Excel notu) eski değer.
+        last_note = COALESCE((
+          SELECT e2.note FROM prospect_events e2
+          WHERE e2.prospect_id = p.id AND e2.id <> h.id AND e2.note IS NOT NULL
+            AND e2.kind IN ('not', 'arama')
+          ORDER BY e2.id DESC LIMIT 1
+        ), CASE WHEN h.kind = 'arama' THEN h.prev->>'last_note' ELSE p.last_note END),
         last_call_at = NULLIF(h.prev->>'last_call_at', '')::timestamptz,
         last_call_by = NULLIF(h.prev->>'last_call_by', '')::int,
         has_website = COALESCE(h.prev->>'has_website', p.has_website),
         worked_with_agency = COALESCE(h.prev->>'worked_with_agency', p.worked_with_agency),
+        social_active = COALESCE(h.prev->>'social_active', p.social_active),
         updated_at = NOW()
       FROM hedef h WHERE p.id = h.prospect_id
       RETURNING p.id
@@ -646,6 +682,17 @@ export async function iceAktar(
     RETURNING id
   `) as Array<{ id: string }>;
 
+  // Notu olan satırlar için not olayı: last_note her zaman olaylardan
+  // türetiliyor, olaysız not ilk düzenlemede kaybolabilirdi.
+  if (eklenen.length > 0) {
+    await sql`
+      INSERT INTO prospect_events (prospect_id, brand, user_id, kind, note)
+      SELECT p.id, p.brand, ${user.id}, 'not', p.last_note
+      FROM prospects p
+      WHERE p.id = ANY(${eklenen.map((e) => Number(e.id))}::bigint[]) AND p.last_note IS NOT NULL
+    `;
+  }
+
   await logActivity({
     userId: user.id, action: 'ekle', entity: 'aday listesi',
     detail: `${marka.ad} — ${eklenen.length} aday içe aktarıldı`,
@@ -677,4 +724,384 @@ export async function partiGeriAl(formData: FormData) {
     detail: `${marka.ad} — içe aktarma geri alındı (${silinen.length} kayıt)`,
   });
   tazele(marka);
+}
+
+/* ================================================================ notlar
+ * last_note her zaman "insan yazısı notu olan en son olay"ın notudur (not
+ * ya da arama olayı). Mesaj şablonu adı ve alan değişikliği etiketleri
+ * sistem notudur, ekibin yazdığı notu ezmez. Not düzenlenince ya da
+ * silinince buradan yeniden hesaplanır — tablo ile geçmiş ayrışmaz.
+ */
+const INSAN_NOTU = ['not', 'arama'];
+
+async function sonNotuYenile(adayId: number) {
+  await sql`
+    UPDATE prospects p SET
+      last_note = (
+        SELECT e.note FROM prospect_events e
+        WHERE e.prospect_id = p.id AND e.note IS NOT NULL
+          AND e.kind = ANY(${INSAN_NOTU}::text[])
+        ORDER BY e.id DESC LIMIT 1
+      ),
+      updated_at = NOW()
+    WHERE p.id = ${adayId}
+  `;
+}
+
+/** Olayın notuna dokunma yetkisi: yazan kişi ya da yönetici. */
+async function notOlayi(olayId: number | null, user: { id: number; role: string }) {
+  if (olayId === null) throw new Error('Geçersiz not.');
+  const rows = (await sql`
+    SELECT e.id::int AS id, e.prospect_id::int AS prospect_id, e.kind, e.user_id, p.brand
+    FROM prospect_events e JOIN prospects p ON p.id = e.prospect_id
+    WHERE e.id = ${olayId}
+  `) as Array<{ id: number; prospect_id: number; kind: string; user_id: number | null; brand: string }>;
+  const o = rows[0];
+  if (!o) throw new Error('Not bulunamadı.');
+  if (user.role !== 'admin' && o.user_id !== user.id) {
+    throw new Error('Başkasının notunu yalnızca yönetici düzenleyebilir.');
+  }
+  const marka = markaBul(o.brand);
+  if (!marka) throw new Error('Liste tanınmıyor.');
+  return { ...o, marka };
+}
+
+/**
+ * Tablodaki "Son Not" hücresinden düzenleme. Notu taşıyan en son olay
+ * güncellenir; hiç olay yoksa (Excel'den gelen not) yeni not olayı açılır.
+ * Boş bırakılırsa not silinir.
+ */
+export async function sonNotDuzenle(formData: FormData) {
+  const id = sayi(formData, 'id');
+  const { marka, aday } = await adayErisimi(id);
+  const user = await assertUser();
+  const yeni = metin(formData, 'note').slice(0, 1000);
+
+  const son = (await sql`
+    SELECT id::int AS id, kind, user_id FROM prospect_events
+    WHERE prospect_id = ${aday.id} AND note IS NOT NULL
+      AND kind = ANY(${INSAN_NOTU}::text[])
+    ORDER BY id DESC LIMIT 1
+  `) as Array<{ id: number; kind: string; user_id: number | null }>;
+  const olay = son[0];
+
+  if (olay && user.role !== 'admin' && olay.user_id !== user.id) {
+    // Başkasının notunu ezmek yerine üstüne yeni not ekle.
+    if (yeni) {
+      await sql`
+        INSERT INTO prospect_events (prospect_id, brand, user_id, kind, note)
+        VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'not', ${yeni})
+      `;
+    }
+  } else if (olay) {
+    if (yeni) {
+      await sql`
+        UPDATE prospect_events SET note = ${yeni}, edited_at = NOW(), edited_by = ${user.id}
+        WHERE id = ${olay.id}
+      `;
+    } else if (olay.kind === 'not') {
+      await sql`DELETE FROM prospect_events WHERE id = ${olay.id}`;
+    } else {
+      await sql`UPDATE prospect_events SET note = NULL, edited_at = NOW(), edited_by = ${user.id} WHERE id = ${olay.id}`;
+    }
+  } else if (yeni) {
+    await sql`
+      INSERT INTO prospect_events (prospect_id, brand, user_id, kind, note)
+      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'not', ${yeni})
+    `;
+  } else {
+    await sql`UPDATE prospects SET last_note = NULL, updated_at = NOW() WHERE id = ${aday.id}`;
+    tazele(marka);
+    return;
+  }
+
+  await sonNotuYenile(aday.id);
+  tazele(marka);
+}
+
+/** Geçmişteki belirli bir notu düzenler (boşsa siler). */
+export async function notDuzenle(formData: FormData) {
+  const user = await assertUser();
+  const o = await notOlayi(sayi(formData, 'olay_id'), user);
+  const yeni = metin(formData, 'note').slice(0, 1000);
+
+  if (!yeni) {
+    if (o.kind === 'not') await sql`DELETE FROM prospect_events WHERE id = ${o.id}`;
+    else await sql`UPDATE prospect_events SET note = NULL, edited_at = NOW(), edited_by = ${user.id} WHERE id = ${o.id}`;
+  } else {
+    await sql`
+      UPDATE prospect_events SET note = ${yeni}, edited_at = NOW(), edited_by = ${user.id}
+      WHERE id = ${o.id}
+    `;
+  }
+  await sonNotuYenile(o.prospect_id);
+  tazele(o.marka);
+}
+
+export async function notSil(formData: FormData) {
+  const user = await assertUser();
+  const o = await notOlayi(sayi(formData, 'olay_id'), user);
+  if (o.kind === 'not') await sql`DELETE FROM prospect_events WHERE id = ${o.id}`;
+  else await sql`UPDATE prospect_events SET note = NULL, edited_at = NOW(), edited_by = ${user.id} WHERE id = ${o.id}`;
+  await sonNotuYenile(o.prospect_id);
+  tazele(o.marka);
+}
+
+/* ======================================================= tekrar aranacak */
+
+/**
+ * Tek dokunuş: adayı yeniden arama kuyruğuna alır (bugün). Olumsuz ya da
+ * düşünüyor gibi bir durumdaki adayı "bir daha deneyelim" demek için.
+ * Arama sayılmaz; geri alınabilir.
+ */
+export async function tekrarAranacak(formData: FormData) {
+  const id = sayi(formData, 'id');
+  const { marka, aday } = await adayErisimi(id);
+  const user = await assertUser();
+  const tarih = bugun();
+  await sql`
+    WITH olay AS (
+      INSERT INTO prospect_events (prospect_id, brand, user_id, kind, status_before, status_after, next_call_on, prev)
+      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'durum', ${aday.status}, 'tekrar_aranacak',
+              ${tarih}, ${JSON.stringify(onceki(aday))}::jsonb)
+      RETURNING id
+    )
+    UPDATE prospects SET status = 'tekrar_aranacak', next_call_on = ${tarih}, updated_at = NOW()
+    WHERE id = ${aday.id}
+  `;
+  tazele(marka);
+}
+
+/* ========================================================== toplu işlem */
+
+const TOPLU_SINIR = 500;
+
+function kimlikler(fd: FormData): number[] {
+  return metin(fd, 'idler').split(',')
+    .map((x) => parseInt(x, 10))
+    .filter((n) => Number.isInteger(n) && n > 0)
+    .slice(0, TOPLU_SINIR);
+}
+
+/**
+ * Seçilen adaylara tek işlemde durum / sorumlu / tarih uygular. Tek SQL
+ * ifadesi: her aday için geçmişe olay (geri alma anlık görüntüsüyle)
+ * yazılır ve kayıt güncellenir. Kimlikler yalnızca bu listeye aitse
+ * işlenir — başka listeden kimlik gönderilirse sessizce atlanır.
+ */
+export async function topluGuncelle(formData: FormData) {
+  const marka = await listeErisimi(formData);
+  const user = await assertUser();
+  const idler = kimlikler(formData);
+  if (idler.length === 0) return;
+
+  const alan = metin(formData, 'alan');
+  const deger = metin(formData, 'deger');
+
+  let durum: string | null = null;
+  let acik = true;
+  let tekrar = false;
+  let sorumlu: number | null = null;
+  let sorumluVar = false;
+  let tarih: string | null = null;
+  let tarihVar = false;
+
+  let varsayilanTarih: string | null = null;
+  if (alan === 'durum') {
+    if (!gecerliDurum(deger)) throw new Error('Geçersiz durum.');
+    durum = deger;
+    acik = DURUM_HARITA[deger].acik;
+    tekrar = deger === 'tekrar_aranacak';
+    // Mevcut tarihi olmayan satırlar için (elleGecisTarihi ile aynı kural)
+    varsayilanTarih = elleGecisTarihi(deger, null);
+  } else if (alan === 'sorumlu') {
+    sorumluVar = true;
+    sorumlu = deger === '' ? null : parseInt(deger, 10);
+    if (sorumlu !== null) {
+      const ok = (await sql`SELECT 1 FROM users WHERE id = ${sorumlu} AND is_active`) as unknown[];
+      if (ok.length === 0) throw new Error('Kullanıcı bulunamadı.');
+    }
+  } else if (alan === 'tarih') {
+    tarihVar = true;
+    tarih = tarihGecerli(deger) ? deger : null;
+  } else {
+    throw new Error('Geçersiz toplu işlem.');
+  }
+
+  const b = bugun();
+  const sonuc = (await sql`
+    WITH hedef AS (
+      SELECT id, status, next_call_on, assigned_to, unreached_streak, call_count,
+             last_note, last_call_at, last_call_by, has_website, worked_with_agency, social_active
+      FROM prospects
+      WHERE id = ANY(${idler}::bigint[]) AND brand = ${marka.anahtar}
+    ),
+    yeni AS (
+      SELECT h.*,
+             COALESCE(${durum}::text, h.status) AS y_status,
+             CASE
+               WHEN ${tarihVar}::boolean THEN ${tarih}::date
+               WHEN ${durum}::text IS NULL THEN h.next_call_on
+               WHEN NOT ${acik}::boolean THEN NULL
+               WHEN ${tekrar}::boolean THEN ${b}::date
+               ELSE COALESCE(h.next_call_on, ${varsayilanTarih}::date)
+             END AS y_tarih,
+             CASE WHEN ${sorumluVar}::boolean THEN ${sorumlu}::int ELSE h.assigned_to END AS y_sorumlu
+      FROM hedef h
+    ),
+    olay AS (
+      INSERT INTO prospect_events
+        (prospect_id, brand, user_id, kind, status_before, status_after, next_call_on, prev)
+      SELECT y.id, ${marka.anahtar}, ${user.id}, 'durum', y.status, y.y_status, y.y_tarih,
+             jsonb_build_object(
+               'status', y.status, 'next_call_on', y.next_call_on, 'assigned_to', y.assigned_to,
+               'unreached_streak', y.unreached_streak, 'call_count', y.call_count,
+               'last_note', y.last_note, 'last_call_at', y.last_call_at, 'last_call_by', y.last_call_by,
+               'has_website', y.has_website, 'worked_with_agency', y.worked_with_agency,
+               'social_active', y.social_active)
+      FROM yeni y
+      RETURNING id
+    ),
+    guncel AS (
+      UPDATE prospects p SET
+        status = y.y_status, next_call_on = y.y_tarih, assigned_to = y.y_sorumlu, updated_at = NOW()
+      FROM yeni y WHERE p.id = y.id
+      RETURNING p.id
+    )
+    SELECT COUNT(*)::int AS n FROM guncel
+  `) as Array<{ n: number }>;
+
+  await logActivity({
+    userId: user.id, action: 'güncelle', entity: 'aday (toplu)',
+    detail: `${marka.ad} — ${sonuc[0]?.n ?? 0} aday: ${alan} → ${
+      alan === 'durum' ? DURUM_HARITA[deger]?.ad : deger || '—'}`,
+  });
+  tazele(marka);
+}
+
+/** Toplu kalıcı silme: yalnızca yönetici. */
+export async function topluSil(formData: FormData) {
+  const admin = await assertAdmin();
+  const marka = await listeErisimi(formData);
+  const idler = kimlikler(formData);
+  if (idler.length === 0) return;
+  const silinen = (await sql`
+    DELETE FROM prospects WHERE id = ANY(${idler}::bigint[]) AND brand = ${marka.anahtar}
+    RETURNING id
+  `) as unknown[];
+  await logActivity({
+    userId: admin.id, action: 'sil', entity: 'aday (toplu)',
+    detail: `${marka.ad} — ${silinen.length} aday silindi`,
+  });
+  tazele(marka);
+}
+
+/* ============================================================ WhatsApp */
+
+/** Mesaj gönderilince durumu ilerletilebilecek (henüz konuşulmamış) durumlar. */
+const MESAJLA_ILERLER: Durum[] = ['aranmadi', 'tekrar_aranacak', 'ulasilamadi'];
+
+/**
+ * WhatsApp şablonuyla mesaj açıldığında çağrılır. Mesajı WhatsApp gönderir
+ * — biz yalnızca kaydını tutuyoruz: geçmişe "mesaj" olayı, şablon bir durum
+ * belirtiyorsa ve aday henüz konuşulmamışsa durum ilerler (düşünüyor /
+ * olumlu gibi ileri bir durumu geri çekmez), sahipsiz aday gönderene geçer.
+ */
+export async function mesajKaydet(formData: FormData) {
+  const id = sayi(formData, 'id');
+  const { marka, aday } = await adayErisimi(id);
+  const user = await assertUser();
+
+  const sablonId = sayi(formData, 'sablon_id');
+  let baslik = 'WhatsApp mesajı';
+  let hedefDurum: Durum | null = null;
+  if (sablonId !== null) {
+    const rows = (await sql`
+      SELECT title, sets_status FROM prospect_templates
+      WHERE id = ${sablonId} AND brand = ${marka.anahtar}
+    `) as Array<{ title: string; sets_status: string | null }>;
+    if (rows[0]) {
+      baslik = rows[0].title;
+      hedefDurum = gecerliDurum(rows[0].sets_status) ? rows[0].sets_status : null;
+    }
+  }
+
+  const ilerlesin = hedefDurum !== null && MESAJLA_ILERLER.includes(aday.status);
+  const yeniDurum = ilerlesin ? hedefDurum! : aday.status;
+  // Durum ilerlemese de (hatırlatma, boş mesaj) açık adayda cevabı beklemek
+  // için tarih 2 gün ileri kayar; yoksa mesaj atılan aday "gecikti"de kalıyordu.
+  const yeniTarih = ilerlesin ? sonrakiAramaTarihi(yeniDurum, 0)
+    : DURUM_HARITA[aday.status]?.acik ? gunSonra(2)
+    : aday.next_call_on;
+
+  await sql`
+    WITH olay AS (
+      INSERT INTO prospect_events
+        (prospect_id, brand, user_id, kind, channel, status_before, status_after, next_call_on, note, prev)
+      VALUES (${aday.id}, ${marka.anahtar}, ${user.id}, 'mesaj', 'whatsapp',
+              ${aday.status}, ${yeniDurum}, ${yeniTarih}, ${`💬 ${baslik}`},
+              ${JSON.stringify(onceki(aday))}::jsonb)
+      RETURNING id
+    )
+    UPDATE prospects SET
+      status = ${yeniDurum}, next_call_on = ${yeniTarih},
+      assigned_to = COALESCE(assigned_to, ${user.id}), updated_at = NOW()
+    WHERE id = ${aday.id}
+  `;
+  tazele(marka);
+}
+
+/* ============================================================ şablonlar */
+
+const SABLON_DURUMLARI = ['detay_iletildi', 'tekrar_aranacak', 'dusunuyor'];
+
+export async function sablonKaydet(_prev: string | null, formData: FormData): Promise<string | null> {
+  const marka = await listeErisimi(formData);
+  const user = await assertUser();
+  const baslik = metin(formData, 'title').slice(0, 60);
+  const govde = metin(formData, 'body').slice(0, 2000);
+  if (!baslik) return 'Şablona bir ad ver (ör. Tanışma).';
+  if (!govde) return 'Mesaj metni boş olamaz.';
+  const durum = metin(formData, 'sets_status');
+  const setsStatus = SABLON_DURUMLARI.includes(durum) ? durum : null;
+  const id = sayi(formData, 'id');
+
+  if (id !== null) {
+    const r = (await sql`
+      UPDATE prospect_templates SET title = ${baslik}, body = ${govde},
+             sets_status = ${setsStatus}, updated_at = NOW()
+      WHERE id = ${id} AND brand = ${marka.anahtar}
+      RETURNING id
+    `) as unknown[];
+    if (r.length === 0) return 'Şablon bulunamadı.';
+  } else {
+    await sql`
+      INSERT INTO prospect_templates (brand, title, body, sets_status, sort_order, created_by)
+      VALUES (${marka.anahtar}, ${baslik}, ${govde}, ${setsStatus},
+              (SELECT COALESCE(MAX(sort_order), 0) + 10 FROM prospect_templates WHERE brand = ${marka.anahtar}),
+              ${user.id})
+    `;
+  }
+  await logActivity({
+    userId: user.id, action: id !== null ? 'güncelle' : 'ekle', entity: 'mesaj şablonu',
+    detail: `${marka.ad} — ${baslik}`,
+  });
+  revalidatePath(`/musteri-bulma/${marka.yol}`);
+  revalidatePath(`/musteri-bulma/${marka.yol}/sablonlar`);
+  return `ok|${Date.now()}|`;
+}
+
+export async function sablonSil(formData: FormData) {
+  const marka = await listeErisimi(formData);
+  const user = await assertUser();
+  const id = sayi(formData, 'id');
+  if (id === null) return;
+  // Yönetici ya da şablonu yazan kişi silebilir.
+  await sql`
+    DELETE FROM prospect_templates
+    WHERE id = ${id} AND brand = ${marka.anahtar}
+      AND (${user.role === 'admin'}::boolean OR created_by = ${user.id})
+  `;
+  revalidatePath(`/musteri-bulma/${marka.yol}`);
+  revalidatePath(`/musteri-bulma/${marka.yol}/sablonlar`);
 }

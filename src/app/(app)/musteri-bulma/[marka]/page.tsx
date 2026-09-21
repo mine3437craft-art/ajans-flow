@@ -5,15 +5,17 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import AdayEkleBar from '@/components/AdayEkleBar';
-import AdayListesi, { type AdayRow } from '@/components/AdayListesi';
+import AdayListesi, { type AdayRow, type Sablon } from '@/components/AdayListesi';
 import AramaKisayolu from '@/components/AramaKisayolu';
-import { aramaDesenleri, katlanmisKelimeler } from '@/lib/arama';
-import { trFold } from '@/lib/arama';
+import { aramaDesenleri } from '@/lib/arama';
 import {
-  MARKALAR, markaBul, digerMarka, DURUMLAR, DURUM_HARITA, ACIK_DURUMLAR,
-  EK_ALANLAR, gecerliDurum, bugun,
+  MARKALAR, markaBul, DURUMLAR, DURUM_HARITA, ACIK_DURUMLAR, HEMEN_ARANACAK,
+  EK_ALANLAR, gecerliDurum, gecerliUcDurum, bugun, type EkAlanAnahtari,
 } from '@/lib/adaylar';
-import { adayEkle, alanGuncelle, sonucKaydet, notEkle, adaySil, adayGuncelle, geriAl } from './actions';
+import {
+  adayEkle, alanGuncelle, sonucKaydet, notEkle, adaySil, adayGuncelle, geriAl,
+  sonNotDuzenle, notDuzenle, notSil, tekrarAranacak, topluGuncelle, topluSil, mesajKaydet,
+} from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +29,8 @@ export default async function MusteriBulmaPage({
 }) {
   const { marka: markaYolu } = await params;
   const marka = markaBul(markaYolu);
-  // Bilinmeyen liste adresi: notFound() burada 404 gövdesini 200 durumuyla
-  // döndürüyordu (sayfa akış hâlinde başlıyor), o yüzden panoya yolluyoruz.
+  // Bilinmeyen liste adresi: sayfa akış hâlinde başladığı için gerçek
+  // yönlendirme proxy'de; burası yedek.
   if (!marka) redirect('/');
 
   const user = await requireUser();
@@ -39,13 +41,22 @@ export default async function MusteriBulmaPage({
   const durumFiltre = sp.durum ?? 'acik';
   const gorunum = sp.gorunum ?? '';
   const sorumluFiltre = sp.sorumlu ?? '';
-  const webFiltre = sp.web ?? '';
-  const ajansFiltre = sp.ajans ?? '';
   const sirala = sp.sirala ?? 'sira';
   const acikSatir = /^\d+$/.test(sp.ac ?? '') ? parseInt(sp.ac!, 10) : null;
-  // Panodan / bugün listesinden doğrudan "sonucu gir" bağlantısı verilebilsin.
+  // Panodan doğrudan "sonucu gir" bağlantısı verilebilsin.
   const sonucSatir = /^\d+$/.test(sp.sonuc ?? '') ? parseInt(sp.sonuc!, 10) : null;
   const limit = Math.min(400, Math.max(50, parseInt(sp.adet ?? '100', 10) || 100));
+
+  // Ek alan filtreleri (web / ajans / sosyal): yalnızca bu listede
+  // kullanılan alanlar dikkate alınır. SQL'de sütun adı parametre
+  // olamadığı için üçü ayrı değişkende.
+  const ekFiltre = (ek: EkAlanAnahtari) => {
+    const v = sp[ek] ?? '';
+    return marka.ekAlanlar.includes(ek) && gecerliUcDurum(v) ? v : '';
+  };
+  const webFiltre = ekFiltre('web');
+  const ajansFiltre = ekFiltre('ajans');
+  const sosyalFiltre = ekFiltre('sosyal');
 
   const desenler = aramaDesenleri(arama);
   // Aramada 3+ rakam varsa numara olarak da denenir: "532 123" da bulur.
@@ -57,87 +68,83 @@ export default async function MusteriBulmaPage({
   const sadeceAcik = durumFiltre === 'acik';
   const sorumluId = /^\d+$/.test(sorumluFiltre) ? parseInt(sorumluFiltre, 10) : null;
 
-  const satirlar = (await sql`
-    SELECT p.id::int AS id, p.name, p.contact_person, p.phone_raw, p.phone_norm, p.phone_kind,
-           p.city, p.source, p.link, p.status, p.next_call_on, p.assigned_to,
-           p.call_count, p.unreached_streak, p.last_call_at, p.last_note,
-           p.has_website, p.worked_with_agency, p.created_at,
-           s.display_name AS sorumlu_ad,
-           a.display_name AS son_arayan,
-           son.id::int AS son_olay_id,
-           son.kind AS son_olay_tur,
-           o.display_name AS son_olay_kisi,
-           (son.user_id = ${user.id} AND son.prev IS NOT NULL
-            AND son.created_at > NOW() - INTERVAL '15 minutes') AS geri_alinabilir,
-           (son.kind = 'arama' AND son.user_id <> ${user.id}
-            AND son.created_at > NOW() - INTERVAL '30 minutes') AS baskasi_aradi,
-           EXISTS (SELECT 1 FROM prospects d
-                   WHERE d.phone_norm = p.phone_norm AND d.brand <> p.brand
-                     AND p.phone_norm IS NOT NULL) AS diger_listede
-    FROM prospects p
-    LEFT JOIN users s ON s.id = p.assigned_to
-    LEFT JOIN users a ON a.id = p.last_call_by
-    LEFT JOIN LATERAL (
-      SELECT e.id, e.kind, e.user_id, e.prev, e.created_at
-      FROM prospect_events e WHERE e.prospect_id = p.id
-      ORDER BY e.id DESC LIMIT 1
-    ) son ON TRUE
-    LEFT JOIN users o ON o.id = son.user_id
-    WHERE p.brand = ${marka.anahtar}
-      AND (${sadeceAcik}::boolean = FALSE OR p.status = ANY(${ACIK_DURUMLAR}::text[]))
-      AND (${tekDurum}::text IS NULL OR p.status = ${tekDurum}::text)
-      AND (${gorunum}::text <> 'bugun' OR (
-            p.status = ANY(${ACIK_DURUMLAR}::text[])
-            AND (p.next_call_on <= ${b}::date OR p.status = 'aranmadi')))
-      AND (${sorumluFiltre}::text = '' OR
-           (${sorumluFiltre} = 'ben' AND p.assigned_to = ${user.id}) OR
-           (${sorumluFiltre} = 'atanmamis' AND p.assigned_to IS NULL) OR
-           (${sorumluId}::int IS NOT NULL AND p.assigned_to = ${sorumluId}::int))
-      AND (${webFiltre}::text = '' OR p.has_website = ${webFiltre}::text)
-      AND (${ajansFiltre}::text = '' OR p.worked_with_agency = ${ajansFiltre}::text)
-      AND (
-        cardinality(${desenler}::text[]) = 0
-        OR tr_fold(p.name || ' ' || COALESCE(p.contact_person, '') || ' '
-                   || COALESCE(p.city, '') || ' ' || COALESCE(p.source, '') || ' '
-                   || COALESCE(p.last_note, '')) ~ ALL(${desenler}::text[])
-        OR (${numaraArama}::text IS NOT NULL AND p.phone_norm LIKE ${'%' + (numaraArama ?? '') + '%'})
-      )
-    ORDER BY
-      CASE ${sirala}::text
-        WHEN 'yeni' THEN 0 WHEN 'son' THEN 1 WHEN 'ad' THEN 2 ELSE 3 END,
-      -- 'yeni'
-      CASE WHEN ${sirala}::text = 'yeni' THEN p.created_at END DESC NULLS LAST,
-      -- 'son' (en son aranan)
-      CASE WHEN ${sirala}::text = 'son' THEN p.last_call_at END DESC NULLS LAST,
-      -- 'ad'
-      CASE WHEN ${sirala}::text = 'ad' THEN tr_fold(p.name) END ASC NULLS LAST,
-      -- varsayılan: önce gecikenler ve bugün, sonra hiç aranmayanlar
-      CASE
-        WHEN p.next_call_on IS NOT NULL AND p.next_call_on <= ${b}::date THEN 0
-        WHEN p.next_call_on IS NOT NULL THEN 1
-        WHEN p.status = 'aranmadi' THEN 2
-        ELSE 3
-      END,
-      p.next_call_on NULLS LAST,
-      p.created_at
-    LIMIT ${limit}
-  `) as AdayRow[];
-
-  const [sayimlar, ozet, personel, kaynaklar, hafta] = await Promise.all([
+  const [satirlar, sayimlar, ozet, personel, kaynaklar, hafta, sablonlar] = await Promise.all([
+    sql`
+      SELECT p.id::int AS id, p.name, p.contact_person, p.phone_raw, p.phone_norm, p.phone_kind,
+             p.city, p.source, p.link, p.status, p.next_call_on, p.assigned_to,
+             p.call_count, p.unreached_streak, p.last_call_at, p.last_note,
+             p.has_website, p.worked_with_agency, p.social_active, p.created_at,
+             s.display_name AS sorumlu_ad,
+             son.id::int AS son_olay_id,
+             son.kind AS son_olay_tur,
+             son.channel AS son_olay_kanal,
+             son.created_at AS son_olay_zaman,
+             son.status_after AS son_olay_durum,
+             o.display_name AS son_olay_kisi,
+             (son.user_id = ${user.id} AND son.prev IS NOT NULL
+              AND son.created_at > NOW() - INTERVAL '15 minutes') AS geri_alinabilir,
+             (son.kind IN ('arama', 'mesaj') AND son.user_id <> ${user.id}
+              AND son.created_at > NOW() - INTERVAL '30 minutes') AS baskasi_aradi,
+             EXISTS (SELECT 1 FROM prospects d
+                     WHERE d.phone_norm = p.phone_norm AND d.brand <> p.brand
+                       AND p.phone_norm IS NOT NULL) AS diger_listede
+      FROM prospects p
+      LEFT JOIN users s ON s.id = p.assigned_to
+      LEFT JOIN LATERAL (
+        SELECT e.id, e.kind, e.channel, e.user_id, e.prev, e.created_at, e.status_after
+        FROM prospect_events e WHERE e.prospect_id = p.id
+        ORDER BY e.id DESC LIMIT 1
+      ) son ON TRUE
+      LEFT JOIN users o ON o.id = son.user_id
+      WHERE p.brand = ${marka.anahtar}
+        AND (${sadeceAcik}::boolean = FALSE OR p.status = ANY(${ACIK_DURUMLAR}::text[]))
+        AND (${tekDurum}::text IS NULL OR p.status = ${tekDurum}::text)
+        AND (${gorunum}::text <> 'bugun' OR (
+              p.status = ANY(${ACIK_DURUMLAR}::text[])
+              AND (p.status = ANY(${HEMEN_ARANACAK}::text[]) OR p.next_call_on <= ${b}::date)))
+        AND (${sorumluFiltre}::text = '' OR
+             (${sorumluFiltre} = 'ben' AND p.assigned_to = ${user.id}) OR
+             (${sorumluFiltre} = 'atanmamis' AND p.assigned_to IS NULL) OR
+             (${sorumluId}::int IS NOT NULL AND p.assigned_to = ${sorumluId}::int))
+        AND (${webFiltre}::text = '' OR p.has_website = ${webFiltre}::text)
+        AND (${ajansFiltre}::text = '' OR p.worked_with_agency = ${ajansFiltre}::text)
+        AND (${sosyalFiltre}::text = '' OR p.social_active = ${sosyalFiltre}::text)
+        AND (
+          cardinality(${desenler}::text[]) = 0
+          OR tr_fold(p.name || ' ' || COALESCE(p.contact_person, '') || ' '
+                     || COALESCE(p.city, '') || ' ' || COALESCE(p.source, '') || ' '
+                     || COALESCE(p.last_note, '')) ~ ALL(${desenler}::text[])
+          OR (${numaraArama}::text IS NOT NULL AND p.phone_norm LIKE ${'%' + (numaraArama ?? '') + '%'})
+        )
+      ORDER BY
+        CASE ${sirala}::text WHEN 'yeni' THEN 0 WHEN 'son' THEN 1 WHEN 'ad' THEN 2 ELSE 3 END,
+        CASE WHEN ${sirala}::text = 'yeni' THEN p.created_at END DESC NULLS LAST,
+        CASE WHEN ${sirala}::text = 'son' THEN son.created_at END DESC NULLS LAST,
+        CASE WHEN ${sirala}::text = 'ad' THEN tr_fold(p.name) END ASC NULLS LAST,
+        -- varsayılan: elle kuyruğa alınanlar ve tarihi gelenler önce,
+        -- sonra hiç aranmayanlar, sonra ileri tarihliler
+        CASE
+          WHEN p.next_call_on IS NOT NULL AND p.next_call_on <= ${b}::date THEN 0
+          WHEN p.status = 'aranmadi' THEN 1
+          WHEN p.next_call_on IS NOT NULL THEN 2
+          ELSE 3
+        END,
+        p.next_call_on NULLS LAST,
+        p.created_at
+      LIMIT ${limit}
+    ` as Promise<AdayRow[]>,
     sql`SELECT status, COUNT(*)::int AS adet FROM prospects WHERE brand = ${marka.anahtar} GROUP BY status` as Promise<Sayim[]>,
     sql`
       SELECT COUNT(*)::int AS toplam,
              COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
-                              AND (next_call_on <= ${b}::date OR status = 'aranmadi'))::int AS bugun,
+                              AND (status = ANY(${HEMEN_ARANACAK}::text[]) OR next_call_on <= ${b}::date))::int AS bugun,
              COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
                               AND next_call_on < ${b}::date)::int AS gecikmis,
              COUNT(*) FILTER (WHERE has_website = 'yok')::int AS websiz
       FROM prospects WHERE brand = ${marka.anahtar}
     ` as Promise<Array<{ toplam: number; bugun: number; gecikmis: number; websiz: number }>>,
-    // Listeler herkese açık: bütün aktif kullanıcılar sorumlu olabilir.
-    sql`
-      SELECT id, display_name FROM users WHERE is_active ORDER BY display_name
-    ` as Promise<Array<{ id: number; display_name: string }>>,
+    sql`SELECT id, display_name FROM users WHERE is_active ORDER BY display_name` as
+      Promise<Array<{ id: number; display_name: string }>>,
     sql`
       SELECT DISTINCT source FROM prospects
       WHERE brand = ${marka.anahtar} AND source IS NOT NULL ORDER BY source LIMIT 50
@@ -145,10 +152,14 @@ export default async function MusteriBulmaPage({
     sql`
       SELECT u.display_name, COUNT(*)::int AS adet
       FROM prospect_events e JOIN users u ON u.id = e.user_id
-      WHERE e.brand = ${marka.anahtar} AND e.kind = 'arama'
+      WHERE e.brand = ${marka.anahtar} AND e.kind IN ('arama', 'mesaj')
         AND e.created_at >= ((${b}::date - INTERVAL '6 days') AT TIME ZONE 'Europe/Istanbul')
       GROUP BY u.display_name ORDER BY adet DESC
     ` as Promise<Array<{ display_name: string; adet: number }>>,
+    sql`
+      SELECT id, title, body, sets_status FROM prospect_templates
+      WHERE brand = ${marka.anahtar} ORDER BY sort_order, id
+    ` as Promise<Sablon[]>,
   ]);
 
   const sayimHarita = new Map(sayimlar.map((s) => [s.status, s.adet]));
@@ -158,15 +169,19 @@ export default async function MusteriBulmaPage({
   const gecmis = acikSatir
     ? ((await sql`
         SELECT e.id::int AS id, e.kind, e.channel, e.status_before, e.status_after, e.next_call_on,
-               e.note, e.created_at, u.display_name AS kisi
-        FROM prospect_events e LEFT JOIN users u ON u.id = e.user_id
+               e.note, e.created_at, e.user_id, e.edited_at,
+               u.display_name AS kisi, ed.display_name AS duzenleyen
+        FROM prospect_events e
+        LEFT JOIN users u ON u.id = e.user_id
+        LEFT JOIN users ed ON ed.id = e.edited_by
         WHERE e.prospect_id = ${acikSatir}
           AND EXISTS (SELECT 1 FROM prospects p WHERE p.id = ${acikSatir} AND p.brand = ${marka.anahtar})
-        ORDER BY e.id DESC LIMIT 50
+        ORDER BY e.id DESC LIMIT 60
       `) as Array<{
         id: number; kind: string; channel: string | null; status_before: string | null;
         status_after: string | null; next_call_on: string | null; note: string | null;
-        created_at: string; kisi: string | null;
+        created_at: string; user_id: number | null; edited_at: string | null;
+        kisi: string | null; duzenleyen: string | null;
       }>)
     : [];
 
@@ -175,7 +190,7 @@ export default async function MusteriBulmaPage({
     const hepsi: Record<string, string | undefined> = {
       ara: arama || undefined, durum: durumFiltre === 'acik' ? undefined : durumFiltre,
       gorunum: gorunum || undefined, sorumlu: sorumluFiltre || undefined,
-      web: webFiltre || undefined, ajans: ajansFiltre || undefined,
+      web: webFiltre || undefined, ajans: ajansFiltre || undefined, sosyal: sosyalFiltre || undefined,
       sirala: sirala === 'sira' ? undefined : sirala,
       ...degisiklik,
     };
@@ -186,34 +201,48 @@ export default async function MusteriBulmaPage({
 
   const cip = (aktif: boolean) => `btn btn-sm ${aktif ? 'btn-primary' : 'btn-secondary'}`;
   const filtreVar = Boolean(arama || gorunum || sorumluFiltre || webFiltre || ajansFiltre
-    || durumFiltre !== 'acik');
+    || sosyalFiltre || durumFiltre !== 'acik');
+
+  // Huni: açık aşamalar soldan sağa, sonra sonuçlar. Genişlik adaya oranlı.
+  const huni = DURUMLAR.map((d) => ({ ...d, adet: sayimHarita.get(d.anahtar) ?? 0 }));
+  const huniToplam = Math.max(1, huni.reduce((t, h) => t + h.adet, 0));
 
   return (
     <>
       <PageHeader title={`${marka.ad} — Müşteri Bulma`} />
       <AramaKisayolu hedefId="ara" />
       <div className="content">
-
-        <div className="stat-grid aday-stat">
+        <div className="aday-ust">
           <a href={adres({ gorunum: gorunum === 'bugun' ? undefined : 'bugun', durum: undefined })}
-             className="stat-card aday-tile">
-            <div className="stat-icon i-primary"><Icon name="clock" /></div>
-            <div className="stat-value" style={{ color: 'var(--primary)' }}>{o.bugun}</div>
-            <div className="stat-label">
-              Bugün Aranacak
-              {o.gecikmis > 0 && <span style={{ color: 'var(--danger)' }}> · {o.gecikmis} gecikmiş</span>}
-            </div>
+             className={`aday-bugun${gorunum === 'bugun' ? ' secili' : ''}`}>
+            <span className="aday-bugun-sayi">{o.bugun}</span>
+            <span className="aday-bugun-etiket">
+              bugün aranacak
+              {o.gecikmis > 0 && <em> · {o.gecikmis} gecikmiş</em>}
+            </span>
           </a>
-          {(['aranmadi', 'dusunuyor', 'olumlu', 'musteri_oldu'] as const).map((d) => (
-            <a key={d} href={adres({ durum: durumFiltre === d ? undefined : d, gorunum: undefined })}
-               className="stat-card aday-tile">
-              <div className={`stat-icon ${d === 'musteri_oldu' ? 'i-success' : d === 'olumlu' ? 'i-success' : d === 'dusunuyor' ? 'i-info' : 'i-warning'}`}>
-                <Icon name={d === 'musteri_oldu' ? 'check' : d === 'aranmadi' ? 'users' : 'target'} />
-              </div>
-              <div className="stat-value">{sayimHarita.get(d) ?? 0}</div>
-              <div className="stat-label">{DURUM_HARITA[d].ad}</div>
-            </a>
-          ))}
+
+          <div className="huni" aria-label="Aday hunisi">
+            <div className="huni-serit">
+              {huni.filter((h) => h.adet > 0).map((h) => (
+                <a key={h.anahtar} href={adres({ durum: durumFiltre === h.anahtar ? undefined : h.anahtar, gorunum: undefined })}
+                   className={`huni-dilim d-${h.anahtar}${durumFiltre === h.anahtar ? ' secili' : ''}`}
+                   style={{ flexGrow: h.adet / huniToplam }}
+                   title={`${h.ad}: ${h.adet}`} />
+              ))}
+            </div>
+            <div className="huni-etiketler">
+              {huni.map((h) => (
+                <a key={h.anahtar}
+                   href={adres({ durum: durumFiltre === h.anahtar ? undefined : h.anahtar, gorunum: undefined })}
+                   className={`huni-etiket${durumFiltre === h.anahtar ? ' secili' : ''}${h.adet === 0 ? ' bos' : ''}`}
+                   title={h.aciklama}>
+                  <i className={`huni-nokta d-${h.anahtar}`} aria-hidden />
+                  {h.ad} <b>{h.adet}</b>
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="card">
@@ -222,28 +251,31 @@ export default async function MusteriBulmaPage({
               {marka.ad} Adayları <span className="badge b-muted">{satirlar.length}{satirlar.length !== o.toplam ? ` / ${o.toplam}` : ''}</span>
             </h2>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              {MARKALAR.filter((m) => m.anahtar !== marka.anahtar).map((m) => (
-                <a key={m.anahtar} href={`/musteri-bulma/${m.yol}`} className="btn btn-sm btn-secondary">
-                  {m.ad} listesi →
-                </a>
-              ))}
+              <a href={`/musteri-bulma/${marka.yol}/sablonlar`} className="btn btn-sm btn-secondary">
+                💬 Mesaj şablonları <b style={{ opacity: .6 }}>{sablonlar.length}</b>
+              </a>
               <a href={`/musteri-bulma/${marka.yol}/ice-aktar`} className="btn btn-sm btn-secondary">
                 📋 Excel&apos;den yapıştır
               </a>
               {isAdmin && (
                 <a href={`/musteri-bulma/${marka.yol}/disa-aktar${adres({}).replace(/^[^?]*/, '')}`}
-                   className="btn btn-sm btn-secondary"
-                   title="Ekranda görünen filtreyle indirir">⬇ Excel&apos;e aktar</a>
+                   className="btn btn-sm btn-secondary" title="Ekranda görünen filtreyle indirir">
+                  ⬇ Excel&apos;e aktar
+                </a>
               )}
+              {MARKALAR.filter((m) => m.anahtar !== marka.anahtar).map((m) => (
+                <a key={m.anahtar} href={`/musteri-bulma/${m.yol}`} className="btn btn-sm btn-ghost">
+                  {m.ad} →
+                </a>
+              ))}
             </div>
           </div>
 
           {haftaToplam > 0 && (
             <div className="sonuc-ipucu">
-              <span>Son 7 gün: <strong>{haftaToplam} arama</strong></span>
-              {isAdmin && hafta.length > 0 && (
-                <span>· {hafta.map((h) => `${h.display_name} ${h.adet}`).join(' · ')}</span>
-              )}
+              <span>Son 7 gün: <strong>{haftaToplam} arama / mesaj</strong></span>
+              {/* Kişi bazlı sayılar ekip arkadaşının performansı: yalnızca yöneticide */}
+              {isAdmin && hafta.length > 0 && <span>· {hafta.map((h) => `${h.display_name} ${h.adet}`).join(' · ')}</span>}
               {o.websiz > 0 && marka.ekAlanlar.includes('web') && (
                 <a href={adres({ web: webFiltre === 'yok' ? undefined : 'yok' })}>
                   · Web sitesi olmayan {o.websiz} aday →
@@ -267,6 +299,7 @@ export default async function MusteriBulmaPage({
             {sorumluFiltre && <input type="hidden" name="sorumlu" value={sorumluFiltre} />}
             {webFiltre && <input type="hidden" name="web" value={webFiltre} />}
             {ajansFiltre && <input type="hidden" name="ajans" value={ajansFiltre} />}
+            {sosyalFiltre && <input type="hidden" name="sosyal" value={sosyalFiltre} />}
             {sirala !== 'sira' && <input type="hidden" name="sirala" value={sirala} />}
             <input id="ara" name="ara" className="form-control" defaultValue={arama} autoComplete="off"
                    placeholder="İsim, telefon veya notta ara…   ( / tuşuyla buraya gel )"
@@ -275,86 +308,91 @@ export default async function MusteriBulmaPage({
             {arama && <a className="btn btn-ghost btn-sm" href={adres({ ara: undefined })}>Temizle</a>}
           </form>
 
-          {/* Dokuz durum + kişi + web/ajans çipleri arayanın ekranını
-              dolduruyordu: filtre uygulanmışsa açık, temiz listede kapalı. */}
+          {/* Filtre uygulanmışsa açık, temiz listede kapalı gelir. */}
           <details open={filtreVar} className="filtre-katlanir">
-            <summary className="acilir-baslik">
-              Filtreler{filtreVar ? ' · açık' : ''}
-            </summary>
-          <div className="konu-dizini">
-            <span className="konu-dizini-baslik">Durum</span>
-            <a href={adres({ durum: undefined, gorunum: undefined })} className={cip(durumFiltre === 'acik' && !gorunum)}>
-              Açık olanlar
-            </a>
-            <a href={adres({ durum: 'tumu', gorunum: undefined })} className={cip(durumFiltre === 'tumu')}>
-              Tümü <b>{o.toplam}</b>
-            </a>
-            {DURUMLAR.map((d) => (
-              <a key={d.anahtar} href={adres({ durum: d.anahtar, gorunum: undefined })}
-                 className={cip(durumFiltre === d.anahtar)} title={d.aciklama}>
-                {d.ad} <b>{sayimHarita.get(d.anahtar) ?? 0}</b>
+            <summary className="acilir-baslik">Filtreler{filtreVar ? ' · açık' : ''}</summary>
+            <div className="konu-dizini">
+              <span className="konu-dizini-baslik">Durum</span>
+              <a href={adres({ durum: undefined, gorunum: undefined })} className={cip(durumFiltre === 'acik' && !gorunum)}>
+                Açık olanlar
               </a>
-            ))}
-          </div>
-
-          <div className="konu-dizini">
-            <span className="konu-dizini-baslik">Kime ait</span>
-            <a href={adres({ sorumlu: undefined })} className={cip(!sorumluFiltre)}>Herkes</a>
-            <a href={adres({ sorumlu: 'ben' })} className={cip(sorumluFiltre === 'ben')}>Bana ait</a>
-            <a href={adres({ sorumlu: 'atanmamis' })} className={cip(sorumluFiltre === 'atanmamis')}>Atanmamış</a>
-            {personel.filter((p) => p.id !== user.id).map((p) => (
-              <a key={p.id} href={adres({ sorumlu: String(p.id) })} className={cip(sorumluFiltre === String(p.id))}>
-                {p.display_name}
+              <a href={adres({ durum: 'tumu', gorunum: undefined })} className={cip(durumFiltre === 'tumu')}>
+                Tümü <b>{o.toplam}</b>
               </a>
-            ))}
-            {marka.ekAlanlar.map((ek) => {
-              const alan = EK_ALANLAR[ek];
-              const secili = ek === 'web' ? webFiltre : ajansFiltre;
-              return (
-                <span key={ek} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                  <span className="konu-dizini-baslik" style={{ flexBasis: 'auto', margin: 0 }}>
-                    {alan.simge} {alan.baslik}
-                  </span>
-                  {(['var', 'yok'] as const).map((v) => (
-                    <a key={v}
-                       href={adres({ [ek]: secili === v ? undefined : v })}
-                       className={cip(secili === v)}>
-                      {alan.etiket[v].kisa}
-                    </a>
-                  ))}
-                </span>
-              );
-            })}
-          </div>
+              {DURUMLAR.map((d) => (
+                <a key={d.anahtar} href={adres({ durum: d.anahtar, gorunum: undefined })}
+                   className={cip(durumFiltre === d.anahtar)} title={d.aciklama}>
+                  {d.ad} <b>{sayimHarita.get(d.anahtar) ?? 0}</b>
+                </a>
+              ))}
+            </div>
+            <div className="konu-dizini">
+              <span className="konu-dizini-baslik">Kime ait</span>
+              <a href={adres({ sorumlu: undefined })} className={cip(!sorumluFiltre)}>Herkes</a>
+              <a href={adres({ sorumlu: 'ben' })} className={cip(sorumluFiltre === 'ben')}>Bana ait</a>
+              <a href={adres({ sorumlu: 'atanmamis' })} className={cip(sorumluFiltre === 'atanmamis')}>Atanmamış</a>
+              {personel.filter((p) => p.id !== user.id).map((p) => (
+                <a key={p.id} href={adres({ sorumlu: String(p.id) })} className={cip(sorumluFiltre === String(p.id))}>
+                  {p.display_name}
+                </a>
+              ))}
+            </div>
+            {marka.ekAlanlar.length > 0 && (
+              <div className="konu-dizini">
+                {marka.ekAlanlar.map((ek) => {
+                  const alan = EK_ALANLAR[ek];
+                  const secili = ekFiltre(ek);
+                  return (
+                    <span key={ek} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginRight: 10 }}>
+                      <span className="konu-dizini-baslik" style={{ flexBasis: 'auto', margin: 0 }}>
+                        {alan.simge} {alan.baslik}
+                      </span>
+                      {(['var', 'yok'] as const).map((v) => (
+                        <a key={v} href={adres({ [ek]: secili === v ? undefined : v })} className={cip(secili === v)}>
+                          {alan.etiket[v].kisa}
+                        </a>
+                      ))}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <div className="konu-dizini">
+              <span className="konu-dizini-baslik">Sırala</span>
+              {[
+                { k: 'sira', l: 'Aranacak sırası' }, { k: 'son', l: 'Son işlem' },
+                { k: 'yeni', l: 'En yeni eklenen' }, { k: 'ad', l: 'Ada göre' },
+              ].map((x) => (
+                <a key={x.k} href={adres({ sirala: x.k === 'sira' ? undefined : x.k })} className={cip(sirala === x.k)}>
+                  {x.l}
+                </a>
+              ))}
+            </div>
           </details>
 
           {satirlar.length === 0 ? (
             <EmptyState
               icon="📞"
               title={filtreVar ? 'Bu filtreye uyan aday yok' : 'Henüz aday yok'}
-              text={filtreVar
-                ? 'Filtreleri temizleyip tekrar dene.'
-                : 'Yukarıdan tek tek ekle ya da Excel listeni yapıştır.'}
+              text={filtreVar ? 'Filtreleri temizleyip tekrar dene.' : 'Yukarıdan tek tek ekle ya da Excel listeni yapıştır.'}
             />
           ) : (
             <AdayListesi
               satirlar={satirlar}
               marka={{ yol: marka.yol, ad: marka.ad, ekAlanlar: marka.ekAlanlar }}
               personel={personel}
-              kullaniciId={user.id}
-              isAdmin={isAdmin}
+              kullanici={{ id: user.id, ad: user.display_name, yonetici: isAdmin }}
+              sablonlar={sablonlar}
               arama={arama}
               bugunTarih={b}
               acikSatir={acikSatir}
               baslangicSonuc={sonucSatir}
               gecmis={gecmis}
               adres={adres({})}
-              alanGuncelle={alanGuncelle}
-              sonucKaydet={sonucKaydet}
-              notEkle={notEkle}
-              adaySil={adaySil}
-              adayGuncelle={adayGuncelle}
-              geriAl={geriAl}
+              eylemler={{
+                alanGuncelle, sonucKaydet, notEkle, adaySil, adayGuncelle, geriAl,
+                sonNotDuzenle, notDuzenle, notSil, tekrarAranacak, topluGuncelle, topluSil, mesajKaydet,
+              }}
             />
           )}
 
@@ -366,6 +404,13 @@ export default async function MusteriBulmaPage({
             </div>
           )}
         </div>
+
+        {!isAdmin && (
+          <p className="cell-sub" style={{ marginTop: 8 }}>
+            <Icon name="lock" style={{ width: 12, height: 12, verticalAlign: '-1px' }} />{' '}
+            Kalıcı silme ve Excel&apos;e aktarma yöneticide.
+          </p>
+        )}
       </div>
     </>
   );

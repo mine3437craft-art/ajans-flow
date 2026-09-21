@@ -368,8 +368,9 @@ CREATE TABLE IF NOT EXISTS prospects (
   source           TEXT,
   link             TEXT,
   status           TEXT NOT NULL DEFAULT 'aranmadi'
-                   CHECK (status IN ('aranmadi', 'ulasilamadi', 'dusunuyor', 'olumlu',
-                                     'musteri_oldu', 'olumsuz', 'yanlis_numara')),
+                   CHECK (status IN ('aranmadi', 'tekrar_aranacak', 'ulasilamadi', 'detay_iletildi',
+                                     'dusunuyor', 'olumlu', 'musteri_oldu', 'olumsuz',
+                                     'yanlis_numara')),
   next_call_on     DATE,
   assigned_to      INTEGER REFERENCES users(id) ON DELETE SET NULL,
   call_count       INTEGER NOT NULL DEFAULT 0,
@@ -403,7 +404,7 @@ CREATE TABLE IF NOT EXISTS prospect_events (
   prospect_id   BIGINT NOT NULL REFERENCES prospects(id) ON DELETE CASCADE,
   brand         TEXT NOT NULL,
   user_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  kind          TEXT NOT NULL CHECK (kind IN ('arama', 'not', 'durum')),
+  kind          TEXT NOT NULL CHECK (kind IN ('arama', 'not', 'durum', 'mesaj')),
   channel       TEXT CHECK (channel IN ('telefon', 'whatsapp')),
   status_before TEXT,
   status_after  TEXT,
@@ -426,3 +427,82 @@ ALTER TABLE prospects ADD COLUMN IF NOT EXISTS has_website TEXT NOT NULL DEFAULT
 ALTER TABLE prospects ADD COLUMN IF NOT EXISTS worked_with_agency TEXT NOT NULL DEFAULT 'bilinmiyor'
   CHECK (worked_with_agency IN ('bilinmiyor', 'var', 'yok'));
 CREATE INDEX IF NOT EXISTS idx_aday_web ON prospects(brand, has_website);
+
+-- ---------- Aday listeleri: ikinci tur ----------
+-- Ekip durumu not alanına yazıyordu ("mesaj atıldı", "AÇMADI TEKRAR
+-- ARANACAK", "sosyal medyası aktif") çünkü işlerine uyan durum yoktu.
+--   tekrar_aranacak : elle yeniden arama kuyruğuna alınan aday
+--   detay_iletildi  : WhatsApp'tan / telefonla bilgi gönderildi, cevap bekleniyor
+-- Mevcut veritabanlarında satır içi CHECK güncellenmiyor; kısıt yeniden kuruluyor.
+ALTER TABLE prospects DROP CONSTRAINT IF EXISTS prospects_status_check;
+ALTER TABLE prospects ADD CONSTRAINT prospects_status_check
+  CHECK (status IN ('aranmadi', 'tekrar_aranacak', 'ulasilamadi', 'detay_iletildi',
+                    'dusunuyor', 'olumlu', 'musteri_oldu', 'olumsuz', 'yanlis_numara'));
+
+-- mesaj: WhatsApp şablonuyla gönderilen mesaj (arama sayılmaz)
+ALTER TABLE prospect_events DROP CONSTRAINT IF EXISTS prospect_events_kind_check;
+ALTER TABLE prospect_events ADD CONSTRAINT prospect_events_kind_check
+  CHECK (kind IN ('arama', 'not', 'durum', 'mesaj'));
+
+-- Notlar sonradan düzenlenebiliyor: kim, ne zaman düzeltti.
+ALTER TABLE prospect_events ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+ALTER TABLE prospect_events ADD COLUMN IF NOT EXISTS edited_by INTEGER
+  REFERENCES users(id) ON DELETE SET NULL;
+
+-- Minik Starlar'da ekip "sosyal medyası aktif" notunu 15 kez yazmıştı:
+-- satışı belirleyen bir bilgi, alan olarak tutuluyor.
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS social_active TEXT NOT NULL DEFAULT 'bilinmiyor'
+  CHECK (social_active IN ('bilinmiyor', 'var', 'yok'));
+
+-- WhatsApp mesaj şablonları, liste başına. Yer tutucular gönderirken
+-- doldurulur: {ad} {yetkili} {gonderen} {marka}
+CREATE TABLE IF NOT EXISTS prospect_templates (
+  id         SERIAL PRIMARY KEY,
+  brand      TEXT NOT NULL CHECK (brand IN ('ajansflow', 'minikstarlar')),
+  title      TEXT NOT NULL CHECK (btrim(title) <> ''),
+  body       TEXT NOT NULL CHECK (btrim(body) <> ''),
+  -- Gönderilince aday bu duruma geçer (NULL = durum değişmez)
+  sets_status TEXT CHECK (sets_status IN ('detay_iletildi', 'tekrar_aranacak', 'dusunuyor')),
+  sort_order INTEGER NOT NULL DEFAULT 100,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sablon_marka ON prospect_templates(brand, sort_order);
+
+-- Başlangıç şablonları: liste hiç şablonu yoksa eklenir, sonra ekip düzenler.
+-- Gövdede ';' YOK (setup-db.mjs dosyayı ';' ile bölüyor).
+INSERT INTO prospect_templates (brand, title, body, sets_status, sort_order)
+SELECT v.brand, v.title, v.body, v.sets_status, v.sort_order
+FROM (VALUES
+  ('minikstarlar', 'Tanışma',
+   E'Merhaba {yetkili}, ben {gonderen}, Minik Starlar''dan yazıyorum. {ad} için kısa bir iş birliği önerimiz var. Detayları buradan iletebilir miyim, yoksa kısa bir telefon görüşmesi mi tercih edersiniz?',
+   'detay_iletildi', 10),
+  ('minikstarlar', 'Detaylar',
+   E'Merhaba {yetkili}, konuştuğumuz gibi Minik Starlar hakkındaki detayları iletiyorum:\n\n• [buraya teklif / fiyat / tarih bilgisini yazın]\n\nAklınıza takılan bir şey olursa buradan yazabilirsiniz. İyi çalışmalar,\n{gonderen}',
+   'detay_iletildi', 20),
+  ('minikstarlar', 'Hatırlatma',
+   E'Merhaba {yetkili}, geçen günlerde ilettiğimiz Minik Starlar bilgileri hakkında düşünme fırsatınız oldu mu? Uygun olduğunuz bir zamanı yazarsanız sizi arayalım.',
+   NULL, 30),
+  ('minikstarlar', 'Ulaşamadık',
+   E'Merhaba {yetkili}, sizi aradık ama ulaşamadık. Minik Starlar''dan {gonderen}. Uygun olduğunuzda dönüş yapabilir misiniz?',
+   NULL, 40),
+  ('ajansflow', 'Tanışma',
+   E'Merhaba {yetkili}, ben {gonderen}, Ajans Flow''dan yazıyorum. {ad} için sosyal medya yönetimi konusunda kısa bir önerimiz var. Detayları buradan iletebilir miyim?',
+   'detay_iletildi', 10),
+  ('ajansflow', 'Detaylar',
+   E'Merhaba {yetkili}, konuştuğumuz gibi Ajans Flow hizmet detaylarını iletiyorum:\n\n• [buraya paket / fiyat / örnek çalışma bağlantısını yazın]\n\nSorunuz olursa buradan yazabilirsiniz. İyi çalışmalar,\n{gonderen}',
+   'detay_iletildi', 20),
+  ('ajansflow', 'Hatırlatma',
+   E'Merhaba {yetkili}, geçen günlerde ilettiğimiz bilgiler hakkında düşünme fırsatınız oldu mu? Uygun olduğunuz bir zamanı yazarsanız sizi arayalım.',
+   NULL, 30),
+  ('ajansflow', 'Ulaşamadık',
+   E'Merhaba {yetkili}, sizi aradık ama ulaşamadık. Ajans Flow''dan {gonderen}. Uygun olduğunuzda dönüş yapabilir misiniz?',
+   NULL, 40)
+) AS v(brand, title, body, sets_status, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM prospect_templates t WHERE t.brand = v.brand)
+  AND NOT EXISTS (SELECT 1 FROM app_config WHERE anahtar = 'sablonlar_tohumlandi');
+
+-- Bir kez tohumlandı: ekip bütün şablonları silerse db:setup geri getirmesin.
+INSERT INTO app_config (anahtar, deger) VALUES ('sablonlar_tohumlandi', '1')
+ON CONFLICT (anahtar) DO NOTHING;

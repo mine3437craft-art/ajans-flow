@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState';
 import Icon from '@/components/Icon';
 import { money, dateShort, num, TASK_STATUS_LABEL } from '@/lib/format';
 import { videoUyarilari } from '@/lib/video';
-import { MARKALAR, ACIK_DURUMLAR, bugun, tarihEtiketi } from '@/lib/adaylar';
+import { MARKALAR, ACIK_DURUMLAR, HEMEN_ARANACAK, bugun, tarihEtiketi } from '@/lib/adaylar';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +65,7 @@ export default async function DashboardPage({
              -- Sayı, bağlantının açtığı "Bugün Aranacak" görünümüyle birebir
              -- aynı olsun diye kişiye göre süzülmüyor.
              COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
-               AND (next_call_on <= ${bugun()}::date OR status = 'aranmadi'))::int AS benim,
+               AND (status = ANY(${HEMEN_ARANACAK}::text[]) OR next_call_on <= ${bugun()}::date))::int AS benim,
              COUNT(*) FILTER (WHERE status = ANY(${ACIK_DURUMLAR}::text[])
                AND next_call_on < ${bugun()}::date)::int AS gecikmis,
              COUNT(*) FILTER (WHERE status = 'olumlu')::int AS olumlu

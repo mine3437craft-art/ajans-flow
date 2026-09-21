@@ -117,18 +117,34 @@ export function kelimeler(arama: string): string[] {
  * kelimeler eşleşmeli. Boş dizi her şeyi eşler (ALL('{}') = TRUE).
  */
 export function aramaDesenleri(arama: string): string[] {
-  return kelimeler(arama)
+  // Tırnak içindeki kelime kökü çıkarılmadan aranır: "aranacak" yazınca
+  // kök "aran" olup "aranmadı"yı da buluyordu; notta "ARANACAK" yazanları
+  // tam seçmek için "\"aranacak\"".
+  const tam = [...arama.matchAll(/"([^"]+)"/g)].flatMap((m) => kelimeler(m[1]));
+  const serbest = arama.replace(/"[^"]*"/g, ' ');
+  const tamDesen = tam
+    .map((k) => trFold(k).replace(/[^a-z0-9]/g, ''))
+    .filter((k) => k.length >= 2)
+    .map((k) => `\\m${k}`);
+  const serbestDesen = kelimeler(serbest)
     .map(kokVaryantlari)
     .filter((v) => v.length > 0)
     .map((v) => `\\m(${v.join('|')})`);
+  return [...tamDesen, ...serbestDesen];
 }
 
 /** Vurgulama için: bir kelime katlanınca bu düzenli ifadelerden biriyle başlıyorsa işaretlenir. */
 export function vurguDuzenleri(arama: string): RegExp[] {
-  return kelimeler(arama)
+  // Tırnaklı kelimeler kökü çıkarılmadan vurgulanır (aramaDesenleri ile aynı kural).
+  const tam = [...arama.matchAll(/"([^"]+)"/g)].flatMap((m) => kelimeler(m[1]))
+    .map((k) => trFold(k).replace(/[^a-z0-9]/g, ''))
+    .filter((k) => k.length >= 2)
+    .map((k) => new RegExp(`^${k}`));
+  const serbest = kelimeler(arama.replace(/"[^"]*"/g, ' '))
     .map(kokVaryantlari)
     .filter((v) => v.length > 0)
     .map((v) => new RegExp(`^(${v.join('|')})`));
+  return [...tam, ...serbest];
 }
 
 /** Kullanıcıya "seçme → seç…" gibi ne arandığını göstermek için. */

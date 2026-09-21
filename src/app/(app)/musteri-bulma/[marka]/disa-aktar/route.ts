@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { markaBul, DURUM_HARITA, ACIK_DURUMLAR, EK_ALANLAR, gecerliDurum, bugun } from '@/lib/adaylar';
+import {
+  markaBul, DURUM_HARITA, ACIK_DURUMLAR, HEMEN_ARANACAK, EK_ALANLAR, gecerliDurum, gecerliUcDurum,
+  ekAlanDegeri, bugun, type EkAlanAnahtari, type UcDurum,
+} from '@/lib/adaylar';
 import { aramaDesenleri } from '@/lib/arama';
 import { telefonCoz } from '@/lib/telefon';
 
@@ -53,9 +56,14 @@ export async function GET(
   const arama = (sp.get('ara') ?? '').trim();
   const durumFiltre = sp.get('durum') ?? 'acik';
   const sorumluFiltre = sp.get('sorumlu') ?? '';
-  const webFiltre = sp.get('web') ?? '';
+  const ekFiltre = (ek: EkAlanAnahtari) => {
+    const v = sp.get(ek) ?? '';
+    return marka.ekAlanlar.includes(ek) && gecerliUcDurum(v) ? v : '';
+  };
+  const webFiltre = ekFiltre('web');
+  const ajansFiltre = ekFiltre('ajans');
+  const sosyalFiltre = ekFiltre('sosyal');
   const gorunum = sp.get('gorunum') ?? '';
-  const ajansFiltre = sp.get('ajans') ?? '';
 
   const desenler = aramaDesenleri(arama);
   const rakamlar = arama.replace(/\D/g, '').replace(/^0+/, '').replace(/^90/, '');
@@ -67,7 +75,7 @@ export async function GET(
   const satirlar = (await sql`
     SELECT p.name, p.contact_person, p.phone_raw, p.status, p.next_call_on,
            p.city, p.source, p.link, p.last_note, p.call_count, p.unreached_streak,
-           p.has_website, p.worked_with_agency, p.last_call_at, p.created_at,
+           p.has_website, p.worked_with_agency, p.social_active, p.last_call_at, p.created_at,
            s.display_name AS sorumlu, a.display_name AS son_arayan
     FROM prospects p
     LEFT JOIN users s ON s.id = p.assigned_to
@@ -77,13 +85,14 @@ export async function GET(
       AND (${tekDurum}::text IS NULL OR p.status = ${tekDurum}::text)
       AND (${gorunum}::text <> 'bugun' OR (
             p.status = ANY(${ACIK_DURUMLAR}::text[])
-            AND (p.next_call_on <= ${bugun()}::date OR p.status = 'aranmadi')))
+            AND (p.status = ANY(${HEMEN_ARANACAK}::text[]) OR p.next_call_on <= ${bugun()}::date)))
       AND (${sorumluFiltre}::text = '' OR
            (${sorumluFiltre} = 'ben' AND p.assigned_to = ${user.id}) OR
            (${sorumluFiltre} = 'atanmamis' AND p.assigned_to IS NULL) OR
            (${sorumluId}::int IS NOT NULL AND p.assigned_to = ${sorumluId}::int))
       AND (${webFiltre}::text = '' OR p.has_website = ${webFiltre}::text)
       AND (${ajansFiltre}::text = '' OR p.worked_with_agency = ${ajansFiltre}::text)
+      AND (${sosyalFiltre}::text = '' OR p.social_active = ${sosyalFiltre}::text)
       AND (
         cardinality(${desenler}::text[]) = 0
         OR tr_fold(p.name || ' ' || COALESCE(p.contact_person, '') || ' '
@@ -114,8 +123,8 @@ export async function GET(
       tarihTR(r.last_call_at as string | null), r.son_arayan, r.sorumlu,
       r.city, r.source, r.link,
       ...marka.ekAlanlar.map((e) => {
-        const deger = String(e === 'web' ? r.has_website : r.worked_with_agency);
-        return EK_ALANLAR[e].etiket[deger as 'var' | 'yok' | 'bilinmiyor']?.uzun ?? deger;
+        const deger = ekAlanDegeri(r as unknown as Record<'has_website' | 'worked_with_agency' | 'social_active', UcDurum>, e);
+        return EK_ALANLAR[e].etiket[deger]?.uzun ?? deger;
       }),
       tarihTR(r.created_at as string | null),
     ];

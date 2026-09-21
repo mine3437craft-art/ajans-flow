@@ -27,7 +27,8 @@ export const MARKALAR: Marka[] = [
   },
   {
     anahtar: 'minikstarlar', yol: 'minikstarlar', ad: 'Minik Starlar',
-    ekAlanlar: [],
+    // Ekip "sosyal medyası aktif" notunu 15 kez elle yazmıştı.
+    ekAlanlar: ['sosyal'],
   },
 ];
 
@@ -45,12 +46,12 @@ export function sonrakiUcDurum(v: UcDurum): UcDurum {
   return v === 'bilinmiyor' ? 'var' : v === 'var' ? 'yok' : 'bilinmiyor';
 }
 
-export type EkAlanAnahtari = 'web' | 'ajans';
+export type EkAlanAnahtari = 'web' | 'ajans' | 'sosyal';
 
 export type EkAlan = {
   anahtar: EkAlanAnahtari;
   /** prospects tablosundaki sütun */
-  sutun: 'has_website' | 'worked_with_agency';
+  sutun: 'has_website' | 'worked_with_agency' | 'social_active';
   /** Tablo başlığı */
   baslik: string;
   /** Soru hâli — sonuç ekranında ve düzenleme formunda */
@@ -80,7 +81,24 @@ export const EK_ALANLAR: Record<EkAlanAnahtari, EkAlan> = {
       yok: { kisa: 'Ajans ✕', uzun: 'Daha önce ajansla çalışmamış', rozet: 'b-muted' },
     },
   },
+  sosyal: {
+    anahtar: 'sosyal', sutun: 'social_active', baslik: 'Sosyal Medya',
+    soru: 'Sosyal medyası aktif mi?', simge: '📱',
+    etiket: {
+      bilinmiyor: { kisa: 'Sosyal ?', uzun: 'Sosyal medya: bakılmadı', rozet: 'b-muted' },
+      var: { kisa: 'Sosyal ✓', uzun: 'Sosyal medyası aktif', rozet: 'b-info' },
+      yok: { kisa: 'Sosyal ✕', uzun: 'Sosyal medyası yok / pasif', rozet: 'b-warning' },
+    },
+  },
 };
+
+/** Satırdaki ek alan değerini okur. */
+export function ekAlanDegeri(
+  satir: { has_website: UcDurum; worked_with_agency: UcDurum; social_active: UcDurum },
+  ek: EkAlanAnahtari,
+): UcDurum {
+  return ek === 'web' ? satir.has_website : ek === 'ajans' ? satir.worked_with_agency : satir.social_active;
+}
 
 export function markaBul(yol: string | undefined): Marka | null {
   return MARKALAR.find((m) => m.yol === yol) ?? null;
@@ -93,8 +111,8 @@ export function digerMarka(anahtar: MarkaAnahtari): Marka {
 /* ---------------- Durumlar ---------------- */
 
 export type Durum =
-  | 'aranmadi' | 'ulasilamadi' | 'dusunuyor' | 'olumlu'
-  | 'musteri_oldu' | 'olumsuz' | 'yanlis_numara';
+  | 'aranmadi' | 'tekrar_aranacak' | 'ulasilamadi' | 'detay_iletildi' | 'dusunuyor'
+  | 'olumlu' | 'musteri_oldu' | 'olumsuz' | 'yanlis_numara';
 
 export type DurumTanim = {
   anahtar: Durum;
@@ -115,11 +133,19 @@ export const DURUMLAR: DurumTanim[] = [
     varsayilanGun: null, aciklama: 'Henüz kimse aramadı.',
   },
   {
+    anahtar: 'tekrar_aranacak', ad: 'Tekrar Aranacak', dugme: 'Tekrar Ara', rozet: 'b-primary', acik: true,
+    varsayilanGun: 0, aciklama: 'Yeniden arama kuyruğuna alındı: "sonra ara", "ARANACAK".',
+  },
+  {
     anahtar: 'ulasilamadi', ad: 'Ulaşılamadı', dugme: 'Açmadı', rozet: 'b-warning', acik: true,
     varsayilanGun: 1, aciklama: 'Arandı ama ulaşılamadı (açmadı, meşgul, kapalı).',
   },
   {
-    anahtar: 'dusunuyor', ad: 'Düşünüyor', dugme: 'Düşünüyor', rozet: 'b-info', acik: true,
+    anahtar: 'detay_iletildi', ad: 'Detaylar İletildi', dugme: 'Detay İletildi', rozet: 'b-info', acik: true,
+    varsayilanGun: 2, aciklama: 'Bilgi / mesaj gönderildi, cevap bekleniyor.',
+  },
+  {
+    anahtar: 'dusunuyor', ad: 'Düşünüyor', dugme: 'Düşünüyor', rozet: 'b-violet', acik: true,
     varsayilanGun: 3, aciklama: 'Konuşuldu, ilgileniyor ama karar vermedi.',
   },
   {
@@ -127,7 +153,7 @@ export const DURUMLAR: DurumTanim[] = [
     varsayilanGun: 1, aciklama: 'Olumlu: görüşme ya da teklif istiyor.',
   },
   {
-    anahtar: 'musteri_oldu', ad: 'Müşteri Oldu', dugme: 'Müşteri Oldu', rozet: 'b-primary', acik: false,
+    anahtar: 'musteri_oldu', ad: 'Müşteri Oldu', dugme: 'Müşteri Oldu', rozet: 'b-dolu-yesil', acik: false,
     varsayilanGun: null, aciklama: 'Anlaşıldı. Müşteriler sayfasına eklemeyi unutma.',
   },
   {
@@ -146,6 +172,27 @@ export const DURUM_HARITA: Record<string, DurumTanim> =
 /** Sonuç ekranında gösterilen seçenekler — "Aranmadı" bir sonuç değil. */
 export const SONUCLAR = DURUMLAR.filter((d) => d.anahtar !== 'aranmadi');
 export const ACIK_DURUMLAR = DURUMLAR.filter((d) => d.acik).map((d) => d.anahtar);
+/**
+ * Tarihi ne olursa olsun bugünün arama kuyruğuna giren durumlar: yalnızca
+ * hiç aranmamış aday. "Tekrar aranacak" da dahil diğer açık durumlar
+ * tarihine göre girer — "1 hafta sonra tekrar ara" denmiş aday bugün
+ * listeyi doldurmasın. (Tekrar aranacak'a geçişte tarih boşsa bugün kurulur.)
+ */
+export const HEMEN_ARANACAK: Durum[] = ['aranmadi'];
+
+/**
+ * Açık bir duruma elle (tablodan / toplu) geçilince kurulacak tarih.
+ * "Tekrar aranacak" her zaman bugün; diğer açık durumlarda mevcut tarih
+ * yoksa durumun varsayılanı — aksi halde tarihsiz aday hiçbir kuyruğa
+ * girmiyordu. Kapalı durumlarda tarih temizlenir.
+ */
+export function elleGecisTarihi(durum: Durum, mevcut: string | null): string | null {
+  const tanim = DURUM_HARITA[durum];
+  if (!tanim?.acik) return null;
+  if (durum === 'tekrar_aranacak') return bugun();
+  if (mevcut) return mevcut;
+  return tanim.varsayilanGun === null ? null : gunSonra(tanim.varsayilanGun);
+}
 export const DURUM_ANAHTARLARI = DURUMLAR.map((d) => d.anahtar);
 
 export function gecerliDurum(v: unknown): v is Durum {
@@ -230,4 +277,60 @@ export function gecenSure(zaman: string | null): string {
   if (gun === 1) return 'dün';
   if (gun < 30) return `${gun} gün önce`;
   return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', timeZone: ISTANBUL }).format(d);
+}
+
+/* ---------------- WhatsApp şablonları ---------------- */
+
+const BAGLACLAR = new Set(['ve', 'ile', 'de', 'da', 'ki', 'veya']);
+
+/**
+ * Tamamı büyük (ya da tamamı küçük) yazılmış firma adını mesaj için
+ * düzeltir: "GALATASARAY KAĞITHANE FUTBOL OKULU" → "Galatasaray Kağıthane
+ * Futbol Okulu". 3 harf ve altı kelimeler kısaltma sayılıp büyük kalır
+ * (BJK, GS, FB). Karışık yazılmış ada dokunulmaz. Yalnızca mesaj içindir,
+ * kayıttaki ad değişmez.
+ */
+export function mesajAdi(ad: string): string {
+  const harfler = ad.replace(/[^\p{L}]/gu, '');
+  const hepsiBuyuk = harfler === harfler.toLocaleUpperCase('tr');
+  const hepsiKucuk = harfler === harfler.toLocaleLowerCase('tr');
+  if (!hepsiBuyuk && !hepsiKucuk) return ad.trim();
+  return ad.trim().split(/\s+/).map((k, i) => {
+    const kucuk = k.toLocaleLowerCase('tr');
+    // Bağlaçlar küçük ("Çiçek Kreş ve Anaokulu"); ilk kelime hariç.
+    if (i > 0 && BAGLACLAR.has(kucuk)) return kucuk;
+    // Kısaltma: 2 harf (GS, FB, TS) ya da ünlüsüz 3 harf (BJK). "EVİ" gibi
+    // ünlülü 3 harfli kelime normal kelimedir.
+    const unlusuz = !/[aeıioöuüAEIİOÖUÜ]/.test(k);
+    if (k.length <= 2 || (k.length === 3 && unlusuz)) return k.toLocaleUpperCase('tr');
+    return kucuk.charAt(0).toLocaleUpperCase('tr') + kucuk.slice(1);
+  }).join(' ');
+}
+
+/**
+ * Şablondaki yer tutucuları doldurur: {ad} {yetkili} {gonderen} {marka}.
+ * Yetkili bilinmiyorsa "Merhaba {yetkili}," → "Merhaba," olur.
+ */
+export function sablonDoldur(
+  govde: string,
+  degerler: { ad: string; yetkili: string | null; gonderen: string; marka: string },
+): string {
+  // Değerler işlevle veriliyor: adda "$&" gibi bir dizi olsa replace onu
+  // özel desen sanıp metni bozuyordu.
+  const ad = mesajAdi(degerler.ad);
+  const yetkili = (degerler.yetkili ?? '').trim();
+  return govde
+    .replace(/\{ad\}/g, () => ad)
+    .replace(/\{yetkili\}/g, () => yetkili)
+    .replace(/\{gonderen\}/g, () => degerler.gonderen)
+    .replace(/\{marka\}/g, () => degerler.marka)
+    .replace(/[ \t]+([,.!?])/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+/** Şablonda doldurulmamış "[…]" yeri kaldıysa onu döner (gönderim öncesi uyarı için). */
+export function doldurulmamisYer(metin: string): string | null {
+  const m = metin.match(/\[[^\]\n]{2,}\]/);
+  return m ? m[0] : null;
 }
