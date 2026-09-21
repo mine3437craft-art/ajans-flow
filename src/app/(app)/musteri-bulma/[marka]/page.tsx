@@ -34,6 +34,9 @@ export default async function MusteriBulmaPage({
   if (!marka) redirect('/');
 
   const user = await requireUser();
+  if (user.role === 'caller' && markaYolu !== 'minikstarlar') {
+    redirect('/musteri-bulma/minikstarlar');
+  }
   const isAdmin = user.role === 'admin';
   const sp = await searchParams;
 

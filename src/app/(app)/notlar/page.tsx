@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth';
+import { requireStandardUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -33,7 +33,7 @@ export default async function NotesPage({
 }: {
   searchParams: Promise<{ ara?: string; kim?: string; konu?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireStandardUser();
   const { ara, kim, konu } = await searchParams;
   const arama = (ara ?? '').trim();
   const konuAnahtari = (konu ?? '').trim();

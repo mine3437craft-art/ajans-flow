@@ -60,6 +60,16 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
+/** 
+ * Genel sayfalarda arayıcıları (caller) engelleyip kendi sayfalarına yönlendirir.
+ * Pano, görevler, takvim vb. için bunu kullanın. 
+ */
+export async function requireStandardUser(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role === 'caller') redirect('/musteri-bulma/minikstarlar');
+  return user;
+}
+
 /**
  * Kullanıcının hesap yönetimi gibi GERÇEKTEN devredilemez işlemler için:
  * yönetici dışındaki herkesi panoya geri yollar. Kullanıcı ekleme/silme,

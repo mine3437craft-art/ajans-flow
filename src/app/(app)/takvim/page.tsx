@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth';
+import { requireStandardUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import { POST_STATUS_LABEL, PLATFORMS } from '@/lib/format';
@@ -19,7 +19,7 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<{ ay?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireStandardUser();
   const { ay } = await searchParams;
   const isAdmin = user.role === 'admin';
 

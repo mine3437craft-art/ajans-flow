@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth';
+import { requireStandardUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -14,7 +14,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const user = await requireUser();
+  const user = await requireStandardUser();
   await searchParams;
   const isAdmin = user.role === 'admin';
   const monthStart = new Date().toISOString().slice(0, 7) + '-01';

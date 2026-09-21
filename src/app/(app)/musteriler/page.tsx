@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { requireUser } from '@/lib/auth';
+import { requireStandardUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -23,7 +23,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default async function CustomersPage() {
-  const user = await requireUser();
+  const user = await requireStandardUser();
   const isAdmin = user.role === 'admin';
 
   // Personel yalnızca kendisine atanmış müşterileri görür.

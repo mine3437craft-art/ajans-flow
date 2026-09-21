@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { requireUser } from '@/lib/auth';
+import { requireStandardUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -26,7 +26,7 @@ const SEVIYE = {
 } as const;
 
 export default async function VideolarPage() {
-  const user = await requireUser();
+  const user = await requireStandardUser();
   const isAdmin = user.role === 'admin';
 
   const durumlar = await videoDurumu();

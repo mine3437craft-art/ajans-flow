@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth';
+import { requireStandardUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -35,7 +35,7 @@ export default async function TasksPage({
 }: {
   searchParams: Promise<{ durum?: string; kisi?: string; gun?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireStandardUser();
   const { durum, kisi, gun: gunParam } = await searchParams;
   // Varsayılan görünüm: bugüne kadar olan (geciken dahil) + tarihsiz görevler.
   // 'tumu' seçilirse gelecekteki tekrarlayan görevler de dahil tüm liste görünür.

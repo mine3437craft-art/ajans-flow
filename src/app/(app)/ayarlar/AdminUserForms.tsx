@@ -71,8 +71,9 @@ export function NewUserForm() {
         <div className="form-group">
           <label htmlFor="role">Rol</label>
           <select id="role" name="role" className="form-control" defaultValue="staff">
-            <option value="staff">Personel (finansı göremez)</option>
-            <option value="admin">Yönetici (her şeyi görür)</option>
+            <option value="staff">Personel</option>
+            <option value="caller">Arayıcı (Sadece Minik Starlar)</option>
+            <option value="admin">Yönetici</option>
           </select>
         </div>
       </div>

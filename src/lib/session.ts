@@ -74,7 +74,7 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
     const { payload } = await jwtVerify(token, await secretKey(), { algorithms: ['HS256'] });
     const { uid, username, role, tv } = payload as Record<string, unknown>;
     if (typeof uid !== 'number' || typeof username !== 'string') return null;
-    if (role !== 'admin' && role !== 'staff') return null;
+    if (role !== 'admin' && role !== 'staff' && role !== 'caller') return null;
     if (typeof tv !== 'number') return null;
     return { uid, username, role, tv };
   } catch {

@@ -106,7 +106,7 @@ export async function createUser(_prev: string | null, formData: FormData): Prom
   if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
     return 'Kullanıcı adı 3-30 karakter olmalı; sadece küçük harf, rakam, nokta, tire.';
   }
-  if (role !== 'admin' && role !== 'staff') return 'Geçersiz rol.';
+  if (role !== 'admin' && role !== 'staff' && role !== 'caller') return 'Geçersiz rol.';
   const invalid = validatePassword(password);
   if (invalid) return invalid;
 

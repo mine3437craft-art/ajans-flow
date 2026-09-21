@@ -55,7 +55,12 @@ export const NAV_ITEMS: NavItem[] = [
  * zaten her şeyi görür.
  */
 export function navFor(role: Role, extraAccess: ReadonlySet<PageKey> = new Set()): NavItem[] {
-  return NAV_ITEMS.filter(
-    (item) => !item.pageKey || role === 'admin' || extraAccess.has(item.pageKey),
-  );
+  return NAV_ITEMS.filter((item) => {
+    // Arayıcılar (caller) sadece Minik Starlar ve Ayarlar görebilir.
+    if (role === 'caller') {
+      return item.href === '/musteri-bulma/minikstarlar' || item.href === '/ayarlar';
+    }
+    // Admin ve Staff için normal kurallar
+    return !item.pageKey || role === 'admin' || extraAccess.has(item.pageKey);
+  });
 }
