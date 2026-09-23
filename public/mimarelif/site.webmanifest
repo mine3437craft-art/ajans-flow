@@ -1,0 +1,12 @@
+{
+  "name": "Elif Kara — İç Mimari & Mekânsal Tasarım",
+  "short_name": "Elif Kara",
+  "start_url": "/mimarelif/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#FAF7F2",
+  "icons": [
+    { "src": "/mimarelif/assets/img/logo-ek.png", "sizes": "1182x1182", "type": "image/png", "purpose": "any" },
+    { "src": "/mimarelif/assets/img/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

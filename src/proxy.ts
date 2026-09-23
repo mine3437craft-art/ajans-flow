@@ -74,5 +74,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // /login, statik dosyalar ve Next iç yolları hariç her şey korumalı.
   // /tanitim ve /t/<kod>: müşterilere gönderilen herkese açık tanıtım sitesi.
-  matcher: ['/((?!login|tanitim|t/|api/health|_next/static|_next/image|favicon.ico).*)'],
+  // /mimarelif: public/mimarelif altındaki statik müşteri sitesi (Mimar Elif Kara).
+  //   Tam eşleşme veya /mimarelif/... alt yolu; /mimarelifXYZ korumalı kalır.
+  matcher: [
+    '/((?!login|tanitim|mimarelif(?:$|/)|t/|api/health|_next/static|_next/image|favicon.ico).*)',
+  ],
 };
