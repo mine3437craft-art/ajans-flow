@@ -543,13 +543,17 @@
       raf = on ? requestAnimationFrame(loop) : null;
     }
 
+    // Görsel yüklenemezse boş çerçeve görünmesin.
+    img.addEventListener('load', function () { if (on) box.classList.add('is-on'); });
+    img.addEventListener('error', function () { box.classList.remove('is-on'); });
+
     cards.forEach(function (card) {
       card.addEventListener('mouseenter', function () {
         var src = card.getAttribute('data-preview');
         if (!src) return;
-        img.src = src;
-        box.classList.add('is-on');
         on = true;
+        if (img.getAttribute('src') !== src) img.src = src;
+        if (img.complete && img.naturalWidth > 0) box.classList.add('is-on');
         if (!raf) raf = requestAnimationFrame(loop);
       });
       card.addEventListener('mouseleave', function () {
