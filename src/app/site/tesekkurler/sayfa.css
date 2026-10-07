@@ -1,0 +1,78 @@
+/* ====================================================================
+   /tesekkurler — kısa, sıcak, Instagram'a yönlendiren.
+
+   İki bölüm, tek plaka, tek harf kadrajı. Dönüşüm sonrası sayfada ağ
+   harcanmıyor: harf kadrajı görüntüsüz çalışıyor (marka gradyanı),
+   yani bu sayfa sıfır ek bayt indiriyor.
+
+   Kural: yeni renk / radius / gölge YOK. Sınıflar `af-ts-` ile başlar.
+   ==================================================================== */
+
+/* Devasa kelime plakanın üst boşluğundan sonra gelir: mono etiket
+   kullanılmıyor (aynı kelimeyi iki kez okutmamak için). */
+.af-ts-plaka .af-kr-knock { margin-block-start: clamp(var(--af-b-16), 3vw, var(--af-b-48)); }
+
+.af-ts-bas {
+  margin: clamp(var(--af-b-16), 2vw, var(--af-b-24)) 0 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.5rem, 1.05rem + 2vw, 2.625rem);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  max-width: 24ch;
+  color: #fff;
+}
+
+.af-ts-giris { margin-block-start: var(--af-b-16); max-width: 54ch; }
+
+.af-ts-liste {
+  margin-block-start: clamp(var(--af-b-24), 3vw, var(--af-b-32));
+  gap: var(--af-b-12);
+  max-width: 62ch;
+}
+.af-ts-liste > li { font-size: var(--af-y-metin); }
+
+.af-ts-not { margin-block-start: var(--af-b-12); }
+
+/* =====================================================================
+   BEKLERKEN — üç kapı
+   Ölçek farkı: ilk kapı (Çalışmalar) geniş ekranda iki göz kaplar,
+   başlığı bir kademe iri. Düz üçlü ızgara ritmini kırar.
+   ===================================================================== */
+
+.af-ts-kapilar {
+  display: grid;
+  gap: var(--af-b-16);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 720px) {
+  .af-ts-kapilar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--af-b-24); }
+  .af-ts-kapilar > :first-child { grid-column: span 2; }
+  .af-ts-kapilar > :first-child .af-ts-kapi-bas {
+    font-size: clamp(1.375rem, 1.1rem + 1.1vw, 1.875rem);
+  }
+  .af-ts-kapilar > :first-child .af-kart-metin { font-size: var(--af-y-metin); }
+}
+
+.af-kart.af-ts-kapi {
+  gap: var(--af-b-8);
+  padding: clamp(var(--af-b-24), 2.4vw, var(--af-b-32));
+}
+.af-ts-kapi-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.125rem, 1.02rem + 0.5vw, 1.375rem);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  color: var(--af-metin);
+}
+
+.af-ts-dogrudan {
+  display: grid;
+  gap: var(--af-b-12);
+  margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-48));
+  padding-block-start: clamp(var(--af-b-24), 3vw, var(--af-b-32));
+  border-block-start: 1px solid var(--af-kenar);
+}

@@ -1,0 +1,1201 @@
+/* =====================================================================
+   SEKTÖR SAYFALARI — yalnız src/app/site/sektorler/** kullanır.
+
+   DİL: SITE-GIRIS.md (HARF KADRAJI). Teknikler oradan alındı, dosya
+   kopyalanmadı: `giris.css` giriş ekranının dosyasıdır (başka ajanın
+   sahipliği) ve `.af-hk` sınıfı `site.css`'teki üst bar kutup kuralını
+   tetikliyor. Bu yüzden gereken ÜÇ teknik burada `af-sk-` ön ekiyle
+   yeniden yazıldı:
+     1) blend knockout (tek satır varyantı)  — harfin içinde gerçek kare
+     2) satır içi grain (feTurbulence, istek yok) + tek ışık havuzu
+     3) kilitli satır yüksekliği (CLS 0) ve kesik kenar (clip-path)
+
+   KURALLAR: yeni renk / radius / gölge icat edilmez; her değer
+   `site.css` tokenlarından okunur. Özgüllük `.af` ile yükseltilir.
+   ===================================================================== */
+
+/* =====================================================================
+   0. İZ ŞERİDİ — plakanın üstünde ince kâğıt bant
+   Gerekçe dekor değil: üst bar `position: sticky` ve kâğıt kutupta
+   (beyaz cam). Saf siyah plaka sayfanın ilk pikselinden başlasaydı
+   beyaz cam şerit plakanın üstünde durur ve kimliği bozardı. Ana
+   sayfadaki `:has(.af-hk)` kutup çevirmesi başka ajanın dosyasında
+   olduğu için ona DOKUNMUYORUZ; bunun yerine barın altına 44px'lik
+   kâğıt bir iz şeridi konuyor. Bar kâğıdın üstünde doğru görünür,
+   plaka onun altından perde gibi açılır ve iz (breadcrumb) hub'a da
+   kazandırılmış olur.
+   ===================================================================== */
+.af .af-sk-iz-serit {
+  background: var(--af-beyaz);
+  border-block-end: 1px solid var(--af-cizgi-2);
+}
+.af .af-sk-iz-ic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-8) var(--af-b-16);
+  max-width: var(--af-kap);
+  margin-inline: auto;
+  padding-inline: var(--af-yan);
+}
+
+/* Site yolu izi — mono, küçük */
+.af .af-sektor-iz {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-ink-3);
+  min-width: 0;
+}
+.af .af-sektor-iz a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--af-ink-3);
+}
+.af .af-sektor-iz a:hover { color: var(--af-turuncu-koyu); }
+.af .af-sektor-iz [aria-current] { color: var(--af-ink); }
+.af .af-sk-iz-sayac {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-ink-3);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.af .af-sk-iz-sayac b { color: var(--af-turuncu-koyu); font-weight: 600; }
+
+/* =====================================================================
+   1. PLAKA — üçüncü ve NADİR yüzey (bant değil, ÖNOYUN)
+   Sayfada en çok iki kez. Plakanın üstünde en çok ÜÇ işaret olur.
+   ===================================================================== */
+.af .af-sk-plaka {
+  /* Tipografi ölçüsü. Tavanlar 12,5 karakterlik en uzun satırın
+     ("AYNI İÇERİKLE") 360px'lik kolona sığmasına göre seçildi; bkz.
+     §2 "yatay taşma" notu. */
+  --sk-font: clamp(2rem, 10.4vw, 7rem);
+  /* Satır kutusu puntonun 1,22 katı: Bricolage'ın içerik alanı
+     (ascent+descent) ~1,2em ve kutu daha kısa olursa `overflow: clip`
+     virgülün ve Ç çengelinin altını kesiyor. ÖLÇÜLDÜ: 112px puntoda
+     içerik alanı 134px. */
+  --sk-satir-h: clamp(44px, 13.3vw, 137px);
+  --sk-plaka: var(--af-plaka, #000);
+  --sk-zerre: 0.045;
+  --sk-kadraj: 50% 58%;
+
+  /* Plaka bir BANT BAĞLAMIDIR: tasarım sistemindeki dokuz değişkeni
+     yeniden yazar, böylece site.css'in genel kuralları (`.af-ust-etiket`,
+     çip, düğme, odak halkası) plakada kendiliğinden uyar. */
+  --af-zemin: var(--sk-plaka);
+  --af-metin: #fff;
+  --af-metin-2: rgba(255, 255, 255, 0.68);
+  --af-metin-3: rgba(255, 255, 255, 0.48);
+  --af-kenar: var(--af-cizgi-koyu);
+  --af-kenar-ince: var(--af-cizgi-koyu-2);
+  --af-vurgu: var(--af-turuncu);
+  --af-vurgu-cizgi: var(--af-turuncu);
+  --af-vurgu-sis: var(--af-turuncu-sis-koyu);
+  --af-kart-zemin: var(--af-koyu-2);
+  --af-kart-kenar: var(--af-cizgi-koyu);
+  --af-kart-golge: none;
+  --af-halka: var(--af-turuncu);
+  color-scheme: dark;
+
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: var(--sk-plaka);
+  color: #fff;
+  padding-block: clamp(32px, 5.5vw, 76px) clamp(44px, 7vw, 96px);
+}
+.af .af-sk-plaka .af-ust-etiket { color: #ff8900; }
+.af .af-sk-plaka .af-ust-etiket::before { background: #ff8900; }
+
+/* Tek ışık havuzu — zenginlik DURAN karede. `background-attachment:
+   fixed` YASAK (mobil kaydırma katili). z-index 3: ışık ve zerre
+   İÇERİĞİN ÜSTÜNDE durur; altta dururlarsa knockout maskesinin saf
+   siyahı ışık havuzunu duvarın kutusu boyunca KESER ve video
+   "dikdörtgen olarak sızmış" gibi görünür. */
+.af .af-sk-isik {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(118% 76% at 14% 6%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 90% 98%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. ASLA
+   animasyonlu değil, 180px tile şart, opaklık 0,045'i geçmez. */
+.af .af-sk-zerre {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: var(--sk-zerre);
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (prefers-contrast: more) {
+  .af .af-sk-zerre { opacity: 0; }
+}
+.af .af-sk-plaka-ic {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--af-kap);
+  margin-inline: auto;
+  padding-inline: var(--af-yan);
+}
+
+/* =====================================================================
+   2. DUVAR — blend knockout, TEK SATIR varyantı
+   SITE-GIRIS.md §"Çekirdek teknik": background-clip:text videoyu/kareyi
+   alamaz; SVG mask + foreignObject iOS'ta güvenilmez; harfi path'e
+   çevirmek SSR metnini öldürür. Kullanılan teknik mix-blend-mode
+   knockout — metin GERÇEK DOM METNİ kalır.
+
+     .af-sk-taban  turuncu gradyan (marka sembolünün kendi durakları)
+     .af-sk-plan   <img>  · mix-blend-mode: screen
+     .af-sk-maske  #000   · mix-blend-mode: multiply
+
+   Matematik: multiply → siyah maske × düzlem = siyah (gizler),
+   beyaz harf × düzlem = düzlem (gösterir). Alttaki screen katmanı
+   kareyi turuncu tabana EKLER, dolayısıyla harfin içi asla turuncudan
+   koyu olamaz: #E2541F / #000 = 5,52:1.
+
+   TEK SATIR FARKI: duvar `width: max-content` ile satırı kucaklar.
+   Tam kolon genişliğinde bırakılsaydı kutu ~7,5:1 olur ve 1024x576
+   kaynak %24'üne kadar kırpılırdı. Satırı kucaklayınca kutu ~3:1'e
+   iner, kaynak YUKARI ÖLÇEKLENMEZ ve karenin ~%55'i görünür.
+   ===================================================================== */
+.af .af-sk-oyuk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.af .af-sk-duvar {
+  grid-area: 1 / 1;
+  align-self: start;
+  position: relative;
+  /* DUVARDA `isolation: isolate` ve `contain: paint` YOKTUR — ÖLÇTÜM:
+     ikisi de duvarı ayrı bir yüzeye alıyor ve maskenin `multiply`si
+     tabanı tam karartamıyor; duvarın kutusu plakanın üstünde SOLUK BİR
+     DİKDÖRTGEN olarak beliriyor (konseptin birinci yasağı: videonun /
+     karenin hiçbir yerde dikdörtgen görünmemesi). Blend grubu zaten
+     `.af-sk-plaka-ic` ile (position: relative + z-index: 2) sınırlı,
+     yani karışım plakanın dışına taşamaz. `overflow: clip` maskenin
+     2px taşmasını yığın bağlamı yaratmadan kırpar. */
+  overflow: clip;
+  width: max-content;
+  max-width: 100%;
+}
+/* GENİŞLİĞİ MASKE VERİR, duvar değil. Üç katmanın üçü de `absolute`
+   olsaydı `width: max-content` SIFIR çıkardı (mutlak konumlu çocuk
+   içsel genişliğe katılmaz) ve duvar hiç görünmezdi. Bu yüzden maske
+   AKIŞTA durur: duvarın hem genişliğini hem yüksekliğini o belirler,
+   taban ve düzlem onun üstüne gerilir. */
+.af .af-sk-taban,
+.af .af-sk-plan {
+  position: absolute;
+  pointer-events: none;
+}
+/* KENAR DİKİŞİ KORUMASI: duvarın yüksekliği clamp()'ten geldiği için
+   KESİRLİ. Kesirli kenarda hem taban hem maske kısmi alfayla boyanıyor;
+   multiply kısmi alfada tam karartamadığı için duvarın sınırında ~1px
+   sıcak çizgi kalıyor ve kutu plakanın üstünde beliriyor. Taban ve
+   düzlem 1px içeri alınır, maske tam kutuyu kaplar. */
+.af .af-sk-taban,
+.af .af-sk-plan { inset: 1px; }
+
+/* KONTRAST TABANI — mimari, dekor değil. Duraklar yalnız
+   public/site/marka/flow-sembol.svg'nin kendi stoplarından. */
+.af .af-sk-taban {
+  background: linear-gradient(100deg, #e2541f, #ff8900 50%, #ffcf3b);
+}
+
+/* DİKKAT — BLEND EDİLEN KATMANA `opacity` / `filter` / yarı saydam
+   örtü VERİLMEZ. Chrome blend grubunu ayrı bir yüzeye alıyor ve
+   üstündeki multiply maskesi onu tam karartamıyor; duvarın kutusu
+   plakanın üstünde SOLUK BİR DİKDÖRTGEN olarak görünüyor. Bu,
+   konseptin birinci yasağı. */
+.af .af-sk-plan { mix-blend-mode: screen; }
+.af .af-sk-plan img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: var(--sk-kadraj);
+}
+/* saveData / 2g: görsel hiç gelmezse harfler marka gradyanıyla dolar —
+   0 bayt, marka doğru, 5,52:1 kontrast korunur. */
+.af.af-hafif .af-sk-plan { display: none; }
+
+/* Maske duvarın kutusunu 2px TAŞAR; padding metni tam eski yerine geri
+   koyar, yani h1 ile hizası bozulmaz. Taşma `contain: paint` ile
+   kırpılır. */
+.af .af-sk-maske {
+  position: relative;
+  z-index: 1;
+  margin: -2px;
+  padding: 2px;
+  background: var(--sk-plaka);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* --- Satırlar: yükseklik MUTLAK kilitli (CLS 0'ın tek anahtarı) ---
+   Bricolage `display:swap` ile geç gelse bile glif SABİT kutunun içinde
+   değişir → düzen kaymaz. `text-wrap: balance` KULLANILMAZ. */
+.af .af-sk-satirlar {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--sk-font);
+  font-weight: 800;
+  line-height: var(--sk-satir-h);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  font-synthesis-weight: none;
+  -webkit-text-size-adjust: none;
+}
+.af .af-sk-satir {
+  display: block;
+  height: var(--sk-satir-h);
+  overflow: clip;
+  white-space: pre;
+}
+/* Satır içi perde — açılış SAF CSS, GSAP gerekmez. Perde açılması gibi
+   okunur, harf harf çizgi film gibi DEĞİL. */
+.af .af-sk-i { display: block; line-height: var(--sk-satir-h); }
+.af.js-var .af-sk-i {
+  animation: af-sk-perde 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.af.js-var .af-sk-satir:nth-child(1) .af-sk-i { animation-delay: 0.04s; }
+.af.js-var .af-sk-satir:nth-child(2) .af-sk-i { animation-delay: 0.1s; }
+.af.js-var .af-sk-satir:nth-child(3) .af-sk-i { animation-delay: 0.16s; }
+.af.js-var .af-sk-satir:nth-child(4) .af-sk-i { animation-delay: 0.22s; }
+@keyframes af-sk-perde {
+  from { transform: translateY(108%); }
+  to { transform: translateY(0); }
+}
+
+/* `position: relative; z-index: 1` ZORUNLU, dekor değil: duvar
+   `isolation` + `contain: paint` ile bir yığın bağlamı yaratıyor ve
+   konumlandırılmamış böyle bir öge, normal akıştaki kardeşinin ÜSTÜNDE
+   atomik olarak boyanıyor. Açıkça yükseltilmezse gerçek <h1> maskenin
+   ALTINDA kalır ve dolu OLMAYAN satırlar hiç görünmez. */
+.af .af-sk-yazi {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+}
+.af .af-sk-satir--dolu { color: transparent; }
+.af .af-sk-maske .af-sk-satirlar { color: var(--sk-plaka); }
+.af .af-sk-maske .af-sk-satir--dolu { color: #fff; }
+
+/* Gradyan yazı — knockout'un bedelsiz akrabası. Harfin içinde GÖRÜNTÜ
+   yoksa blend yığını kurmanın anlamı yok: tek `background-clip: text`
+   aynı kutuplaşmayı 0 bayta verir. Sektör sayfalarında bu kullanılır,
+   knockout YALNIZ hub'da (sayfa başına en çok bir kez kuralı). */
+.af .af-sk-gradyan {
+  background: linear-gradient(100deg, #e2541f, #ff8900 52%, #ffcf3b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.af-bant--kagit .af-sk-gradyan,
+.af-bant--beyaz .af-sk-gradyan {
+  background: linear-gradient(100deg, #861500, #b83c13 52%, #c5410f);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+@media (prefers-contrast: more) {
+  .af .af-sk-gradyan {
+    background: none;
+    color: var(--af-vurgu);
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* =====================================================================
+   3. DERT ŞERİDİ — uzun paragrafın yerine geçen veri satırları
+   Metin DEĞİŞMEZ; yalnız noktalı virgüller satıra, "…nin derdi" kalıbı
+   mono etikete dönüşür.
+   ===================================================================== */
+.af .af-sk-dert {
+  display: grid;
+  gap: 0;
+  margin-block-start: clamp(var(--af-b-24), 3vw, var(--af-b-32));
+  border-block-start: 1px solid var(--af-kenar);
+  max-width: 62ch;
+}
+.af .af-sk-dert > div {
+  display: grid;
+  gap: 2px var(--af-b-16);
+  padding-block: var(--af-b-12);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+@media (min-width: 620px) {
+  .af .af-sk-dert > div { grid-template-columns: 24ch minmax(0, 1fr); align-items: baseline; }
+}
+.af .af-sk-dert dt,
+.af .af-sk-dert-etiket {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-vurgu);
+  margin: 0;
+}
+.af .af-sk-dert dd,
+.af .af-sk-dert-deger {
+  margin: 0;
+  font-size: var(--af-y-giris);
+  line-height: 1.35;
+  color: var(--af-metin);
+  letter-spacing: -0.015em;
+}
+
+/* =====================================================================
+   4. VİTRİN — 12 kart yerine tipografik liste + sahne
+   Masaüstünde satırın üstüne gelince (ya da odaklanınca) o sektörün
+   GERÇEK medyası sağdaki yapışkan sahnede belirir. Medyası olmayan
+   sektörde sahne tipografik levhaya döner — uydurma görsel yok.
+   ===================================================================== */
+.af .af-vitrin { display: grid; gap: clamp(var(--af-b-24), 3vw, var(--af-b-48)); }
+@media (min-width: 980px) {
+  .af .af-vitrin { grid-template-columns: minmax(0, 1fr) minmax(0, 360px); }
+}
+.af .af-vitrin-liste {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--af-kenar);
+  counter-reset: af-vitrin;
+}
+.af .af-vitrin-satir {
+  position: relative;
+  margin: 0;
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+/* Soldan büyüyen 2px turuncu çubuk — imleç ışığının ucuz ve dürüst
+   akrabası (0 JS, 0 bayt). */
+.af .af-vitrin-satir::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 2px;
+  background: var(--af-vurgu-cizgi);
+  transform: scaleY(0);
+  transform-origin: 50% 0;
+  transition: transform var(--af-gecis);
+}
+/* Satır ızgarası YERLEŞİMLE kuruluyor, otomatik akışla değil: dar
+   ekranda "Örnek iş · MARKA" etiketi kendi satırına iner, yoksa nowrap
+   etiket kolonu şişirip satırı 360px'in dışına taşırıyordu (ölçüldü:
+   369px). Masaüstünde dört kolon tek satır. */
+.af .af-vitrin-bag {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: var(--af-b-8) var(--af-b-12);
+  min-height: 64px;
+  padding: var(--af-b-12) 0 var(--af-b-16) var(--af-b-12);
+  color: inherit;
+  text-decoration: none;
+  transition: padding-inline-start var(--af-gecis);
+}
+.af .af-vitrin-no { grid-area: 1 / 1; }
+.af .af-vitrin-ad-kutu { grid-area: 1 / 2; min-width: 0; }
+.af .af-vitrin-ok { grid-area: 1 / 3; }
+.af .af-vitrin-yan { grid-area: 2 / 2 / auto / -1; }
+@media (min-width: 760px) {
+  .af .af-vitrin-bag {
+    grid-template-columns: 3.25rem minmax(0, 1fr) minmax(0, auto) 26px;
+    gap: var(--af-b-8) var(--af-b-16);
+    padding-inline-end: var(--af-b-8);
+    padding-block-end: var(--af-b-12);
+  }
+  .af .af-vitrin-yan { grid-area: 1 / 3; }
+  .af .af-vitrin-ok { grid-area: 1 / 4; }
+}
+.af .af-vitrin-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--af-metin-3);
+  align-self: start;
+  padding-block-start: 0.5em;
+}
+.af .af-vitrin-ad {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  font-size: clamp(1.3125rem, 1.02rem + 1.45vw, 2.375rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--af-metin);
+  display: block;
+  text-wrap: pretty;
+}
+.af .af-vitrin-yan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: start;
+  min-width: 0;
+}
+@media (min-width: 760px) {
+  .af .af-vitrin-yan { align-items: flex-end; text-align: end; }
+}
+.af .af-vitrin-vaat {
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-3);
+  display: none;
+}
+@media (min-width: 760px) {
+  .af .af-vitrin-vaat { display: block; max-width: 24ch; }
+}
+.af .af-vitrin-etiket {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-vurgu);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 100%;
+}
+@media (min-width: 760px) { .af .af-vitrin-etiket { white-space: nowrap; } }
+.af .af-vitrin-etiket::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--af-r-cip);
+  background: var(--af-vurgu-cizgi);
+  flex: none;
+}
+.af .af-vitrin-ok {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  color: var(--af-metin-3);
+  transition: transform var(--af-gecis), color var(--af-gecis);
+}
+
+@media (hover: hover) {
+  .af .af-vitrin-satir:hover::before,
+  .af .af-vitrin-satir:focus-within::before { transform: scaleY(1); }
+  .af .af-vitrin-satir:hover .af-vitrin-bag,
+  .af .af-vitrin-satir:focus-within .af-vitrin-bag { padding-inline-start: var(--af-b-24); }
+  .af .af-vitrin-satir:hover .af-vitrin-ad,
+  .af .af-vitrin-satir:focus-within .af-vitrin-ad {
+    background: linear-gradient(100deg, #861500, #b83c13 48%, #c5410f);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  .af .af-vitrin-satir:hover .af-vitrin-ok,
+  .af .af-vitrin-satir:focus-within .af-vitrin-ok {
+    transform: translateX(5px);
+    color: var(--af-vurgu);
+  }
+}
+/* Dokunmada basılı hissi */
+.af .af-vitrin-satir:active { background: var(--af-vurgu-sis); }
+.af .af-vitrin-satir::before { will-change: auto; }
+
+/* --- Sahne: yapışkan, oranı KİLİTLİ (CLS 0) --- */
+.af .af-vitrin-sahne { display: none; }
+@media (min-width: 980px) {
+  .af .af-vitrin-sahne {
+    display: block;
+    position: sticky;
+    inset-block-start: calc(var(--af-ustbar-h) + var(--af-b-24));
+    aspect-ratio: 4 / 5;
+    pointer-events: none;
+  }
+}
+.af .af-vitrin-kare {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 260ms linear;
+  border-radius: var(--af-r-kart);
+  overflow: clip;
+  background: var(--af-koyu);
+  border: 1px solid var(--af-cizgi-koyu);
+}
+/* `:has()` desteklenmiyorsa ilk kare kalıcı görünür — sahne hiç boş
+   kalmaz, hiçbir sayfa bozulmaz. */
+.af .af-vitrin-kare:first-child { opacity: 1; }
+.af .af-vitrin-kare img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Açılan kare 1,04'ten 1'e oturur: tek `transform`, reflow yok,
+     "yavaş nefes" hissi. Ölçek hep 1'e DOĞRU gider; büyüyen görsel
+     kutuyu taşırmaz (overflow: clip zaten var). */
+  transform: scale(var(--kare-olcek, 1.04));
+  transition: transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.af .af-vitrin-kare-alt {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  margin: 0;
+  padding: var(--af-b-24) var(--af-b-16) var(--af-b-12);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82) 62%);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--af-b-8);
+}
+/* Medyası olmayan sektör: tipografik levha. Uydurma görsel YOK. */
+.af .af-vitrin-levha {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--af-b-16);
+  padding: var(--af-b-24);
+  background:
+    radial-gradient(120% 80% at 12% 4%, rgba(255, 137, 0, 0.14), transparent 62%),
+    var(--af-koyu);
+}
+.af .af-vitrin-levha-no {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.05em;
+}
+.af .af-vitrin-levha-metin {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-weight: 600;
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.af .af-vitrin-levha-alt {
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+/* --- Mobil: sahne yok, medya satırın İÇİNDE şerit olarak durur ---
+   Dokunmanın karşılığı SAYFAYA GİTMEK olmalı; dokunup "önce görsel
+   aç" yapmak bağlantıyı iki dokunuşa çıkarır. Bu yüzden mobilde şerit
+   kaydırmayla belirir (data-belir), dokunmada basılı hissi verilir. */
+.af .af-vitrin-serit {
+  display: block;
+  position: relative;
+  margin: 0 0 var(--af-b-16) var(--af-b-12);
+  border-radius: var(--af-r-veri);
+  overflow: clip;
+  aspect-ratio: 16 / 7;
+  background: var(--af-koyu);
+}
+.af .af-vitrin-serit img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (min-width: 980px) {
+  .af .af-vitrin-serit { display: none; }
+}
+
+/* =====================================================================
+   5. RAY — "dört bölüm, hep aynı sırada": kart ızgarası değil ŞERİT
+   ===================================================================== */
+.af .af-sk-ray {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: af-ray;
+  border-block-start: 1px solid var(--af-kenar);
+}
+@media (min-width: 900px) {
+  .af .af-sk-ray { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .af .af-sk-ray > li { border-inline-start: 1px solid var(--af-kenar-ince); }
+  .af .af-sk-ray > li:first-child { border-inline-start: 0; }
+}
+.af .af-sk-ray > li {
+  position: relative;
+  margin: 0;
+  padding: clamp(var(--af-b-16), 2.2vw, var(--af-b-32)) var(--af-b-16) clamp(var(--af-b-24), 2.6vw, var(--af-b-32)) 0;
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+@media (min-width: 900px) {
+  .af .af-sk-ray > li { padding-inline: clamp(var(--af-b-16), 1.8vw, var(--af-b-32)); border-block-end: 0; }
+  .af .af-sk-ray > li:first-child { padding-inline-start: 0; }
+}
+.af .af-sk-ray-no {
+  display: block;
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 5.4vw, 4.25rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  margin-block-end: var(--af-b-12);
+}
+.af .af-sk-ray h3 {
+  font-size: var(--af-y-h4);
+  letter-spacing: -0.02em;
+  margin-block-end: var(--af-b-8);
+}
+.af .af-sk-ray p { margin: 0; font-size: var(--af-y-kucuk); color: var(--af-metin-2); }
+
+/* =====================================================================
+   6. ÇİFT KANAT — bant farkının KENDİSİ bir bölümdür
+   Koyu = yazılım, kâğıt = stüdyo. İki kanat yan yana, aralarında tek
+   köşeli SERT kesik (clip-path, 0 bayt). Ziyaretçi iki tarafın ayrı
+   olduğunu okumadan ÖNCE görür.
+   ===================================================================== */
+.af .af-kanat { display: grid; background: var(--af-kagit); }
+@media (min-width: 760px) {
+  .af .af-kanat { grid-template-columns: 1fr 1fr; }
+}
+.af .af-kanat-yari {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--af-b-24);
+  padding: clamp(var(--af-b-24), 3.4vw, var(--af-b-48)) var(--af-yan);
+  min-height: clamp(168px, 20vw, 248px);
+  text-decoration: none;
+  transition: background-color var(--af-gecis);
+}
+.af .af-kanat-yari--koyu {
+  background: var(--af-koyu);
+  color: #ededf3;
+  --af-metin: #ededf3;
+  --af-metin-2: rgba(237, 237, 243, 0.7);
+  --af-metin-3: rgba(237, 237, 243, 0.5);
+  --af-vurgu: var(--af-turuncu);
+  --af-halka: var(--af-turuncu);
+  color-scheme: dark;
+}
+.af .af-kanat-yari--kagit {
+  background: var(--af-kagit);
+  color: var(--af-ink);
+  --af-metin: var(--af-ink);
+  --af-metin-2: var(--af-ink-2);
+  --af-metin-3: var(--af-ink-3);
+  --af-vurgu: var(--af-turuncu-koyu);
+}
+@media (min-width: 760px) {
+  .af .af-kanat-yari--koyu {
+    clip-path: polygon(0 0, 100% 0, calc(100% - 4.5vw) 100%, 0 100%);
+    padding-inline-end: calc(var(--af-yan) + 4.5vw);
+  }
+  .af .af-kanat-yari--kagit { padding-inline-start: clamp(var(--af-b-16), 2vw, var(--af-b-32)); }
+}
+.af .af-kanat-rozet {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-vurgu);
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+}
+.af .af-kanat-rozet span:last-child { color: var(--af-metin-3); }
+/* İki kanadın adı TEK KELİME ve devasa. Bölüm başlığını tekrar
+   etmiyoruz: aynı cümle 300px arayla iki kez görünürse hata gibi
+   okunuyor. "Yazılım" ve "Stüdyo" tasarım sisteminin bant anlamının
+   kendi sözcükleri (koyu = yazılım, kâğıt = stüdyo). */
+.af .af-kanat-dev {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  font-size: clamp(2.75rem, 1.4rem + 6vw, 6.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--af-metin);
+}
+.af .af-kanat-alt {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+  min-height: 44px;
+  font-size: var(--af-y-mini);
+  color: var(--af-vurgu);
+}
+.af .af-kanat-alt svg { width: 16px; height: 16px; transition: transform var(--af-gecis); }
+@media (hover: hover) {
+  .af .af-kanat-yari--koyu:hover { background: var(--af-koyu-2); }
+  .af .af-kanat-yari--kagit:hover { background: var(--af-kagit-2); }
+  .af .af-kanat-yari:hover .af-kanat-alt svg { transform: translateX(4px); }
+}
+
+/* =====================================================================
+   7. YAZILIM KANADI (koyu bant) — veri rayı
+   Kart değil HÜCRE: 2px köşe, mono numara, hairline ızgara. Stüdyo
+   kanadının tam tersi.
+   ===================================================================== */
+.af .af-sk-veri-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-8) var(--af-b-16);
+  margin-block-end: var(--af-b-16);
+  padding-block-end: var(--af-b-8);
+  border-block-end: 1px solid var(--af-kenar);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af .af-sk-veri-bas b { color: var(--af-vurgu); font-weight: 500; }
+.af .af-sektor-veri {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--af-kenar-ince);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  overflow: clip;
+}
+@media (min-width: 760px) { .af .af-sektor-veri { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1100px) { .af .af-sektor-veri { grid-template-columns: 1fr 1fr 1fr; } }
+.af .af-sektor-veri > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: var(--af-b-12);
+  align-items: start;
+  margin: 0;
+  padding: var(--af-b-16) var(--af-b-16) var(--af-b-24);
+  background: var(--af-koyu);
+  font-size: var(--af-y-kucuk);
+  line-height: 1.45;
+  color: var(--af-metin-2);
+  transition: background-color var(--af-gecis), color var(--af-gecis);
+}
+.af .af-sektor-veri > li::after {
+  content: '';
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: var(--af-vurgu-cizgi);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform var(--af-gecis);
+}
+@media (hover: hover) {
+  .af .af-sektor-veri > li:hover { background: var(--af-koyu-2); color: var(--af-metin); }
+  .af .af-sektor-veri > li:hover::after { transform: scaleX(1); }
+}
+.af .af-sektor-veri-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--af-vurgu);
+  padding-block-start: 0.2em;
+}
+
+/* =====================================================================
+   8. STÜDYO KANADI (kâğıt bant) — kutu YOK, editoryal satır
+   ===================================================================== */
+.af .af-sk-studyo {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+}
+@media (min-width: 1000px) {
+  .af .af-sk-studyo { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); align-items: start; }
+}
+.af .af-sk-studyo-liste {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af .af-sk-studyo-liste > li {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: var(--af-b-12);
+  align-items: baseline;
+  margin: 0;
+  padding-block: var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar-ince);
+  font-family: var(--af-yazi-baslik);
+  font-weight: 500;
+  font-size: clamp(1.0625rem, 1rem + 0.42vw, 1.3125rem);
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--af-metin);
+}
+.af .af-sk-studyo-no {
+  font-family: var(--af-yazi-serif);
+  font-style: italic;
+  font-size: 1.125rem;
+  color: var(--af-vurgu);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kolaj — tek tip ızgara DEĞİL, farklı ölçekler. Oran her kutuda
+   kilitli (aspect-ratio) → CLS 0. */
+.af .af-sk-kolaj {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(var(--af-b-8), 1.4vw, var(--af-b-16));
+  align-items: start;
+}
+.af .af-sk-kolaj figure { margin: 0; }
+.af .af-sk-kolaj-kutu {
+  position: relative;
+  display: block;
+  border-radius: var(--af-r-kart);
+  overflow: clip;
+  background: var(--af-kagit-2);
+  border: 1px solid var(--af-kenar-ince);
+  aspect-ratio: var(--sk-oran, 1 / 1);
+}
+.af .af-sk-kolaj-kutu img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.af .af-sk-kolaj figcaption {
+  margin-block-start: var(--af-b-8);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af .af-sk-kolaj > *:nth-child(1) { grid-column: span 4; }
+.af .af-sk-kolaj > *:nth-child(2) { grid-column: span 2; margin-block-start: clamp(var(--af-b-16), 3vw, var(--af-b-48)); }
+.af .af-sk-kolaj > *:nth-child(3) { grid-column: span 3; }
+.af .af-sk-kolaj > *:nth-child(4) { grid-column: span 3; margin-block-start: calc(-1 * clamp(var(--af-b-8), 1.6vw, var(--af-b-24))); }
+
+/* Medyası olmayan sektörde stüdyo kanadının sağ kolonu: tipografik
+   çözüm. Sahte görsel, stok fotoğraf ve "örnek" damgasız kurgu YOK. */
+.af .af-sk-levha {
+  position: relative;
+  display: grid;
+  gap: var(--af-b-16);
+  padding: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-beyaz);
+  overflow: clip;
+}
+.af .af-sk-levha::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #e2541f, #ff8900 52%, #ffcf3b);
+}
+.af .af-sk-levha-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 1.1rem + 1.9vw, 2.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+.af .af-sk-levha-metin { margin: 0; color: var(--af-metin-2); font-size: var(--af-y-kucuk); }
+
+/* =====================================================================
+   9. ÖRNEK İŞ — vaka medyası BÜYÜK
+   ===================================================================== */
+.af .af-sk-vaka {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .af .af-sk-vaka { grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr); }
+}
+.af .af-sk-vaka-medya { position: relative; }
+.af .af-sk-vaka-medya .af-video { max-width: none; }
+.af .af-sk-vaka-medya--dar { max-width: 320px; margin-inline: auto; }
+.af .af-sk-vaka-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--af-b-8) var(--af-b-16);
+  padding-block-end: var(--af-b-8);
+  margin-block-end: var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af .af-sk-vaka-bas b { color: var(--af-vurgu); font-weight: 500; }
+.af .af-sk-alinti {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-weight: 600;
+  font-size: clamp(1.25rem, 1.02rem + 1.1vw, 1.875rem);
+  line-height: 1.2;
+  letter-spacing: -0.028em;
+  color: var(--af-metin);
+  text-wrap: pretty;
+}
+
+/* =====================================================================
+   10. İNDEKS — "diğer sektörler" çip yığını değil, dizin
+   ===================================================================== */
+.af .af-sk-indeks {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--af-kenar);
+}
+@media (min-width: 680px) { .af .af-sk-indeks { grid-template-columns: 1fr 1fr; column-gap: clamp(var(--af-b-24), 3vw, var(--af-b-48)); } }
+@media (min-width: 1100px) { .af .af-sk-indeks { grid-template-columns: repeat(3, 1fr); } }
+.af .af-sk-indeks > li { margin: 0; border-block-end: 1px solid var(--af-kenar-ince); }
+.af .af-sk-indeks a {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--af-b-12);
+  min-height: 56px;
+  padding-block: var(--af-b-8);
+  color: var(--af-metin-2);
+  text-decoration: none;
+  font-family: var(--af-yazi-baslik);
+  font-weight: 600;
+  font-size: var(--af-y-metin);
+  letter-spacing: -0.02em;
+  transition: color var(--af-gecis), padding-inline-start var(--af-gecis);
+}
+.af .af-sk-indeks a > span:first-child {
+  font-family: var(--af-yazi-mono);
+  font-weight: 400;
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--af-metin-3);
+}
+.af .af-sk-indeks a svg { width: 16px; height: 16px; opacity: 0; transition: opacity var(--af-gecis), transform var(--af-gecis); }
+@media (hover: hover) {
+  .af .af-sk-indeks a:hover { color: var(--af-vurgu); padding-inline-start: var(--af-b-8); }
+  .af .af-sk-indeks a:hover svg { opacity: 1; transform: translateX(3px); }
+}
+
+/* =====================================================================
+   11. KESİK KENAR — bant geçişi. 0 bayt, karakterli.
+   Kama, ÜSTTEKİ bandı gösterir: bant negatif üst payla yukarı çekilir,
+   üstteki bandın alt dolgusu aynı miktarda artırılır.
+   ===================================================================== */
+.af .af-sk-kesik {
+  --sk-kesik: clamp(26px, 4.6vw, 72px);
+  position: relative;
+  z-index: 1;
+  margin-block-start: calc(-1 * var(--sk-kesik));
+  padding-block-start: calc(var(--af-bant-bosluk) + var(--sk-kesik));
+  clip-path: polygon(0 var(--sk-kesik), 54% 0, 100% 0, 100% 100%, 0 100%);
+}
+.af .af-sk-kesik-oncesi { padding-block-end: calc(var(--af-bant-bosluk) + clamp(26px, 4.6vw, 72px)); }
+
+/* =====================================================================
+   12. ÇAĞRI
+   ===================================================================== */
+.af .af-sektor-cagri { display: grid; justify-items: center; gap: var(--af-b-16); }
+.af .af-sektor-cagri > .af-dugmeler { width: 100%; justify-content: center; }
+.af .af-sektor-cagri > .af-dugme-not { margin-inline: auto; text-align: center; }
+
+/* =====================================================================
+   13. KORUMALAR
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .af.js-var .af-sk-i { animation: none; }
+  .af .af-vitrin-kare { transition: none; }
+  .af .af-vitrin-kare img { transform: none; transition: none; }
+  .af .af-vitrin-bag,
+  .af .af-vitrin-ok,
+  .af .af-sk-indeks a,
+  .af .af-kanat-alt svg { transition: none; }
+}
+@media (prefers-contrast: more) {
+  .af .af-sk-plan { display: none; }
+  .af .af-sk-isik { display: none; }
+}
+@media print {
+  .af .af-sk-plaka { background: #fff; color: #000; }
+  .af .af-sk-isik,
+  .af .af-sk-zerre,
+  .af .af-sk-plan,
+  .af .af-sk-maske { display: none; }
+  .af .af-sk-satir--dolu { color: #000; }
+  .af .af-vitrin-sahne { display: none; }
+}
+
+/* =====================================================================
+   14. VİTRİN SAHNESİ — hangi kare görünür?
+   `:has()` ile saf CSS: satırın üstüne gelince (ya da satırdaki bağlantı
+   odaklanınca) AYNI sıra numaralı kare açılır. Numara sektör anahtarı
+   değil SIRA olduğu için içerik verisi değişse bile kural kaymaz.
+   `:has()` desteklenmeyen tarayıcıda iki kural da yok sayılır → ilk kare
+   kalıcı görünür (yukarıdaki `:first-child` kuralı), sahne boş kalmaz.
+   ===================================================================== */
+.af .af-vitrin:has(.af-vitrin-satir:hover) .af-vitrin-kare,
+.af .af-vitrin:has(.af-vitrin-satir:focus-within) .af-vitrin-kare { opacity: 0; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="1"]:hover) .af-vitrin-kare[data-s="1"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="1"]:focus-within) .af-vitrin-kare[data-s="1"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="2"]:hover) .af-vitrin-kare[data-s="2"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="2"]:focus-within) .af-vitrin-kare[data-s="2"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="3"]:hover) .af-vitrin-kare[data-s="3"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="3"]:focus-within) .af-vitrin-kare[data-s="3"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="4"]:hover) .af-vitrin-kare[data-s="4"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="4"]:focus-within) .af-vitrin-kare[data-s="4"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="5"]:hover) .af-vitrin-kare[data-s="5"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="5"]:focus-within) .af-vitrin-kare[data-s="5"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="6"]:hover) .af-vitrin-kare[data-s="6"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="6"]:focus-within) .af-vitrin-kare[data-s="6"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="7"]:hover) .af-vitrin-kare[data-s="7"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="7"]:focus-within) .af-vitrin-kare[data-s="7"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="8"]:hover) .af-vitrin-kare[data-s="8"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="8"]:focus-within) .af-vitrin-kare[data-s="8"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="9"]:hover) .af-vitrin-kare[data-s="9"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="9"]:focus-within) .af-vitrin-kare[data-s="9"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="10"]:hover) .af-vitrin-kare[data-s="10"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="10"]:focus-within) .af-vitrin-kare[data-s="10"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="11"]:hover) .af-vitrin-kare[data-s="11"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="11"]:focus-within) .af-vitrin-kare[data-s="11"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="12"]:hover) .af-vitrin-kare[data-s="12"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="12"]:focus-within) .af-vitrin-kare[data-s="12"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="13"]:hover) .af-vitrin-kare[data-s="13"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="13"]:focus-within) .af-vitrin-kare[data-s="13"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="14"]:hover) .af-vitrin-kare[data-s="14"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="14"]:focus-within) .af-vitrin-kare[data-s="14"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="15"]:hover) .af-vitrin-kare[data-s="15"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="15"]:focus-within) .af-vitrin-kare[data-s="15"] { opacity: 1; --kare-olcek: 1; }
+.af .af-vitrin:has(.af-vitrin-satir[data-s="16"]:hover) .af-vitrin-kare[data-s="16"],
+.af .af-vitrin:has(.af-vitrin-satir[data-s="16"]:focus-within) .af-vitrin-kare[data-s="16"] { opacity: 1; --kare-olcek: 1; }
+
+/* =====================================================================
+   15. SEKTÖR PLAKASI — başlık + künye
+   Harf kadrajı (blend knockout) BU sayfalarda kullanılmaz: sayfa başına
+   en çok bir kez kuralı hub'da harcandı ve 12 sayfanın her birinde
+   blend yığını kurmak kompozisyon maliyetini bedava çoğaltırdı.
+   Burada aynı kutuplaşma 0 baytlık `background-clip: text` ile alınır.
+   ===================================================================== */
+.af .af-sk-hero {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .af .af-sk-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 300px); }
+}
+.af .af-sk-sektor-bas {
+  margin: 0 0 var(--af-b-16);
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  font-size: clamp(2.125rem, 1.18rem + 4.2vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  max-width: 18ch;
+}
+
+/* Künye: rakamların hepsi sayfanın KENDİ içeriğinden sayılıyor. */
+.af .af-sk-kunye {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af .af-sk-kunye > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-16);
+  min-height: 48px;
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af .af-sk-kunye dt {
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af .af-sk-kunye dd {
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mini);
+  font-variant-numeric: tabular-nums;
+  color: var(--af-metin);
+  text-align: end;
+}
+.af .af-sk-kunye dd a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--af-vurgu);
+  text-decoration: none;
+  border-block-end: 1px solid transparent;
+}
+.af .af-sk-kunye dd a:hover { border-block-end-color: currentColor; }
+
+/* Vitrin levhası kâğıt bandın İÇİNDE ama kendi zemini koyu: gradyanın
+   açık kutbu kullanılır, yoksa #B83C13 / #0E0E16 ≈ 3:1'e düşer. */
+.af .af-vitrin-levha .af-sk-gradyan,
+.af .af-vitrin-kare .af-sk-gradyan {
+  background: linear-gradient(100deg, #e2541f, #ff8900 52%, #ffcf3b);
+  -webkit-background-clip: text;
+  background-clip: text;
+}

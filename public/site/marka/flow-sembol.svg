@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ajans Flow sembolü. Kaynak: marka sahibi (Eren), 7 Ekim 2026. Her yerde bu kullanılır. -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="800" height="880" viewBox="270 190 800 880" role="img" aria-label="Ajans Flow">
+  <defs>
+    <linearGradient id="topBack" gradientUnits="userSpaceOnUse"
+                    x1="443" y1="458" x2="847" y2="636">
+      <stop offset="0" stop-color="#861500"/>
+      <stop offset=".48" stop-color="#F14B00"/>
+      <stop offset="1" stop-color="#FFAE00"/>
+    </linearGradient>
+    <linearGradient id="topFront" gradientUnits="userSpaceOnUse"
+                    x1="481" y1="432" x2="906" y2="253">
+      <stop offset="0" stop-color="#FF5100"/>
+      <stop offset=".5" stop-color="#FF8900"/>
+      <stop offset="1" stop-color="#FFCF3B"/>
+    </linearGradient>
+    <linearGradient id="lowerBack" gradientUnits="userSpaceOnUse"
+                    x1="492" y1="703" x2="674" y2="938">
+      <stop offset="0" stop-color="#A82400"/>
+      <stop offset=".44" stop-color="#FF6500"/>
+      <stop offset="1" stop-color="#FFBD00"/>
+    </linearGradient>
+    <linearGradient id="lowerFront" gradientUnits="userSpaceOnUse"
+                    x1="430" y1="795" x2="854" y2="558">
+      <stop offset="0" stop-color="#A51E00"/>
+      <stop offset=".4" stop-color="#EA4300"/>
+      <stop offset=".72" stop-color="#FF7F00"/>
+      <stop offset="1" stop-color="#FFC514"/>
+    </linearGradient>
+  </defs>
+  <g id="ribbon-f">
+    <path fill="url(#topBack)"
+      d="M383 817 L383 507
+         C383 380 480 280 604 280 L823 280
+         C899 280 961 267 1010 237
+         C974 386 890 473 744 473 L704 473
+         C556 473 470 575 383 817 Z"/>
+    <path fill="url(#topFront)"
+      d="M383 552 L383 507
+         C383 380 480 280 604 280 L823 280
+         C899 280 961 267 1010 237
+         C974 362 868 410 708 411 L640 411
+         C499 411 405 443 383 552 Z"/>
+    <path fill="url(#lowerBack)"
+      d="M315 1022
+         C377 824 445 665 549 592
+         C600 556 649 540 710 540 L786 540
+         C837 540 877 537 906 527
+         C875 634 814 697 711 697 L646 697
+         C605 697 590 718 584 762
+         C575 849 541 901 451 945
+         C397 971 350 996 315 1022 Z"/>
+    <path fill="url(#lowerFront)"
+      d="M315 1022
+         C377 824 445 665 549 592
+         C600 556 649 540 710 540 L786 540
+         C837 540 877 537 906 527
+         C874 608 798 633 708 649
+         C643 661 594 669 536 696
+         C427 746 367 859 315 1022 Z"/>
+  </g>
+</svg>

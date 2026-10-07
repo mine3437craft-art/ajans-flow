@@ -557,3 +557,7 @@ WHERE NOT EXISTS (SELECT 1 FROM prospect_templates t WHERE t.brand = v.brand AND
 
 INSERT INTO app_config (anahtar, deger) VALUES ('sablonlar_tohumlandi_2', '1')
 ON CONFLICT (anahtar) DO NOTHING;
+
+-- ---------- Web sitesi iletişim formu ----------
+-- Siteden gelen talepler aday listesine düşüyor; e-posta alanı formdan geliyor.
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS email TEXT;

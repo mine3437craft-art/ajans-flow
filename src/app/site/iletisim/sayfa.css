@@ -1,0 +1,190 @@
+/* ====================================================================
+   /iletisim — form bir kart değil, bir EKRAN.
+
+   Hedef: güven veren, büyük ve ferah. Bu yüzden harf kadrajı YOK
+   (gösteri değil güven isteniyor), plaka tek ve sakin, form yüzeyi
+   geniş, kanal kartları belirgin.
+
+   Kural: yeni renk / radius / gölge YOK. `--af-wa` zaten tasarım
+   sisteminde duran WhatsApp tokenı; yalnız 2px'lik bir ray olarak,
+   sayfada bir kez kullanılıyor.
+   ==================================================================== */
+
+/* =====================================================================
+   1. PLAKA İÇİ ÖLÇEK
+   ===================================================================== */
+
+.af-il-etiket {
+  margin-block: clamp(var(--af-b-16), 2.4vw, var(--af-b-32)) var(--af-b-16);
+  color: #ff8900;
+}
+.af-il-etiket::before { background: #ff8900; }
+
+.af-il-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  /* Harf kadrajı yok, bu yüzden başlığın kendisi devasa: kolonun
+     genişliğine göre 34 → 104 px. `text-wrap: balance` iki satıra
+     dengeli dağıtır; punto clamp ile geldiği için CLS 0. */
+  font-size: clamp(2.125rem, 1.1rem + 4.4vw, 6.5rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.042em;
+  text-wrap: balance;
+  max-width: 18ch;
+  color: #fff;
+}
+
+.af-il-giris {
+  margin-block-start: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+  max-width: 56ch;
+}
+
+.af-il-veri { margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-64)); }
+
+/* =====================================================================
+   2. YERLEŞİM — form ekranı + kanal kolonu
+   ===================================================================== */
+
+.af-il-duzen {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .af-il-duzen { grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr); }
+}
+
+/* ---- Form yüzeyi ---- */
+.af-kart.af-il-ekran {
+  padding: clamp(var(--af-b-24), 3.4vw, var(--af-b-64));
+  gap: var(--af-b-24);
+  box-shadow: var(--af-kart-golge-2);
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-24));
+}
+/* Mono künye şeridi: formun ne olduğunu ve kaç alan istediğini söyler. */
+.af-il-ekran-ust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  margin: 0;
+  padding-block-end: var(--af-b-24);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af-il-ekran-not {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+
+/* =====================================================================
+   3. KANAL KARTLARI — belirgin
+   Belirginlik dört yoldan geliyor: kalın renkli ray, 48px ikon,
+   iri başlık, tam genişlik düğme. Dekoratif gölge eklenmiyor.
+   ===================================================================== */
+
+.af-il-yan { gap: var(--af-b-16); }
+
+.af-kart.af-il-kanal {
+  gap: var(--af-b-12);
+  padding: clamp(var(--af-b-24), 2.4vw, var(--af-b-32));
+  border-inline-start-width: 2px;
+  overflow: hidden;
+}
+.af-il-kanal--wa { border-inline-start-color: var(--af-wa); }
+.af-il-kanal--ig { border-inline-start-color: var(--af-vurgu-cizgi); }
+
+.af-il-kanal-ikon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--af-r-kart);
+  border: 1px solid var(--af-kenar);
+  background: var(--af-vurgu-sis);
+  color: var(--af-vurgu);
+  flex: none;
+}
+.af-il-kanal-ikon svg { width: 26px; height: 26px; }
+.af-il-kanal--wa .af-il-kanal-ikon {
+  color: var(--af-wa);
+  background: color-mix(in srgb, var(--af-wa) 10%, transparent);
+  border-color: color-mix(in srgb, var(--af-wa) 34%, transparent);
+}
+
+.af-il-kanal-bas {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.625rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.026em;
+  color: var(--af-metin);
+}
+.af-il-kanal-bas--kucuk { font-size: var(--af-y-h4); }
+.af-il-kanal-bas svg { width: 20px; height: 20px; color: var(--af-vurgu); flex: none; }
+
+.af-il-diger { padding-inline: 0; }
+
+/* Adres satırı: .af-nap yalnız bağlantıları hizalıyor */
+.af-il-adres {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+}
+
+.af-il-veri-kart { gap: var(--af-b-8); }
+
+/* =====================================================================
+   4. ÜÇ DURAK — iri numara, aralarında hat
+   Düz kart ızgarası değil: numara 72 px'e kadar çıkıyor, kartın kenarı
+   yok, duraklar arasını tek bir saç çizgisi bağlıyor.
+   ===================================================================== */
+
+.af-il-duraklar {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-32));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+@media (min-width: 820px) {
+  .af-il-duraklar { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--af-b-32); }
+}
+.af-il-duraklar > li {
+  position: relative;
+  display: grid;
+  gap: var(--af-b-8);
+  align-content: start;
+  padding-block-start: var(--af-b-16);
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af-il-durak-no {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(2.5rem, 1.6rem + 3.4vw, 4.5rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums;
+  color: var(--af-vurgu);
+}
+.af-il-durak-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.125rem, 1.02rem + 0.5vw, 1.375rem);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  color: var(--af-metin);
+}
+.af-il-duraklar .af-kart-metin { max-width: 44ch; }

@@ -1,0 +1,366 @@
+/* =====================================================================
+   ANA SAYFA — yalnız bu sayfaya ait yerleşim kuralları.
+
+   Kural: yeni renk / radius / gölge YOK. Her değer tasarım sistemindeki
+   (`src/app/site/site.css`) değişkenlerden okunur. Sınıflar `af-as-`
+   ön ekli (anasayfa), panelin globals.css'i ile çakışmaz.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. HERO + SEKTÖR KAPISI
+   --------------------------------------------------------------------- */
+
+.af-as-hero-ic {
+  display: grid;
+  gap: var(--af-b-24);
+  max-width: 60ch;
+}
+.af-as-hero-ic .af-h1 {
+  max-width: 24ch;
+}
+
+/* Sektör kapısı paneli — hero'nun altında, üstünde 1px ayraç */
+.af-as-kapi-blok {
+  margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-48));
+  padding-block-start: var(--af-b-24);
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af-as-kapi-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--af-b-8) var(--af-b-16);
+  margin-block-end: var(--af-b-16);
+}
+.af-as-kapi-soru {
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--af-y-h4);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+.af-as-kapi-not {
+  margin-block-start: var(--af-b-12);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+}
+
+/* Sektöre göre değişen hero metni — SSR'da hepsi basılı, CSS seçer.
+   Varsayılan: genel metin görünür, varyantlar gizli. */
+.af-as-sektor-metin {
+  display: var(--af-as-metin-gorunum, none);
+}
+:root[data-sektor] .af-as-genel-metin {
+  display: none;
+}
+:root[data-sektor='go-kart'] [data-sektor-metin='go-kart'],
+:root[data-sektor='oto-galeri'] [data-sektor-metin='oto-galeri'],
+:root[data-sektor='kafe-restoran'] [data-sektor-metin='kafe-restoran'],
+:root[data-sektor='avukat-hukuk'] [data-sektor-metin='avukat-hukuk'],
+:root[data-sektor='mimar'] [data-sektor-metin='mimar'],
+:root[data-sektor='saglik'] [data-sektor-metin='saglik'],
+:root[data-sektor='spor'] [data-sektor-metin='spor'],
+:root[data-sektor='anaokulu'] [data-sektor-metin='anaokulu'],
+:root[data-sektor='guzellik'] [data-sektor-metin='guzellik'],
+:root[data-sektor='otel'] [data-sektor-metin='otel'],
+:root[data-sektor='emlak'] [data-sektor-metin='emlak'],
+:root[data-sektor='magaza'] [data-sektor-metin='magaza'] {
+  --af-as-metin-gorunum: block;
+}
+
+/* ---------------------------------------------------------------------
+   2. EKSİK İŞARETLEME + AKIŞ KARTI
+   --------------------------------------------------------------------- */
+
+.af-as-eksik {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 940px) {
+  .af-as-eksik {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  }
+}
+.af-as-alan {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.af-as-alan-bas {
+  padding: 0;
+  margin-block-end: var(--af-b-16);
+}
+
+/* Akış Kartı */
+.af-as-kart {
+  overflow: hidden;
+}
+/* Kart dolmaya başlayınca öne çıkar */
+.af-as-kart[data-dolu] {
+  box-shadow: var(--af-kart-golge-2);
+}
+.af-as-kart-cizgi {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  height: 2px;
+  width: var(--af-as-oran, 0%);
+  background: var(--af-vurgu-cizgi);
+  transition: width var(--af-gecis-yavas);
+}
+.af-as-kart .af-veri-tablo {
+  margin-block-start: var(--af-b-4);
+}
+.af-as-kart-liste > li > span {
+  display: grid;
+  gap: 2px;
+}
+.af-as-kart-hizmet {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+
+/* ---------------------------------------------------------------------
+   3. HİZMET IZGARASI — sektöre göre öne çıkan kartlar
+   --------------------------------------------------------------------- */
+
+.af-as-gruplar {
+  display: grid;
+  gap: clamp(var(--af-b-32), 4vw, var(--af-b-64));
+}
+.af-as-grup-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  margin-block-end: var(--af-b-16);
+  padding-block-end: var(--af-b-12);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af-as-hizmet .af-kart-baslik {
+  padding-inline-end: var(--af-b-8);
+}
+/* "Önerilen" etiketi: yalnız seçilen sektörün hizmetlerinde görünür */
+.af-as-oneri {
+  display: var(--af-as-oneri-gorunum, none);
+  align-items: center;
+}
+:root[data-sektor='go-kart'] .af-as-hizmet[data-sektor-oneri~='go-kart'],
+:root[data-sektor='oto-galeri'] .af-as-hizmet[data-sektor-oneri~='oto-galeri'],
+:root[data-sektor='kafe-restoran'] .af-as-hizmet[data-sektor-oneri~='kafe-restoran'],
+:root[data-sektor='avukat-hukuk'] .af-as-hizmet[data-sektor-oneri~='avukat-hukuk'],
+:root[data-sektor='mimar'] .af-as-hizmet[data-sektor-oneri~='mimar'],
+:root[data-sektor='saglik'] .af-as-hizmet[data-sektor-oneri~='saglik'],
+:root[data-sektor='spor'] .af-as-hizmet[data-sektor-oneri~='spor'],
+:root[data-sektor='anaokulu'] .af-as-hizmet[data-sektor-oneri~='anaokulu'],
+:root[data-sektor='guzellik'] .af-as-hizmet[data-sektor-oneri~='guzellik'],
+:root[data-sektor='otel'] .af-as-hizmet[data-sektor-oneri~='otel'],
+:root[data-sektor='emlak'] .af-as-hizmet[data-sektor-oneri~='emlak'],
+:root[data-sektor='magaza'] .af-as-hizmet[data-sektor-oneri~='magaza'] {
+  order: -1;
+  border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent);
+  --af-as-oneri-gorunum: inline-flex;
+}
+
+/* ---------------------------------------------------------------------
+   4. QR MENÜ TEZGÂHI
+   --------------------------------------------------------------------- */
+
+.af-as-tezgah {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .af-as-tezgah {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  }
+}
+.af-as-tezgah-yan {
+  display: flex;
+  justify-content: center;
+}
+.af-as-qr-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-16);
+  margin-block-start: var(--af-b-24);
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kart-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+}
+.af .af-as-qr {
+  /* 29 modül + 8 sessiz kenar ≈ 4px/modül: telefon kamerası rahat okur */
+  width: 148px;
+  height: 148px;
+  flex: none;
+  border-radius: var(--af-r-veri);
+}
+.af-as-qr-yazi {
+  display: grid;
+  gap: var(--af-b-4);
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------
+   5. OTOMOTİV ŞERİDİ
+   --------------------------------------------------------------------- */
+
+.af-as-otomotiv {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .af-as-otomotiv {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  }
+}
+.af-as-otomotiv-yan {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------------------
+   6. İŞLER ŞERİDİ
+   --------------------------------------------------------------------- */
+
+.af-as-is .af-kart-gorsel {
+  aspect-ratio: 4 / 3;
+}
+.af-as-is .af-kart-gorsel img,
+.af-as-is .af-video {
+  height: 100%;
+}
+.af-as-is-marka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-8);
+}
+
+/* ---------------------------------------------------------------------
+   7. SÜREÇ — kaydırmayla dolan çizgi
+   Destek yoksa çizgi tam boy durur (içerik hiçbir koşulda kaybolmaz).
+   --------------------------------------------------------------------- */
+
+.af-as-surec {
+  position: relative;
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-32));
+  padding-inline-start: var(--af-b-48);
+}
+.af-as-surec::before,
+.af-as-surec::after {
+  content: '';
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 21px;
+  width: 2px;
+}
+.af-as-surec::before {
+  background: var(--af-kenar);
+}
+.af-as-surec::after {
+  background: var(--af-vurgu-cizgi);
+  transform-origin: top center;
+}
+@supports (animation-timeline: view()) {
+  .af-as-surec::after {
+    transform: scaleY(0);
+    animation: af-as-dolum linear both;
+    animation-timeline: view();
+    animation-range: entry 90% cover 65%;
+  }
+}
+@keyframes af-as-dolum {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-as-surec::after {
+    animation: none !important;
+    transform: none;
+  }
+}
+
+.af-as-adim {
+  position: relative;
+  display: grid;
+  gap: var(--af-b-8);
+}
+.af-as-adim-no {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(-1 * var(--af-b-48));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--af-r-cip);
+  border: 1px solid var(--af-kenar);
+  background: var(--af-zemin);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-vurgu);
+}
+.af-as-adim-ciktilar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-8);
+  margin-block-start: var(--af-b-4);
+}
+
+/* ---------------------------------------------------------------------
+   8. NEDEN AJANS FLOW
+   --------------------------------------------------------------------- */
+
+.af-as-notlar {
+  display: grid;
+  gap: var(--af-b-8);
+  margin-block-start: var(--af-b-24);
+}
+.af-as-notlar > li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: var(--af-b-12);
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-3);
+}
+.af-as-notlar > li svg {
+  width: 18px;
+  height: 18px;
+  color: var(--af-vurgu-cizgi);
+  margin-block-start: 0.2em;
+}
+
+/* ---------------------------------------------------------------------
+   9. KAPANIŞ
+   --------------------------------------------------------------------- */
+
+.af-as-kapanis {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 940px) {
+  .af-as-kapanis {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+.af-as-kapanis-liste {
+  margin-block-start: var(--af-b-8);
+}

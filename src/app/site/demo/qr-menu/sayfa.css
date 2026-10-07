@@ -1,0 +1,607 @@
+/* =====================================================================
+   /demo/qr-menu — yalnız bu sayfaya ait stiller.
+   Telefon öncelikli: menü 430px'lik bir sütunda yaşar, geniş ekranda
+   ortalanır. Renk ve ölçü değerleri tasarım sisteminden gelir.
+   ===================================================================== */
+
+/* Menü kabuğu — telefon genişliği. overflow VERİLMEZ: içindeki yapışkan
+   şerit sayfanın kaydırmasına göre çalışsın. */
+.af-demo {
+  width: min(430px, 100%);
+  margin-inline: auto;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  box-shadow: var(--af-kart-golge-2);
+  text-align: start;
+}
+
+/* Kapatılamayan demo şeridi: düğmesi yok, kaydırırken üstte kalır */
+.af-demo-serit {
+  position: sticky;
+  inset-block-start: var(--af-ustbar-h);
+  z-index: var(--af-z-yapiskan);
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+  padding: var(--af-b-8) var(--af-b-16);
+  border-start-start-radius: var(--af-r-kart);
+  border-start-end-radius: var(--af-r-kart);
+  border-block-end: 1px solid var(--af-kenar);
+  background: var(--af-koyu);
+  color: var(--af-beyaz);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+.af-demo-serit-nokta {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--af-turuncu);
+}
+
+/* Üst blok: marka, dil, arama, kategori, filtre, sekme */
+.af-demo-ust {
+  display: grid;
+  gap: var(--af-b-12);
+  padding: var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar);
+}
+.af-demo-marka {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-8);
+}
+.af-demo-marka-ad {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--af-y-h4);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.af-demo-marka-not {
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-metin-3);
+}
+.af-demo-diller {
+  display: flex;
+  gap: var(--af-b-4);
+}
+.af-demo-diller .af-cip {
+  padding-inline: var(--af-b-12);
+  min-width: 44px;
+  justify-content: center;
+}
+
+/* Arama kutusu */
+.af-demo-arama {
+  position: relative;
+}
+.af-demo-arama .af-girdi {
+  padding-inline-start: 44px;
+  padding-inline-end: 48px;
+}
+.af-demo-arama-ikon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--af-b-12);
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--af-metin-3);
+  pointer-events: none;
+}
+.af-demo-arama-ikon svg {
+  width: 20px;
+  height: 20px;
+}
+.af-demo-arama-sil {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: 2px;
+  transform: translateY(-50%);
+}
+
+/* Kategori şeridi — yatay kaydırır, sayfayı taşırmaz */
+.af-demo-kategoriler {
+  display: flex;
+  gap: var(--af-b-8);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 2px;
+}
+.af-demo-kategoriler::-webkit-scrollbar {
+  display: none;
+}
+.af-demo-kategoriler .af-cip {
+  flex: none;
+}
+
+.af-demo-filtreler {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-8);
+}
+
+/* Sekmeler — dar ekranda alt satıra iner, metin asla taşmaz */
+.af-demo-sekmeler {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-8);
+  padding-block-start: var(--af-b-4);
+  border-block-start: 1px solid var(--af-kenar-ince);
+}
+.af-demo-sekmeler .af-cip {
+  flex: 1 1 auto;
+  min-width: max-content;
+  justify-content: center;
+  padding-inline: var(--af-b-12);
+}
+.af-demo-sayi {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 5px;
+  border-radius: 999px;
+  background: var(--af-turuncu-dolu);
+  color: var(--af-beyaz);
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+}
+
+/* Gövde */
+.af-demo-govde {
+  display: grid;
+  gap: var(--af-b-16);
+  padding: var(--af-b-16);
+}
+.af-demo-ozet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-2);
+}
+.af-demo-bos {
+  margin: 0;
+  padding: var(--af-b-24) var(--af-b-16);
+  border: 1px dashed var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  text-align: center;
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+
+.af-demo-grup {
+  display: grid;
+  gap: var(--af-b-12);
+}
+.af-demo-grup-bas {
+  margin: 0;
+  font-size: var(--af-y-h4);
+  letter-spacing: -0.01em;
+}
+.af-demo-liste {
+  display: grid;
+  gap: var(--af-b-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Ürün satırı */
+.af-demo-urun {
+  display: grid;
+  gap: var(--af-b-12);
+  padding: var(--af-b-12);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-kart);
+  background: color-mix(in srgb, var(--af-metin) 2%, transparent);
+}
+.af-demo-urun-bas {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+}
+.af-demo-urun-metin {
+  display: grid;
+  gap: var(--af-b-4);
+  min-width: 0;
+}
+.af-demo-urun-ad {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.af-demo-urun-aciklama {
+  margin: 0;
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-2);
+}
+.af-demo-rozetler {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-4);
+  margin: 0;
+}
+.af-demo-urun-fiyat {
+  margin: 0;
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.af-demo-urun-eylem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+}
+.af-demo-urun-eylem .af-dugme {
+  margin-inline-start: auto;
+}
+
+/* Ürün detayı: içindekiler, alerjen, enerji */
+.af-demo-detay {
+  border-block-start: 1px solid var(--af-kenar-ince);
+  padding-block-start: var(--af-b-12);
+}
+.af-demo-detay dl {
+  display: grid;
+  gap: var(--af-b-4);
+  margin: 0;
+}
+.af-demo-detay dt {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-demo-detay dd {
+  margin: 0 0 var(--af-b-8);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-demo-detay dd:last-child {
+  margin-block-end: 0;
+}
+
+/* Sipariş listesi */
+.af-demo-sepet-satir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  padding: var(--af-b-12);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-kart);
+}
+.af-demo-sepet-satir > div:first-child {
+  min-width: 0;
+}
+.af-demo-adet {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  flex: none;
+}
+.af-demo-adet .af-ikon-dugme {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+.af-demo-toplam {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+  padding: var(--af-b-12);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-veri);
+  font-weight: 600;
+}
+.af-demo-toplam > span:nth-child(2) {
+  margin-inline-start: auto;
+}
+.af-demo-alanlar {
+  display: grid;
+  gap: var(--af-b-12);
+}
+.af-demo-bildirim {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--af-b-8);
+  margin: 0;
+  padding: var(--af-b-12);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-vurgu-sis);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin);
+}
+.af-demo-bildirim svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-block-start: 0.15em;
+  color: var(--af-vurgu-cizgi);
+}
+
+/* Menünün altındaki mevzuat ve demo notları */
+.af-demo-notlar {
+  display: grid;
+  gap: var(--af-b-4);
+  padding-block-start: var(--af-b-12);
+  border-block-start: 1px solid var(--af-kenar-ince);
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-3);
+}
+.af-demo-notlar p {
+  margin: 0;
+}
+
+/* Demo sayfasının açıklama sütunu */
+.af-demo-sayfa {
+  display: grid;
+  gap: var(--af-b-32);
+}
+@media (min-width: 1000px) {
+  .af-demo-sayfa {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--af-b-64);
+  }
+  .af-demo-sayfa > .af-demo {
+    margin-inline: 0;
+  }
+}
+
+/* Kapanış çağrısındaki düğmeler ortalanır */
+.af-demo-cagri {
+  justify-content: center;
+}
+
+/* =====================================================================
+   GÖRSEL YÜKSELTME — YAZILIM KANADI KİTİ
+   Kaynak dil: SITE-GIRIS.md (HARF KADRAJI). Buradaki üç parça
+   (plaka · tek ışık havuzu · grain) giriş ekranındaki doktrinin
+   aynısıdır; yalnız ek DOM gerektirmeyecek biçimde pseudo'ya alındı.
+
+   DİKKAT: Bu blok /qr-menu, /demo/qr-menu ve /otomotiv-yazilimlari
+   sayfa CSS'lerinde BİREBİR aynı duruyor. İstemci gezinmesinde CSS
+   parçaları biriktiği için üçü aynı anda yüklü olabilir; tanımlar
+   birebir aynı olmak ZORUNDA. Birini değiştiren üçünü değiştirir.
+
+   Seçiciler bilerek `.af-bant.af-yk-…` (0,2,0): `.af-bant--koyu`
+   (0,1,0) ile kaynak sırasına bağlı bir yarış olmasın.
+   ===================================================================== */
+
+.af-bant.af-yk-plaka {
+  --af-zemin: var(--af-plaka);
+  position: relative;
+  isolation: isolate;
+  background: var(--af-plaka);
+}
+
+/* Tek ışık havuzu — zenginlik DURAN karede. `background-attachment:
+   fixed` YASAK (mobil kaydırma katili), animasyon YOK.
+
+   DİKKAT — z-index 3: ışık ve zerre İÇERİĞİN ÜSTÜNDE durur (giris.css
+   ile aynı gerekçe). Altta dururlarsa harf kadrajının saf siyah
+   maskesi ışık havuzunu kendi kutusu boyunca KESER ve duvar plakanın
+   üstünde dikdörtgen olarak belirir. Üstte tek katman olunca plaka
+   her yerde tam olarak aynı siyahtır, kutu kaybolur. */
+.af-bant.af-yk-plaka::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(118% 74% at 14% 6%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 90% 98%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. 180px tile
+   şart (Safari büyük yüzeyi yavaş rasterler), opaklık 0,045'i geçmez
+   (AMOLED'de bantlaşır), ASLA animasyonlu değil. */
+.af-bant.af-yk-plaka::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.045;
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+.af-bant.af-yk-plaka > * {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  .af-bant.af-yk-plaka::after { opacity: 0.03; }
+}
+@media (prefers-contrast: more) {
+  .af-bant.af-yk-plaka::before,
+  .af-bant.af-yk-plaka::after { opacity: 0; }
+}
+
+/* Kesik kenar — tek köşeli sert kesik, 0 bayt. ASLA tween edilmez.
+   `.af-yapiskan` içeren bantta KULLANILMAZ (clip-path yapışkanlığı
+   kırpar). */
+.af-bant.af-yk-kesik {
+  clip-path: polygon(0 clamp(26px, 4.6vw, 68px), 46% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Devasa tek kelime / tek satır — bölüm başlıklarından bir kademe
+   üstü. */
+.af-yk-devasa {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  letter-spacing: -0.042em;
+  line-height: 0.94;
+  /* `text-wrap: balance` / `pretty` KULLANILMAZ: yazı tipi geç
+     geldiğinde satır sayısını değiştirip CLS üretirler
+     (SITE-GIRIS.md, satır yüksekliği bölümü). */
+}
+
+/* =====================================================================
+   GİRİŞ PLAKASI
+   ===================================================================== */
+
+/* Demo sayfasının H1'i ürün adıdır: bir kademe iri ve sıkı. */
+.af-demo-giris .af-h1 {
+  font-size: clamp(2.5rem, 1.05rem + 6.4vw, 5.25rem);
+  line-height: 0.97;
+  letter-spacing: -0.042em;
+  font-weight: 800;
+}
+.af-demo-serit-iri .af-veri-deger {
+  font-size: clamp(1.75rem, 1.1rem + 2.4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+.af-demo-serit-iri .af-veri-oge { padding: var(--af-b-24) var(--af-b-16); }
+
+/* =====================================================================
+   NEYİ DENEYEBİLİRSİNİZ — numaralı defter
+   ===================================================================== */
+
+.af-demo-h2 {
+  font-size: clamp(1.5rem, 1.15rem + 1.6vw, 2.25rem);
+  letter-spacing: -0.03em;
+}
+.af-demo-dene {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+.af-demo-dene > li {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: var(--af-b-12);
+  align-items: baseline;
+  padding-block: var(--af-b-12);
+  border-block-start: 1px solid var(--af-kenar-ince);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-demo-dene-no {
+  font-family: var(--af-yazi-mono);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--af-vurgu) 72%, transparent);
+}
+
+/* =====================================================================
+   CİHAZ ÇERÇEVESİ — ürün karanlık sahnede duran bir nesne
+   Saf CSS: 1px kenar, iç içe radius, tek iç gölge (SITE-TASARIM §3).
+   ===================================================================== */
+
+.af-demo-cihaz {
+  position: relative;
+  width: min(460px, 100%);
+  margin-inline: auto;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 26px;
+  background: linear-gradient(170deg, #22222e, #101017 62%, #0a0a0f);
+  box-shadow: var(--af-golge-koyu-2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.af-demo-cihaz-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 9px;
+  padding-inline: 6px;
+}
+.af-demo-cihaz-nokta {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.af-demo-cihaz-nokta:first-child { background: var(--af-turuncu); }
+.af-demo-cihaz-ad {
+  margin-inline-start: auto;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+/* MENÜ KABUĞU = IŞIK ADASI.
+   Ürün beyaz bir uygulamadır; karanlık sahnede de öyle görünmeli.
+   Bu yüzden kabuk tasarım sistemindeki dokuz bant değişkenini kendi
+   içinde BEYAZ bant değerlerine döndürür — içindeki çip, girdi,
+   düğme ve kart renkleri kendiliğinden uyar, hiçbir bileşende renk
+   sabitlenmez (SITE-TASARIM.md §3). */
+.af-demo-cihaz > .af-demo {
+  --af-zemin: var(--af-beyaz);
+  --af-metin: var(--af-ink);
+  --af-metin-2: var(--af-ink-2);
+  --af-metin-3: var(--af-ink-3);
+  --af-kenar: var(--af-cizgi);
+  --af-kenar-ince: var(--af-cizgi-2);
+  --af-vurgu: var(--af-turuncu-koyu);
+  --af-vurgu-cizgi: var(--af-turuncu-dolu);
+  --af-vurgu-sis: var(--af-turuncu-sis);
+  --af-kart-zemin: var(--af-beyaz);
+  --af-kart-kenar: var(--af-cizgi);
+  --af-kart-golge: var(--af-golge-1);
+  --af-kart-golge-2: var(--af-golge-2);
+  --af-halka: var(--af-turuncu-dolu);
+  --af-ic-isik: var(--af-golge-ic);
+  color-scheme: light;
+  width: 100%;
+  background: var(--af-beyaz);
+  color: var(--af-metin);
+  box-shadow: none;
+  border-color: transparent;
+  border-radius: 17px;
+}
+.af-demo-cihaz > .af-demo .af-demo-serit {
+  border-start-start-radius: 17px;
+  border-start-end-radius: 17px;
+}
+
+/* Basılı hissi: çipler dokunurken 1px çöker. İnce imleçte de,
+   dokunmatikte de aynı geri bildirim. */
+.af-demo .af-cip:active,
+.af-demo .af-dugme:active {
+  transform: translateY(1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-demo .af-cip:active,
+  .af-demo .af-dugme:active { transform: none; }
+}
+
+/* Sahnedeki iki sütun: anlatım solda, ürün sağda ve YUKARIDA kalır. */
+@media (min-width: 1000px) {
+  .af-demo-sayfa > .af-demo-cihaz { margin-inline: 0; }
+}
+
+/* DÜZELTME (görsel yükseltmede yakalandı, önceden de vardı):
+   tasarım sistemindeki `.af p, .af li, … { color: inherit }` kuralı
+   (0,1,1) `.af-demo-serit`ten (0,1,0) GÜÇLÜ. Şerit bir <p> olduğu için
+   metni bandın metin rengini miras alıyordu ve kendi koyu zemininde
+   koyu kalıyordu — kapatılamaz uyarı okunmuyordu. Seçici 0,2,0'a
+   çıkarılıyor. Kontrast #FFF / #0E0E16 = 18,4:1. */
+.af-demo > .af-demo-serit {
+  color: var(--af-beyaz);
+}

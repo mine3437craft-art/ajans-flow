@@ -1,0 +1,211 @@
+/* ====================================================================
+   /hakkimizda — ajansın hikâyesi TİPOGRAFİK bir deneyim olarak.
+
+   Ekip/ofis fotoğrafı YOK (SITE-BRIEF §7), o yüzden yükü yazı ve ışık
+   taşır: plaka + tek satırlık harf kadrajı + ölçek merdiveni + hikâye
+   zinciri + hayalet numaralar.
+
+   Kural: yeni renk / radius / gölge YOK; her değer site.css'teki
+   `--af-*` tokenlarından okunur. Sınıflar `af-hak-` ile başlar —
+   eski `af-hk-` öneki giriş ekranının (harf kadrajı) ad alanıydı ve
+   iki ad alanının karışması gerçek bir çakışma riskiydi.
+   ==================================================================== */
+
+/* =====================================================================
+   1. PLAKA İÇİ ÖLÇEK MERDİVENİ
+   ~112 px kelime-işareti → ~52 px <h1> → ~22 px özet → ~13 px mono.
+   Üç kademe arası en az 1,8× fark var; böylece "nefes kesen an" ile
+   okunan bilgi birbiriyle yarışmaz.
+   ===================================================================== */
+
+.af-hak-etiket {
+  margin-block: clamp(var(--af-b-16), 2.4vw, var(--af-b-32)) var(--af-b-12);
+  color: #ff8900;
+}
+.af-hak-etiket::before { background: #ff8900; }
+
+.af-hak-bas {
+  margin: clamp(var(--af-b-16), 2vw, var(--af-b-24)) 0 0;
+  font-family: var(--af-yazi-baslik);
+  /* <h1> devasa DEĞİL: devasa olan üstteki kelime-işareti. Buradaki iş
+     cümleyi okutmak, bu yüzden punto bir kademe aşağıda ve ölçü 26ch. */
+  font-size: clamp(1.625rem, 1.05rem + 2.4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  max-width: 26ch;
+  color: #fff;
+}
+
+.af-hak-giris { margin-block-start: var(--af-b-16); max-width: 56ch; }
+
+/* Veri şeridi plakanın alt kenarına oturur; yan kenarları yok, yalnız
+   iki saç çizgisi (bkz. plaka.css `.af-kr-veri-dev`). */
+.af-hak-veri { margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-64)); }
+
+/* =====================================================================
+   2. HİKÂYE ZİNCİRİ
+   Dört uzun paragraf düz metin bloğu değil, numaralı duraklar. Mono
+   numara + 1px dikey hat ritmi kurar; ilk paragraf bir punto iri.
+   ===================================================================== */
+
+.af-hak-zincir {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 78ch;
+}
+.af-hak-zincir > li {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: var(--af-b-12) var(--af-b-16);
+  align-items: start;
+}
+.af-hak-zincir > li > p {
+  margin: 0;
+  max-width: 64ch;
+  color: var(--af-metin-2);
+}
+/* Giriş etkisi: ilk durak iri ve tam renk. */
+.af-hak-zincir > li:first-child > p {
+  font-size: var(--af-y-giris);
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  color: var(--af-metin);
+}
+
+/* Durak numarası ve altından inen hat — tek ::after, SVG yok. */
+.af-hak-zincir-no {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  color: var(--af-vurgu);
+  align-self: stretch;
+}
+.af-hak-zincir-no::after {
+  content: '';
+  position: absolute;
+  inset-block: 1.9em -2.4em;
+  inset-inline-start: 0.55em;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent),
+    transparent
+  );
+}
+.af-hak-zincir > li:last-child .af-hak-zincir-no::after { display: none; }
+
+/* Slogan — ikinci nefes. Tam ölçü, serif aksan, iri. */
+.af-hak-slogan {
+  margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-64));
+  border-inline-start-width: 2px;
+}
+.af-hak-slogan .af-aksan {
+  font-size: clamp(1.5rem, 1rem + 2.2vw, 2.75rem);
+  line-height: 1.2;
+  max-width: 30ch;
+}
+
+/* =====================================================================
+   3. FELSEFE IZGARASI — ölçek farkı
+   İlk madde iki göz geniş (manifestonun ilk cümlesi), dürüstlük notu da
+   iki göz: 3 + 3 + 3 = dokuz göz, delik yok.
+   ===================================================================== */
+
+.af-hak-felsefe {
+  display: grid;
+  gap: var(--af-b-16);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 720px) {
+  .af-hak-felsefe { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--af-b-24); }
+  .af-hak-felsefe > :first-child,
+  .af-hak-kaynak { grid-column: span 2; }
+}
+@media (min-width: 1080px) {
+  .af-hak-felsefe { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.af-kart.af-hak-f {
+  gap: var(--af-b-8);
+  padding: clamp(var(--af-b-24), 2.4vw, var(--af-b-32));
+  overflow: hidden;
+}
+/* Hayalet numara: kartın sağ üstünde, metnin ARKASINDA.
+   `color-mix` ile turuncu çizginin %14'ü — yeni renk icat edilmiyor. */
+.af-hak-f-no {
+  position: absolute;
+  inset-block-start: -0.12em;
+  inset-inline-end: 0.08em;
+  z-index: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(3.5rem, 2rem + 6vw, 6.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: color-mix(in srgb, var(--af-vurgu-cizgi) 14%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+.af-hak-f > h3,
+.af-hak-f > p { position: relative; z-index: 1; }
+
+.af-hak-f-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.125rem, 1.02rem + 0.5vw, 1.4375rem);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  color: var(--af-metin);
+}
+/* İlk madde iki göz geniş olduğu için başlığı da bir kademe iri. */
+@media (min-width: 720px) {
+  .af-hak-felsefe > :first-child .af-hak-f-bas {
+    font-size: clamp(1.375rem, 1.1rem + 1.1vw, 1.875rem);
+  }
+  .af-hak-felsefe > :first-child .af-kart-metin { font-size: var(--af-y-metin); max-width: 68ch; }
+}
+
+.af-hak-kaynak { padding: clamp(var(--af-b-24), 2.4vw, var(--af-b-32)); }
+@media (min-width: 720px) {
+  .af-hak-kaynak-liste {
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    display: grid;
+    gap: var(--af-b-8) var(--af-b-24);
+  }
+}
+
+/* =====================================================================
+   4. TEK ÇATI VE MERKEZ — iki kolon, ölçüler farklı
+   ===================================================================== */
+
+.af-hak-cati,
+.af-hak-merkez {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 920px) {
+  .af-hak-cati { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); }
+  .af-hak-merkez { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); }
+}
+
+.af-hak-cati-liste > li,
+.af-hak-merkez-liste > li { font-size: var(--af-y-metin); }
+.af-hak-merkez-liste {
+  gap: var(--af-b-16);
+  padding-block-start: var(--af-b-4);
+}
+
+/* Kapanış bölümünde düğmeler ortalanır (.af-dugmeler flex olduğu için) */
+.af-hak-orta-dugmeler { justify-content: center; }

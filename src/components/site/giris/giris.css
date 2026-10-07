@@ -1,0 +1,1086 @@
+/* =====================================================================
+   HARF KADRAJI — giriş ekranı (SITE-GIRIS.md, kazanan konsept)
+
+   ÇEKİRDEK TEKNİK: BLEND KNOCKOUT. `background-clip: text` canlı video
+   alamaz, SVG `mask` + `foreignObject` iOS Safari'de güvenilmez, harfi
+   path'e çevirmek SSR metnini ve ekran okuyucuyu öldürür. Üçü de elendi.
+
+   Koyu kutup (S1):                     Açık kutup (S2):
+     .af-hk-taban  turuncu gradyan        koyu turuncu gradyan
+     .af-hk-plan   video  · screen       video  · multiply
+     .af-hk-maske  #000   · multiply     #fff   · screen
+
+   Matematik (multiply): siyah plaka × düzlem = siyah (gizler),
+   beyaz harf × düzlem = düzlem (gösterir). Alttaki `screen` katmanı
+   videoyu turuncu tabana EKLER, dolayısıyla harfin içi ASLA turuncudan
+   koyu olamaz. Hesaplanmış kontrast tabanı #E2541F/#000 = 5,52:1
+   (devasa metin için gereken 3:1'in iki katı). "Karanlık kare geldi,
+   kelime kayboldu" hatası mimari olarak imkânsızdır — `.af-hk-taban`
+   bu yüzden PAZARLIK KONUSU DEĞİL, çıkarılamaz.
+
+   METİN GERÇEK DOM METNİ: iki metin katmanı var ve ikisi de aynı
+   ızgara gözünde (`grid-area: 1/1`) durur, bu yüzden piksel piksel
+   çakışırlar:
+     1. `.af-hk-maske` içindeki KOPYA (aria-hidden) — dolu kelimeler
+        beyaz, kalanlar plaka rengi. Knockout'u bu yapar.
+     2. Gerçek `<h1>` — dolu kelimeler `transparent`, kalanlar beyaz.
+        Seçilebilir, SSR'da basılı, SEO ve ekran okuyucu bunu okur.
+
+   KURALLAR (bozmayın):
+   - Blend edilen metin ≥700 ağırlık ve ≥40px (blend alt-piksel kenar
+     yumuşatmasını kaybeder). Gövde metni ASLA blend edilmez.
+   - Blend alanı duvarın sınır kutusuna kırpılı: `isolation: isolate`
+     + `contain: paint`. Videonun tek pikseli harfin dışına taşarsa
+     büyü biter.
+   - Satır yükseklikleri MUTLAK ve yazı tipinden BAĞIMSIZ (CLS 0).
+   - `clip-path` ve `filter: blur()` DEĞERLERİ tween EDİLMEZ.
+     `font-size` değil `transform: scale()` sürülür.
+   - `Math.random()` yok: her gecikme ve her konum elle yazılmış sabit.
+   - Yükseklik birimi `svh` (+ `vh` yedeği). `100vh` TEK BAŞINA
+     kullanılmaz — WhatsApp/Instagram içi tarayıcıda 60-90px zıplar.
+
+   Kritik alt küme `kritik.ts` içinde `@layer` ile satır içi basılıyor;
+   bu dosya katmansız olduğu için her zaman ÜSTÜN gelir. İkisindeki
+   ortak değerler birebir aynı tutulmalı.
+   ===================================================================== */
+
+/* =====================================================================
+   1. YUVA — yapışkan plaka ve ölçek scrub'ının mesafesi
+   Teknik: `position: sticky`. PIN DEĞİL, scroll-jacking DEĞİL; sayfa
+   her an parmakla 1:1 hareket eder. Siyah plaka yerinde durur, beyaz
+   plaka ÜSTÜNE kayar (kart üstüne kart).
+   ===================================================================== */
+
+/* Scrub mesafesi İKİ plakanın da okuyabilmesi için ortak sarmalayıcıda
+   tanımlı (beyaz plaka yuvanın KARDEŞİ, çocuğu değil). */
+.af-hk-giris {
+  --hk-scrub: 70svh;
+  /* Plaka tam olarak üst barın altındaki alanı doldurur: üst bar
+     `position: sticky` ile akışta 64px yer kaplıyor, bu yüzden
+     100svh'yi olduğu gibi kullanmak plakayı katlamanın 64px altına
+     taşırırdı (kaydırma ipucu ekrandan düşerdi). */
+  --hk-plaka-h: calc(100svh - var(--af-ustbar-h, 64px));
+}
+@media (max-width: 700px), (max-height: 680px) {
+  .af-hk-giris { --hk-scrub: 40svh; }
+}
+
+.af-hk-yuva {
+  position: relative;
+  z-index: 0;
+}
+
+/* Mobilde (≤700px) ve kısa ekranda (≤680px) YAPIŞKAN PLAKA KAPALI:
+   küçük ekranda yapışkan katman kaydırma hissini bozuyor, iki plaka
+   normal arka arkaya dizilir. */
+@media (min-width: 701px) and (min-height: 681px) {
+  .af-hk-yuva {
+    height: calc(var(--hk-plaka-h) + var(--hk-scrub));
+  }
+  .af-hk-yuva > .af-hk {
+    position: sticky;
+    inset-block-start: var(--af-ustbar-h, 64px);
+  }
+  /* Beyaz plaka siyahın ÜSTÜNE kayar — kart üstüne kart. PIN DEĞİL.
+     Bindirme yapışkan mesafenin yalnız SON %45'i: ilk %55'te duvar
+     küçülüp CÜMLE TAMAMLANIR ve ziyaretçi ödülü görür; beyaz plaka
+     ancak ondan sonra içeri kayar. Bindirme tam boy verilirse beyaz
+     plaka daha ilk pikselde yüklem satırının üstünü örter ve
+     mekanizmanın tamamı boşa gider. */
+  .af-hk--acik {
+    margin-block-start: calc(-0.45 * var(--hk-scrub));
+  }
+}
+
+/* =====================================================================
+   2. PLAKA — üçüncü ve NADİR yüzey (bant değil, ÖNOYUN)
+   "Bant = okunan içerik, plaka = başlık anı." Sayfada en çok 2 kez.
+   Plakanın üzerinde en çok ÜÇ işaret olur: akış hattı, duvar, mono
+   şerit. Dördüncüyü koyan an "şablon dark mode" olur.
+   ===================================================================== */
+
+.af-hk {
+  /* Ölçüler — kritik.ts ile birebir aynı */
+  --hk-font: clamp(2.75rem, min(14.8vw, 13.6vh), 8.75rem);   /* 44 → 140px  */
+  --hk-satir-h: clamp(46px, min(15.5vw, 14.3vh), 147px);     /* KİLİTLİ     */
+  --hk-yuklem-font: clamp(1.1rem, min(5.4vw, 5.6vh), 3.5rem);
+  --hk-yuklem-h: clamp(24px, min(6.6vw, 6.8vh), 74px);
+  --hk-ilerleme: 0;                                 /* scrub 0 → 1       */
+  --hk-olcek-pay: 0.54;                             /* 1 → 0,46 (masaüstü) */
+  --hk-zerre: 0.045;                                /* grain, ASLA >.045 */
+  --hk-plaka: var(--af-plaka, #000);
+  --hk-kadraj: 50% 58%;                             /* kişi koruması     */
+
+  /* Plaka da bir BANT BAĞLAMIDIR: tasarım sistemindeki dokuz değişkeni
+     yeniden yazar, böylece site.css'teki genel kurallar (`.af h1`,
+     `.af-ust-etiket`, odak halkası…) plakada kendiliğinden uyar ve
+     bileşen içinde renk sabitlemeye gerek kalmaz. */
+  --af-metin: #fff;
+  --af-metin-2: rgba(255, 255, 255, 0.68);
+  --af-metin-3: rgba(255, 255, 255, 0.48);
+  --af-kenar: var(--af-cizgi-koyu);
+  --af-kenar-ince: var(--af-cizgi-koyu-2);
+  --af-vurgu: var(--af-turuncu);
+  --af-vurgu-cizgi: var(--af-turuncu);
+  --af-vurgu-sis: var(--af-turuncu-sis-koyu);
+  --af-halka: var(--af-turuncu);
+  color-scheme: dark;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100vh - var(--af-ustbar-h, 64px));
+  min-height: var(--hk-plaka-h, calc(100svh - var(--af-ustbar-h, 64px)));
+  overflow: clip;
+  background: var(--hk-plaka);
+  color: #fff;
+  padding-block: clamp(16px, 3vh, 44px) clamp(46px, 7.5vh, 82px);
+}
+
+/* Açık kutup — ters kutuplaşma. `screen` beyaz plakayı beyaz bıraktığı
+   için bu duvar #FFFFFF yüzeyinde yaşar, --af-kagit üzerinde DEĞİL.
+   Tavan kontrastı #C5410F/#FFF = 5,08:1. */
+.af-hk--acik {
+  --hk-plaka: #fff;
+  --hk-zerre: 0.028;
+  /* İkinci ekranda duvar iki kolonun SOLUNDA yaşıyor (yanında üretim
+     kanıtı var), o yüzden punto daha küçük. Tavan 96px: en uzun satır
+     "KURGULARIZ." bu puntoda ~531px ve kolon ~565px — taşma yok. */
+  --hk-font: clamp(2.25rem, min(9.4vw, 9.6vh), 6rem);
+  --hk-satir-h: clamp(38px, min(9.9vw, 10.1vh), 101px);
+  --af-metin: var(--af-ink);
+  --af-metin-2: var(--af-ink-2);
+  --af-metin-3: var(--af-ink-3);
+  --af-kenar: var(--af-cizgi);
+  --af-kenar-ince: var(--af-cizgi-2);
+  --af-vurgu: var(--af-turuncu-koyu);
+  --af-vurgu-cizgi: var(--af-turuncu-dolu);
+  --af-vurgu-sis: var(--af-turuncu-sis);
+  --af-halka: var(--af-turuncu-dolu);
+  color-scheme: light;
+  color: var(--af-ink, #14141f);
+  /* Tek köşeli sert kesik — yuvarlak değil. Gradyan yok, gölge yok,
+     SVG yok; tek `clip-path: polygon()` ve ASLA tween edilmez. */
+  clip-path: polygon(0 clamp(28px, 5vw, 72px), 46% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+@media (max-width: 700px) {
+  .af-hk {
+    --hk-zerre: 0.03;          /* AMOLED bantlaşması: mobilde daha az   */
+    --hk-kadraj: 50% 62%;      /* açıklık karenin üst %25'ini görmez    */
+    --hk-olcek-pay: 0.38;      /* 1 → 0,62                              */
+    /* DİKEY YAYILMA: dar kolonda punto GENİŞLİKLE sınırlı olduğu için
+       uzun telefonlarda (390×844) duvar ekranın ortasında sıkışıp
+       altında ve üstünde ölü alan bırakıyordu. `max()` satır kutusuna
+       vh tabanlı nefes ekler: geniş-kısa ekranda vw, dar-uzun ekranda
+       vh kazanır. Punto DEĞİŞMEZ — yalnız satır aralığı açılır, yani
+       yatay taşma riski yok ve CLS hâlâ 0 (yükseklik yazı tipinden
+       bağımsız bir uzunluk). */
+    --hk-satir-h: clamp(50px, max(15.5vw, 9.7vh), 132px);
+    justify-content: flex-start;
+  }
+
+}
+
+/* Tek ışık havuzu — zenginlik DURAN karede. Tek `background-image`,
+   `background-attachment: fixed` YASAK (mobil kaydırma katili).
+
+   DİKKAT — z-index 3: ışık ve zerre İÇERİĞİN ÜSTÜNDE durur. Altta
+   dururlarsa knockout maskesi (saf siyah) duvarın kutusu boyunca ışık
+   havuzunu KESER ve video "dikdörtgen olarak sızmış" gibi görünür.
+   Üstte tek katman olunca plaka tabanı her yerde tam olarak aynı
+   siyahtır, kutu kaybolur ve ışık tek kaynaktan tüm kompozisyona
+   (harflerin içine de) düşer. `pointer-events: none` zorunlu. */
+.af-hk-isik {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(118% 76% at 16% 8%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 88% 96%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+.af-hk--acik .af-hk-isik {
+  background:
+    radial-gradient(118% 76% at 16% 8%, rgba(226, 84, 31, 0.1), transparent 62%),
+    radial-gradient(86% 58% at 88% 96%, rgba(14, 14, 22, 0.07), transparent 66%);
+}
+
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. Dijital siyahı
+   film siyahına çevirir. ASLA animasyonlu değil (kare başına yeniden
+   rasterleme), 180px tile şart (Safari büyük feTurbulence yüzeyini
+   yavaş rasterler), opaklık 0,045'i geçmez (AMOLED'de bantlaşır). */
+.af-hk-zerre {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: var(--hk-zerre);
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (prefers-contrast: more) {
+  .af-hk-zerre { opacity: 0; }
+}
+
+.af-hk-ic {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--af-kap, 1200px);
+  margin-inline: auto;
+  padding-inline: var(--af-yan, clamp(1rem, 0.55rem + 2vw, 3rem));
+}
+
+.af-hk-etiket {
+  color: #ff8900;
+  margin-block-end: clamp(12px, 2.2vh, 24px);
+}
+.af-hk-etiket::before { background: #ff8900; }
+.af-hk--acik .af-hk-etiket { color: var(--af-turuncu-koyu, #b83c13); }
+.af-hk--acik .af-hk-etiket::before { background: var(--af-turuncu-dolu, #e2541f); }
+
+/* =====================================================================
+   3. DUVAR — blend knockout yığını
+   İki metin katmanı tek ızgara gözünde. Ölçek scrub'ı OYUK'a uygulanır
+   ki iki katman birlikte ölçeklenip hizası hiç bozulmasın.
+   ===================================================================== */
+
+.af-hk-oyuk {
+  display: grid;
+  /* `minmax(0, 1fr)` ZORUNLU: ızgara gözü varsayılan olarak EN GENİŞ
+     ögeye (nowrap başlık satırına) göre büyüyor ve duvar kutusu
+     kolondan taşıp komşu kolonun üstüne biniyordu — ikinci ekranda
+     "SES YOK" ve "40 SN" etiketlerini maskenin altında bıraktı.
+     Gözü kolona kilitlemek duvarı hep kolonun içinde tutar.
+     BUNUN KARŞILIĞINDA KURAL: hiçbir duvar satırı kolonundan GENİŞ
+     olmamalı — dolu bir kelimenin kutudan taşan parçası knockout'un
+     dışında kalır ve `color: transparent` olduğu için GÖRÜNMEZ. Punto
+     tavanları (aşağıda ve `.af-hk--acik`'te) buna göre seçildi. */
+  grid-template-columns: minmax(0, 1fr);
+  transform-origin: 0 0;
+  /* Tek `transform`, reflow yok. `will-change` yalnız scrub süresince
+     (`data-hk-surukle`), bittiğinde kaldırılır. */
+}
+.af-hk-oyuk[data-hk-surukle] { will-change: transform; }
+
+/* ÖLÇEK SCRUB'I — `font-size` DEĞİL `transform: scale()` sürülür, bu
+   yüzden hiç reflow yok. Küçülen bu duvar sayfanın geri kalanının
+   normal başlığıdır: hiçbir şey yerine başka bir şey takas edilmez.
+   Yalnız `.js-var` altında ve yalnız koyu plakada. */
+.af.js-var .af-hk[data-hk='koyu'] .af-hk-oyuk {
+  transform: scale(calc(1 - var(--hk-olcek-pay) * var(--hk-ilerleme)));
+}
+
+.af-hk-duvar {
+  grid-area: 1 / 1;
+  align-self: start;
+  /* Blend alanı YALNIZ dört satırın kutusu — yüklem satırı dışarıda,
+     tam ekran blend edilmez. */
+  height: calc(var(--hk-satir-sayi, 4) * var(--hk-satir-h));
+  position: relative;
+  isolation: isolate;
+  contain: paint;
+}
+
+.af-hk-taban,
+.af-hk-plan,
+.af-hk-maske {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* KENAR DİKİŞİ KORUMASI — ölçtüm ve bu gerçek bir hataydı.
+   Duvarın yüksekliği `clamp(... vh ...)`ten geldiği için KESİRLİ
+   oluyor (ör. 514,797px). Kesirli kenarda hem taban hem maske kısmi
+   alfayla boyanıyor; `multiply` kısmi alfada tam karartamadığı için
+   duvarın sınırında ~1px'lik SICAK BİR ÇİZGİ kalıyor ve kutu plakanın
+   üstünde beliriyor — yani video dolaylı yoldan "dikdörtgen olarak"
+   sızıyor.
+   Çözüm: taban ve düzlem 1px içeri alınır, maske tam kutuyu kaplar.
+   Böylece maskenin siyahı tabanı HER pikselde örter. Harfler kutunun
+   çok içinde olduğu için 1px'lik kayıp görünmez. */
+.af-hk-taban,
+.af-hk-plan {
+  inset: 1px;
+}
+
+/* KONTRAST TABANI — mimari, dekor değil. Duraklar yalnız
+   public/site/marka/flow-sembol.svg'nin KENDİ stoplarından:
+   #861500 · #F14B00 · #FFAE00 · #FF5100 · #FF8900 · #FFCF3B.
+   Mor, mavi, teal, pembe ASLA. İkiden üç duraktan fazlası olmaz. */
+.af-hk-taban {
+  background: linear-gradient(100deg, #e2541f, #ff8900 50%, #ffcf3b);
+}
+.af-hk--acik .af-hk-taban {
+  background: linear-gradient(100deg, #861500, #b83c13 50%, #c5410f);
+}
+
+/* Tek düzlem, çok açıklık: bir plakada TEK <video> vardır; iki kelime
+   aynı düzlemin iki deliğidir. Işık bir kelimeden çıkıp diğerinde
+   devam ettiği için "iki video kutusu" değil "tek ekrana açılmış
+   pencereler" okunur. Maliyet: tek dosya, tek çözücü. */
+/* DİKKAT — BLEND EDİLEN KATMANA `opacity` VERİLMEZ.
+   Ölçtüm: `.af-hk-plan`'a `opacity: .92` verildiğinde Chrome bu katmanı
+   ayrı bir yüzeye alıyor ve üstündeki `multiply` maskesi onu tam
+   karartamıyor; duvarın kutusu plakanın üzerinde SOLUK BİR DİKDÖRTGEN
+   olarak görünüyor. Bu, konseptin birinci yasağı ("videonun herhangi
+   bir yerde dikdörtgen görünmesi"). Kısma gerekiyorsa katmanın KENDİ
+   opaklığı değil, İÇİNDEKİ karartma örtüsü (`::after`) kullanılır. */
+.af-hk-plan {
+  mix-blend-mode: screen;
+}
+.af-hk--acik .af-hk-plan {
+  mix-blend-mode: multiply;
+}
+/* KONSEPTTEN ÇIKARILAN TEK MADDE: "video düzlemi parlaklık 1 → 0,72"
+   scrub'ı. Üç ayrı yolla denendi ve ÜÇÜ DE dikdörtgen sızdırdı:
+   (a) katmanın kendi `opacity`si, (b) içeride yarı saydam bir karartma
+   örtüsü (`::after`), (c) `filter: brightness()`. Hepsinde Chrome
+   blend grubunu ayrı bir yüzeye alıyor ve üstündeki `multiply` maskesi
+   onu tam karartamıyor — duvarın kutusu plakanın üstünde soluk bir
+   dikdörtgen olarak beliriyor. Bu, konseptin BİRİNCİ yasağı. Süs için
+   çekirdek riske edilmedi; blend yığınında yarı saydam katman YOKTUR.
+   Ölçek scrub'ı ve cümlenin tamamlanması ödülü aynen duruyor. */
+.af-hk-plan img,
+.af-hk-plan video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: var(--hk-kadraj);
+}
+/* Durağan kare ALTTA KALICI durur; video onun ÜSTÜNE 600 ms'de çapraz
+   geçer. Video hiç gelmezse, play() reddedilirse, saveData açıksa ya da
+   ağ kötüyse duvar hiç bozulmaz — hep dolu görünür. */
+.af-hk-plan video {
+  opacity: 0;
+  transition: opacity 600ms linear;
+}
+.af-hk-plan[data-hk-oynuyor] video { opacity: 1; }
+
+/* saveData / 2g: görsel de yok, harfler marka gradyanıyla dolar.
+   0 bayt, marka doğru, 5,52:1 kontrast korunur. */
+.af.af-hafif .af-hk-plan { display: none; }
+
+/* Ekran dışında TAM serbest bırakma: blend kapanır, kompozisyon
+   maliyeti sıfırlanır. Sayfanın kalanında plaka rejimi YOK. */
+.af-hk[data-hk-kapali] .af-hk-plan,
+.af-hk[data-hk-kapali] .af-hk-maske { mix-blend-mode: normal; }
+.af-hk[data-hk-kapali] .af-hk-oyuk { will-change: auto; }
+
+/* Maske duvarın kutusunu 2px TAŞAR; `padding` metni tam eski yerine
+   geri koyar, yani h1 ile hizası bozulmaz. Taşma `contain: paint` ile
+   kırpılır. Gerekçe: duvarın yüksekliği kesirli (clamp + vh) ve scrub
+   sırasında ölçekleniyor; kenar pikselinde hem taban hem maske KISMİ
+   alfayla boyanırsa `multiply` tam karartamıyor ve kutunun sınırında
+   sıcak bir çizgi kalıyor. Maske tabanı her pikselde örtünce sorun
+   kökten bitiyor. */
+.af-hk-maske {
+  inset: -2px;
+  padding: 2px;
+  background: var(--hk-plaka);
+  mix-blend-mode: multiply;
+}
+.af-hk--acik .af-hk-maske { mix-blend-mode: screen; }
+
+/* =====================================================================
+   4. SATIRLAR — yükseklik MUTLAK kilitli (CLS 0'ın tek anahtarı)
+   Bricolage Grotesque `display:swap` ile geç gelse bile glif SABİT
+   kutunun içinde değişir → düzen kaymaz. `text-wrap: balance`
+   KULLANILMAZ (yazı tipi yüklenince satır sayısını değiştirip CLS
+   üretir). `wdth` ekseni EKLENMEZ (+18-26 KB, tam LCP yolunda);
+   sıkışık görünüm letter-spacing ve line-height ile bedelsiz alınır.
+   ===================================================================== */
+
+.af-hk-satirlar {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--hk-font);
+  font-weight: 800;                 /* blend edilen metin ≥700 */
+  line-height: var(--hk-satir-h);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;        /* kaynak metin doğal yazımda: */
+  font-synthesis-weight: none;      /* SEO ve ekran okuyucu bağırmaz */
+  -webkit-text-size-adjust: none;
+}
+
+.af-hk-satir {
+  display: block;
+  height: var(--hk-satir-h);
+  overflow: clip;
+  white-space: nowrap;
+}
+
+/* Satır içi perde — AÇILIŞ SAF CSS'tir, GSAP gerekmez.
+   Perde açılması gibi okunur, harf harf çizgi film gibi DEĞİL:
+   harf harf zıplayan/dönen açılış 2019 şablonudur ve yasaktır. */
+.af-hk-i {
+  display: block;
+  line-height: var(--hk-satir-h);
+}
+.af.js-var .af-hk-i {
+  animation: af-hk-perde 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.af.js-var .af-hk-satir:nth-child(1) .af-hk-i { animation-delay: 0.04s; }
+.af.js-var .af-hk-satir:nth-child(2) .af-hk-i { animation-delay: 0.1s; }
+.af.js-var .af-hk-satir:nth-child(3) .af-hk-i { animation-delay: 0.16s; }
+.af.js-var .af-hk-satir:nth-child(4) .af-hk-i { animation-delay: 0.22s; }
+
+@keyframes af-hk-perde {
+  from { transform: translateY(108%); }
+  to { transform: translateY(0); }
+}
+
+/* "ve" gibi bağlaçlar küçük ve düz kalır — tipografik nefes */
+.af-hk-kucuk {
+  text-transform: lowercase;
+  font-size: 0.5em;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* --- İki metin katmanının kutuplaşması ---
+   `position: relative; z-index: 1` ZORUNLU, dekor değil: `.af-hk-duvar`
+   `isolation: isolate` + `contain: paint` ile bir yığın bağlamı
+   yaratıyor ve konumlandırılmamış böyle bir öge, normal akıştaki
+   kardeşinin ÜSTÜNDE atomik olarak boyanıyor. Açıkça yükseltilmezse
+   gerçek <h1> maskenin ALTINDA kalır ve dolu olmayan kelimeler
+   (GÖRÜNEN, ve ARKADAKİ) hiç görünmez. Bu hata yalnız açılış
+   animasyonu kapalıyken (JS gelmemiş / az hareket) ortaya çıkıyordu;
+   animasyon kendi kompozisyon katmanını yarattığı için hatayı
+   gizliyordu. */
+.af-hk-yazi {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+}
+.af-hk-yazi .af-hk-satir--dolu { color: transparent; }
+.af-hk-maske .af-hk-satirlar { color: var(--hk-plaka); }
+.af-hk-maske .af-hk-satir--dolu { color: #fff; }
+.af-hk--acik .af-hk-maske .af-hk-satir--dolu { color: #000; }
+
+/* MOBİL DÜŞÜŞÜ: dolu kelime 2 → 1 (yalnız YAZILIM). Nedeni iki katlı:
+   dar kolonda iki dolu satır kalabalık görünüyor ve blend edilen glif
+   kenarı sayısı yarıya iniyor (düşük uçlu Android'de kompozisyon). */
+@media (max-width: 700px) {
+  .af-hk-maske .af-hk-satir--dolu[data-ikincil] { color: var(--hk-plaka); }
+  .af-hk-yazi .af-hk-satir--dolu[data-ikincil] { color: inherit; }
+}
+
+/* =====================================================================
+   5. YÜKLEM — YARIM CÜMLE kancası
+   İnsanın görebileceği en güçlü "devamı var" sinyali ve 0 bayta mal
+   olur. Kapalı durum YALNIZ `.js-var` altında tanımlı: JS gelmezse
+   (ya da 4 saniye kapısı `js-var`'ı kaldırırsa) cümle TAMAMDIR.
+   Kaydırmanın ödülü somut: CÜMLE TAMAMLANIR. Scrub'a bağlı, hıza
+   bağlı değil; geri kaydırırsan geri alır.
+   ===================================================================== */
+
+.af-hk-yuklem {
+  display: block;
+  height: var(--hk-yuklem-h);
+  overflow: clip;
+  white-space: nowrap;
+  font-size: var(--hk-yuklem-font);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: #fff;
+}
+.af-hk--acik .af-hk-yuklem { color: var(--af-ink, #14141f); }
+
+.af-hk-yuklem > span {
+  display: block;
+  line-height: var(--hk-yuklem-h);
+}
+/* Harflerin üst %44'ü görünecek biçimde kırpılır. transform-only,
+   reflow yok, `height` animasyonu YOK. */
+.af.js-var .af-hk-yuklem > span {
+  transform: translateY(calc((1 - var(--hk-ilerleme)) * 56%));
+  opacity: calc(0.55 + 0.45 * var(--hk-ilerleme));
+}
+
+/* =====================================================================
+   6. MONO HİZMET ŞERİDİ
+   Beşi de GERÇEK <a>, DOM sırasında ve görsel sırada, SSR'da basılı,
+   her biri kendi hizmet sayfasına gider. "Dekor metin" DEĞİLDİR ve
+   hiçbir hâlde gizlenmez.
+
+   DEVİR METNE DOKUNMAZ. Önceki sürümde adlar ScrambleText ile harf
+   harf karışıyordu; ölçümde tek bir karede "SUSFGMYQAJBTSNRWSBWJV"
+   yakalandı ve ekran "bozuk site" gibi okundu. Artık devir YALNIZ üç
+   compositor işinden ibaret: kayan 2px iz, opaklık ve 1px kalkma.
+   Hiçbir karede okunmayan metin olmaz; JS gelmese bile beş ad okunur.
+
+   Kayma sıfır: hiçbir metin düğümü değişmiyor, harf aralığı ve
+   kalınlık sabit (ikisi de şeridi yeniden akıtır ve izin hedef
+   genişliğini kaydırırdı).
+   ===================================================================== */
+
+.af-hk-serit {
+  position: relative;        /* kayan izin konum bağlamı */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  margin-block-start: clamp(20px, 3.4vh, 40px);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.af-hk-serit li { margin: 0; }
+
+.af-hk-serit a {
+  position: relative;
+  display: block;
+  padding-block: 4px;
+  color: var(--af-metin-3);
+  text-decoration: none;
+  transition: color var(--af-gecis-yavas, 420ms ease);
+}
+
+/* KAYAN İZ — tek öge, addan ada geçer.
+   Genişliği 1px'tir, bu yüzden `scaleX` doğrudan piksel genişliği
+   verir; konum `translateX`. İkisi tek `transform` içinde olduğu için
+   geçiş compositor'da döner, kare başına yeniden boyama yok.
+   JS yerleştirmeden önce görünmez (`opacity: 0`), böylece soldan
+   süzülerek gelen bir çizgi görünmez. */
+.af-hk-iz {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 2px;
+  margin: 0;
+  pointer-events: none;
+  background: var(--af-vurgu-cizgi);
+  opacity: 0;
+  transform: translate3d(var(--hk-iz-x, 0px), 0, 0) scaleX(var(--hk-iz-g, 0));
+  transform-origin: 0 50%;
+}
+.af-hk-serit[data-hk-iz] .af-hk-iz {
+  opacity: 1;
+  transition:
+    transform 440ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 220ms linear;
+}
+
+/* Hover / odak için ayrı, yerinde duran çizgi: JS'siz de çalışır. */
+.af-hk-serit a::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 2px;
+  background: var(--af-vurgu-cizgi);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.af-hk-serit a:hover::after,
+.af-hk-serit a:focus-visible::after { transform: scaleX(1); }
+
+/* Aktif ad tam opak ve vurgu renginde; pasifler soluk. Yalnız renk ve
+   opaklık değişir — genişliği etkileyen hiçbir özellik değişmez. */
+.af-hk-serit a:hover,
+.af-hk-serit a:focus-visible,
+.af-hk-serit .is-aktif a { color: var(--af-vurgu); }
+
+/* Aktif ad 1px kalkar: hareket hissi, sıfır düzen etkisi. */
+.af-hk-serit [data-hk-ad] {
+  display: inline-block;
+  transition: transform 300ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.af-hk-serit .is-aktif [data-hk-ad] { transform: translateY(-1px); }
+
+/* Marka kuyruğu: "· META · GOOGLE · TIKTOK". Kendi düğümünde durur ve
+   hizmet adından ayrışsın diye bir tık daha soluktur. */
+.af-hk-sabit { white-space: nowrap; opacity: 0.72; }
+
+/* Odak gelince devir DURUR ve beşi de tam parlaklıkta açılır —
+   hiçbir bağlantı "sırası gelmediği için" erişilemez kalmaz. */
+.af-hk-serit:focus-within a { color: var(--af-vurgu); }
+
+/* =====================================================================
+   7. KAYDIRMA İPUCU
+   ===================================================================== */
+
+.af-hk-ipucu {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: max(12px, env(safe-area-inset-bottom));
+  inset-inline-end: var(--af-yan, 1rem);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono, 0.75rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.46);
+}
+.af-hk-ipucu::after {
+  content: '';
+  width: 2px;
+  height: 22px;
+  background: #ff6b35;
+  animation: af-hk-nefes 2.4s ease-in-out infinite;
+}
+@keyframes af-hk-nefes {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.45; }
+}
+/* Scrub ilerledikçe ipucu işini bitirir */
+.af.js-var .af-hk-ipucu { opacity: calc(1 - var(--hk-ilerleme)); }
+
+/* =====================================================================
+   8. İKİNCİ EKRAN — üretim zinciri
+   Kutbun dönmesi BİLGİ taşır: koyu plaka "ne yaptığımız", beyaz plaka
+   "nasıl yaptığımız".
+   ===================================================================== */
+
+.af-hk-uretim {
+  display: grid;
+  gap: clamp(20px, 3vw, 40px);
+  align-items: start;
+  margin-block-start: clamp(20px, 3vh, 36px);
+}
+@media (min-width: 900px) {
+  .af-hk-uretim {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+    align-items: center;
+  }
+}
+
+.af-hk-kanit {
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+}
+
+/* --- KURGU KAPISI (jüri şartı, pazarlık konusu değil) ---
+   16:9 bir karenin gözünüzün önünde 9:16'ya dönüşmesi. Kurguyu ikonla
+   değil DURUM DEĞİŞİMİYLE anlatır. Sabit 220×220 kutu: `aspect-ratio`
+   HİÇ DEĞİŞMEZ → reflow yok, CLS 0.
+
+   `clip-path: inset()` burada BİLİNÇLİ olarak animasyonlanıyor ve bu,
+   "clip-path tween etme" yasağının istisnasıdır: yasak 760×345'lik bir
+   alanı 0,9 sn boyunca yeniden boyamakla ilgili. Burada alan 220×220
+   (48 bin piksel), süre 520 ms ve animasyon BİR KEZ çalışıyor.
+   Üç jürinin ikisi bu kapıyı tam bu teknikle şart koştu. */
+.af-hk-kapi {
+  --hk-kapi: 220px;
+  position: relative;
+  inline-size: var(--hk-kapi);
+  block-size: var(--hk-kapi);
+  flex: none;
+  border: 1px solid var(--af-cizgi, rgba(20, 20, 31, 0.13));
+  border-radius: var(--af-r-veri, 2px);
+  background: #0b0b11;
+  overflow: hidden;
+}
+@media (max-width: 420px) {
+  .af-hk-kapi { --hk-kapi: 180px; }
+}
+
+/* Üst ve alt perde: etiketler kadrajın parlak kısmına denk gelirse
+   okunurluk düşüyordu. Tek `linear-gradient`, 0 bayt, 0 istek. */
+.af-hk-kapi::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.62),
+    rgba(0, 0, 0, 0) 26%,
+    rgba(0, 0, 0, 0) 66%,
+    rgba(0, 0, 0, 0.68)
+  );
+}
+
+.af-hk-kapi-cam {
+  position: absolute;
+  inset: 0;
+  /* Başlangıç: 16:9 pencere (üstte/altta %21,9 kapalı) */
+  clip-path: inset(21.9% 0 21.9% 0);
+}
+.af.js-var .af-hk-kapi[data-hk-gorundu] .af-hk-kapi-cam {
+  animation: af-hk-kurgu 520ms cubic-bezier(0.3, 0.72, 0.28, 1) 180ms both;
+}
+@keyframes af-hk-kurgu {
+  from { clip-path: inset(21.9% 0 21.9% 0); }
+  to { clip-path: inset(0 21.9% 0 21.9%); }
+}
+
+.af-hk-kapi-cam img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 58%;
+}
+/* Dikeye dönerken kadraj merkeze kayar: yatay çekimin dikey yayına
+   nasıl kırpıldığını gösteren asıl bilgi bu. */
+.af.js-var .af-hk-kapi[data-hk-gorundu] .af-hk-kapi-cam img {
+  animation: af-hk-kadraj 520ms cubic-bezier(0.3, 0.72, 0.28, 1) 180ms both;
+}
+@keyframes af-hk-kadraj {
+  from { object-position: 50% 58%; }
+  to { object-position: 50% 46%; }
+}
+
+.af-hk-kapi-ad {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 10px;
+  inset-inline-start: 12px;
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+}
+.af-hk-kapi-not {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 8px;
+  inset-inline-start: 12px;
+  inset-inline-end: 12px;
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* --- BOŞ SES RAYI ---
+   Klipler sessiz olduğu için dalga formu ÇİZMİYORUZ. Sahte dalga formu
+   tek satırda ölçülebilir bir yalandır. Yerine 1px kesikli boş ray ve
+   dürüst etiket. (RAPOR.md §8.1: ses kanalı dosyanın içinde duruyor;
+   `muted` zorunlu, ffmpeg kurulunca kanal tamamen çıkarılacak.) */
+.af-hk-ray {
+  display: grid;
+  gap: 6px;
+}
+.af-hk-ray-cizgi {
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--af-cizgi, rgba(20, 20, 31, 0.3)) 0 6px,
+    transparent 6px 12px
+  );
+}
+.af-hk-ray-etiket {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-ink-3, #6f6f82);
+}
+
+/* --- KESİM ARALIĞI --- kunye.json'daki GERÇEK aralık, uydurma yok */
+.af-hk-kesim {
+  display: grid;
+  gap: 5px;
+}
+.af-hk-kesim-bant {
+  position: relative;
+  height: 10px;
+  border-block: 1px solid var(--af-cizgi-2, rgba(20, 20, 31, 0.07));
+}
+.af-hk-kesim-ic {
+  position: absolute;
+  inset-block: -1px;
+  inset-inline-start: var(--hk-giris, 0%);
+  inline-size: var(--hk-pay, 10%);
+  border-inline: 2px solid var(--af-turuncu-dolu, #e2541f);
+  background: rgba(226, 84, 31, 0.12);
+}
+
+/* --- REKLAM VERİ PENCERESİ ---
+   SONUÇ değil SÜREÇ. Rakam YOK, yüzde YOK, CTR/ROAS grafiği YOK,
+   platform LOGOSU YOK (yalnız mono kelime-işaret: hem marka hukuku
+   temiz hem "üçüncü marka panosu" kısıtı korunur). Alt köşede ÖRNEK
+   damgası. Uydurma panel ekran görüntüsü yasaktır. */
+.af-hk-panel {
+  position: relative;
+  border: 1px solid var(--af-cizgi, rgba(20, 20, 31, 0.13));
+  border-radius: var(--af-r-veri, 2px);
+  padding: var(--af-b-16, 16px);
+  display: grid;
+  gap: 10px;
+  background: color-mix(in oklab, var(--af-ink, #14141f) 3%, transparent);
+}
+.af-hk-kanal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.af-hk-kanal a { color: var(--af-ink-2, #4a4a5a); text-decoration: none; }
+.af-hk-kanal a:hover { color: var(--af-turuncu-koyu, #b83c13); }
+/* Genişlik taşıyan çubuk — ÖLÇÜ DEĞİL, yalnız ritim. Değerler elle
+   yazılmış sabitler; Math.random() YOK. */
+.af-hk-kanal span[data-cubuk] {
+  height: 2px;
+  background: linear-gradient(to right, var(--af-turuncu-dolu, #e2541f) var(--hk-en, 50%), var(--af-cizgi-2, rgba(20, 20, 31, 0.1)) var(--hk-en, 50%));
+}
+.af-hk-duraklar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--af-ink-3, #6f6f82);
+}
+.af-hk-ornek {
+  position: absolute;
+  inset-block-end: 6px;
+  inset-inline-end: 8px;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.18em;
+  color: var(--af-ink-3, #6f6f82);
+  border: 1px solid var(--af-cizgi-2, rgba(20, 20, 31, 0.1));
+  border-radius: var(--af-r-veri, 2px);
+  padding: 1px 5px;
+}
+
+/* --- Satır yanı mono künyeler --- */
+.af-hk-kunye {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-ink-3, #6f6f82);
+}
+.af-hk-kunye a { color: var(--af-ink-2, #4a4a5a); text-decoration: none; }
+.af-hk-kunye a:hover { color: var(--af-turuncu-koyu, #b83c13); }
+
+/* --- Plakanın alt kenarındaki yönetim şeridi --- */
+.af-hk-yonetim {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--af-kap, 1200px);
+  margin: clamp(20px, 3vh, 34px) auto 0;
+  padding-inline: var(--af-yan, clamp(1rem, 0.55rem + 2vw, 3rem));
+  padding-block-start: 10px;
+  border-block-start: 1px solid var(--af-cizgi, rgba(20, 20, 31, 0.13));
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono, 0.75rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-ink-2, #4a4a5a);
+}
+.af-hk-yonetim a { color: inherit; text-decoration: none; }
+.af-hk-yonetim a:hover { color: var(--af-turuncu-koyu, #b83c13); }
+
+/* =====================================================================
+   8b. NESNE ZİNCİRİ — ilk ekranın hizmet adları eksik çiplerine devreder
+   Ziyaretçinin ilk ekranda OKUDUĞU kelime, iki kaydırma sonra teklif
+   kapsamının satırının üstüne iner. Taşıma elle FLIP ile yapılır
+   (`getBoundingClientRect` + transform, ~0,6 KB; GSAP Flip eklentisi
+   9,5 KB'a mal olurdu ve beş öge için gereksiz).
+
+   DÜRÜSTLÜK SINIRI: devir hedef çipi SEÇMEZ, yalnız İŞARET EDER.
+   Ziyaretçinin söylemediği bir eksiği forma yazmak "uydurma yok"
+   kuralının ihlali olurdu; biz yalnız gözü oraya götürüyoruz, kutuyu
+   ziyaretçi işaretliyor.
+   ===================================================================== */
+
+.af-hk-hayalet {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 50;                 /* üst barın (60) ALTINDA: arkasından çıkar */
+  margin: 0;
+  pointer-events: none;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--af-turuncu-dolu, #e2541f);
+  will-change: transform, opacity;
+}
+
+/* Hedef çip bir kez nefes alır — seçilmez. */
+.af-secenek.af-hk-devir {
+  animation: af-hk-isaret 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes af-hk-isaret {
+  0% { border-color: var(--af-kenar); box-shadow: 0 0 0 0 rgba(226, 84, 31, 0); }
+  30% { border-color: var(--af-turuncu-dolu); box-shadow: 0 0 0 4px rgba(226, 84, 31, 0.16); }
+  100% { border-color: var(--af-kenar); box-shadow: 0 0 0 0 rgba(226, 84, 31, 0); }
+}
+
+/* =====================================================================
+   9. HAREKET VE ERİŞİLEBİLİRLİK KORUMALARI
+   prefers-reduced-motion: scrub YOK, devir YOK, video YOK.
+   Duvar DOLU ve DURAĞAN, yüklem satırı KIRPILMADAN tam görünür — az
+   hareket isteyen kullanıcıya "yarım cümle" oyunu oynanmaz. Kendinden
+   emin bir afiş gibi durur: AYNI kompozisyon, yedek gibi görünmez.
+   ===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .af-hk {
+    /* Yüklem satırı kırpılmadan TAM görünsün diye ilerleme 1'dir —
+       ama duvar KÜÇÜLMEZ: ölçek payı 0'a çekilir. İkisi aynı
+       değişkene bağlı kalsaydı az hareket isteyen kullanıcı duvarı
+       daha ilk karede 0,46 ölçeğinde, yani küçülmüş hâlinde görürdü. */
+    --hk-ilerleme: 1;
+    --hk-olcek-pay: 0;
+  }
+  .af.js-var .af-hk-i,
+  .af.js-var .af-hk-kapi[data-hk-gorundu] .af-hk-kapi-cam,
+  .af.js-var .af-hk-kapi[data-hk-gorundu] .af-hk-kapi-cam img {
+    animation: none;
+    transform: none;
+  }
+  .af-hk-ipucu::after { animation: none; }
+  .af-hk-hayalet { display: none; }
+  .af-hk-iz { display: none; }
+  .af-hk-serit [data-hk-ad] { transform: none; }
+  .af-secenek.af-hk-devir { animation: none; }
+  .af-hk-plan video { display: none; }
+  /* Durağan kare kalır, kutup aynı, kompozisyon aynı. */
+}
+
+/* Odak halkası: siyah plakada 2px turuncu + 2px offset (7,4:1) */
+.af-hk a:focus-visible {
+  outline: 2px solid #ff6b35;
+  outline-offset: 2px;
+  border-radius: var(--af-r-veri, 2px);
+}
+.af-hk--acik a:focus-visible { outline-color: var(--af-turuncu-dolu, #e2541f); }
+
+/* Yüksek kontrast: blend kalkar, dolu kelimeler düz turuncu olur */
+@media (prefers-contrast: more) {
+  .af-hk-plan { display: none; }
+  .af-hk-serit a { color: rgba(255, 255, 255, 0.92); }
+  .af-hk--acik .af-hk-serit a { color: var(--af-ink, #14141f); }
+}
+
+/* Yazdırma: plaka rejimi tamamen kapanır */
+@media print {
+  .af-hk {
+    min-height: 0;
+    position: static;
+    background: #fff;
+    color: #000;
+    padding-block: var(--af-b-16, 16px);
+    clip-path: none;
+  }
+  .af-hk-yuva { height: auto; }
+  .af-hk-isik,
+  .af-hk-zerre,
+  .af-hk-plan,
+  .af-hk-maske,
+  .af-hk-ipucu { display: none; }
+  .af-hk-yazi .af-hk-satir--dolu { color: #000; }
+  .af-hk-yuklem > span { transform: none; opacity: 1; }
+}
+
+
+/* =====================================================================
+   10. MOBİL YERLEŞİM (≤700px)
+   DOSYANIN SONUNDA duruyor ve bu bilinçli: `.af-hk-serit` gibi temel
+   kurallar yukarıda tanımlı ve aynı belirginlikte. Medya sorgusu
+   belirginlik eklemediği için, daha önce yazılsaydı temel kural onu
+   ezerdi (şerit üç satıra sarıyordu — ölçtüm).
+   ===================================================================== */
+
+@media (max-width: 700px) {
+  /* Kompozisyon: etiket tepede, duvar kalan boşlukta ORTALANIR
+     (`margin-block: auto`), mono şerit ve ipucu dipte. Böylece artan
+     boşluk tek bir çukurda toplanmaz, iki yana eşit dağılır. */
+  .af-hk { justify-content: flex-start; }
+  .af-hk-ic {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .af-hk-oyuk { margin-block: auto; }
+
+  /* İpucu AKIŞA girer: mutlak kalsaydı yatay kaydırmalı şeridin üstüne
+     binerdi. Ekranın en altına, sağa oturur. */
+  .af-hk-ipucu {
+    position: static;
+    align-self: flex-end;
+    margin-block-start: clamp(10px, 1.6vh, 18px);
+    margin-inline-end: var(--af-yan, 1rem);
+    inset: auto;
+  }
+
+  /* MONO ŞERİT: üç satıra sarıp dağılmak yerine TEK SATIR yatay
+     kaydırma. Sağ kenardaki kesilmişlik "devamı var" der; snap adları
+     düzgün durdurur. Dokunma hedefi 44px'de kalır.
+     SOL KENARDA SOLMA YOK: ilk hizmetin ilk harfi kesilmemeli. */
+  .af-hk-serit {
+    flex-wrap: nowrap;
+    gap: 0 20px;
+    margin-block-start: clamp(14px, 2.4vh, 24px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    /* `scroll-padding` OLMADAN tarayıcı ilk ögeyi DOLGU KUTUSUNUN
+       kenarına yapıştırıyor ve kap kendiliğinden 16px kayıyor: ilk
+       hizmetin ilk harfi kesik duruyordu (ölçtüm: scrollLeft = 16,5).
+       Snapport'u dolgudan sonra başlatınca şerit duvarla hizalanıyor. */
+    scroll-padding-inline: var(--af-yan, 1rem);
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--af-yan, 1rem));
+    padding-inline: var(--af-yan, 1rem);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent 100%);
+  }
+  .af-hk-serit::-webkit-scrollbar { display: none; }
+  .af-hk-serit li {
+    flex: none;
+    scroll-snap-align: start;
+  }
+  .af-hk-serit a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding-block: 0;
+    white-space: nowrap;
+  }
+  /* 44px'lik dokunma kutusunda alt çizgi metnin dibine çekilir */
+  .af-hk-serit a::after { inset-block-end: 11px; }
+}

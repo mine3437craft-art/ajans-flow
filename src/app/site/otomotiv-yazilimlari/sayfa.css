@@ -1,0 +1,742 @@
+/* =====================================================================
+   /otomotiv-yazilimlari — yalnız bu sayfa ağacına ait stiller.
+
+   KURAL: yeni renk / radius / gölge yok. Her değer tasarım sisteminin
+   (src/app/site/site.css) `--af-` değişkenlerinden okunur; bu yüzden
+   bileşenler bandı (kâğıt / koyu / beyaz) kendiliğinden takip eder.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. ZİNCİR ŞEMASI — tek SVG, kaydırmaya bağlı ilerleyen nokta
+   JS gelmezse (ya da hareket azaltılmışsa) şema TAM çizili durur:
+   varsayılan ilerleme 1'dir, `.is-canli` ancak JS eklediğinde 0'dan başlar.
+   --------------------------------------------------------------------- */
+
+.af-oto-sema {
+  --af-zincir-p: 1;
+  margin: 0;
+  width: 100%;
+}
+.af-oto-sema.is-canli {
+  --af-zincir-p: var(--af-zincir-oran, 0);
+}
+.af-oto-sema svg {
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+/* Hattın soluk izi — nereye gittiğini hep gösterir */
+.af-oto-sema-iz {
+  fill: none;
+  stroke: var(--af-kenar);
+  stroke-width: 2;
+}
+
+/* Çizilen turuncu hat: pathLength="1" olduğu için dashoffset 0–1 arası */
+.af-oto-sema-dolu {
+  fill: none;
+  stroke: var(--af-vurgu-cizgi);
+  stroke-width: 2;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--af-zincir-p));
+  transition: stroke-dashoffset 120ms linear;
+}
+
+/* Hattın üzerinde ilerleyen nokta — düz dikey hat olduğu için translateY yeter */
+.af-oto-sema-nokta {
+  fill: var(--af-vurgu-cizgi);
+  transform: translateY(calc(var(--af-zincir-p) * 464px));
+  transition: transform 120ms linear;
+}
+.af-oto-sema-nokta-halo {
+  fill: var(--af-vurgu-cizgi);
+  opacity: 0.22;
+  transform: translateY(calc(var(--af-zincir-p) * 464px));
+  transition: transform 120ms linear;
+}
+
+/* Durak kutusu */
+.af-oto-durak-kutu {
+  fill: var(--af-kart-zemin);
+  stroke: var(--af-kart-kenar);
+  stroke-width: 1;
+}
+.af-oto-durak-halka {
+  fill: var(--af-zemin);
+  stroke: var(--af-kenar);
+  stroke-width: 2;
+}
+.af-oto-durak-no {
+  fill: var(--af-metin-3);
+  font-family: var(--af-yazi-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+.af-oto-durak-ad {
+  fill: var(--af-metin);
+  font-family: var(--af-yazi-baslik);
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.af-oto-durak-sira {
+  fill: var(--af-metin-3);
+  font-family: var(--af-yazi-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+}
+.af-oto-durak-not {
+  fill: var(--af-metin-2);
+  font-size: 13px;
+}
+
+/* Geçilen duraklar turuncuya döner (CSS seçicisiyle, JS DOM kurmaz) */
+.af-oto-sema[data-adim='1'] .af-oto-durak[data-sira='0'] .af-oto-durak-halka,
+.af-oto-sema[data-adim='2'] .af-oto-durak[data-sira='0'] .af-oto-durak-halka,
+.af-oto-sema[data-adim='2'] .af-oto-durak[data-sira='1'] .af-oto-durak-halka,
+.af-oto-sema[data-adim='3'] .af-oto-durak[data-sira='0'] .af-oto-durak-halka,
+.af-oto-sema[data-adim='3'] .af-oto-durak[data-sira='1'] .af-oto-durak-halka,
+.af-oto-sema[data-adim='3'] .af-oto-durak[data-sira='2'] .af-oto-durak-halka,
+.af-oto-sema[data-adim='4'] .af-oto-durak .af-oto-durak-halka {
+  stroke: var(--af-vurgu-cizgi);
+}
+.af-oto-sema[data-adim='1'] .af-oto-durak[data-sira='0'] .af-oto-durak-no,
+.af-oto-sema[data-adim='2'] .af-oto-durak[data-sira='0'] .af-oto-durak-no,
+.af-oto-sema[data-adim='2'] .af-oto-durak[data-sira='1'] .af-oto-durak-no,
+.af-oto-sema[data-adim='3'] .af-oto-durak[data-sira='0'] .af-oto-durak-no,
+.af-oto-sema[data-adim='3'] .af-oto-durak[data-sira='1'] .af-oto-durak-no,
+.af-oto-sema[data-adim='3'] .af-oto-durak[data-sira='2'] .af-oto-durak-no,
+.af-oto-sema[data-adim='4'] .af-oto-durak .af-oto-durak-no {
+  fill: var(--af-vurgu);
+}
+.af-oto-durak-halka,
+.af-oto-durak-no {
+  transition: stroke var(--af-gecis), fill var(--af-gecis);
+}
+
+/* Şema uzun olduğu için MASAÜSTÜNDE anlatım sütunu yapışık kalır; konum ve
+   katman değerleri tasarım sistemindeki `.af-yapiskan`dan gelir (bant kırpması
+   da site.css'teki `.af-bant:has(.af-yapiskan)` kuralıyla açılır).
+   Mobilde kapatılır: tek sütunlu ızgarada tarayıcı yapışkanlığı ızgara
+   kabına göre çözüyor ve metin şemanın üstüne biniyor. */
+.af-oto-anlatim { position: static; }
+@media (min-width: 900px) {
+  .af-oto-anlatim { position: sticky; }
+}
+
+/* ---------------------------------------------------------------------
+   2. DEĞERLEME BANDI — tek değişken: --af-kirici-oran
+   --------------------------------------------------------------------- */
+
+.af-oto-band {
+  --af-kirici-oran: 1;
+  display: grid;
+  gap: var(--af-b-12);
+}
+.af-oto-band-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-8);
+}
+.af-oto-band-iz {
+  position: relative;
+  height: 44px;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-veri);
+  background: color-mix(in srgb, var(--af-metin) 4%, transparent);
+  overflow: hidden;
+}
+.af-oto-band-dolu {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: calc(var(--af-kirici-oran) * 100%);
+  background: var(--af-vurgu-sis);
+  border-inline-end: 2px solid var(--af-vurgu-cizgi);
+  transition: width var(--af-gecis-yavas);
+}
+/* Galerinin alış aralığı: düzeltilmiş göstergenin %85–%90'ı */
+.af-oto-band-aralik {
+  position: absolute;
+  inset-block: 50% 6px;
+  inset-inline-start: calc(var(--af-kirici-oran) * 85%);
+  width: calc(var(--af-kirici-oran) * 5%);
+  border: 1px dashed var(--af-vurgu-cizgi);
+  border-radius: var(--af-r-veri);
+  background: color-mix(in srgb, var(--af-vurgu-cizgi) 16%, transparent);
+  transition: inset-inline-start var(--af-gecis-yavas), width var(--af-gecis-yavas);
+}
+.af-oto-band-olcek {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-metin-3);
+  letter-spacing: 0.08em;
+}
+
+/* Sonuç şeridi */
+.af-oto-sonuc {
+  display: grid;
+  gap: var(--af-b-12);
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+}
+.af-oto-sonuc-oge {
+  display: grid;
+  gap: var(--af-b-4);
+  align-content: start;
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  background: color-mix(in srgb, var(--af-metin) 3%, transparent);
+}
+.af-oto-sonuc-oge--vurgulu {
+  border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent);
+  background: var(--af-vurgu-sis);
+}
+.af-oto-sonuc-deger {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+/* Kırıcı çipi: ad + kural iki satır */
+.af-oto-kirici {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 56px;
+  padding-block: var(--af-b-8);
+  text-align: start;
+  border-radius: var(--af-r-kart);
+}
+.af-oto-kirici-kural {
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--af-metin-3);
+}
+.af-oto-kirici[aria-pressed='true'] .af-oto-kirici-kural { color: var(--af-vurgu); }
+.af-oto-kirici-oran { font-family: var(--af-yazi-mono); font-size: var(--af-y-mono); }
+
+/* "Yakın ilan yok" anahtarı ayrı dursun */
+.af-oto-veri-yok {
+  display: grid;
+  gap: var(--af-b-12);
+  padding: var(--af-b-16);
+  border: 1px dashed var(--af-kenar);
+  border-radius: var(--af-r-kart);
+}
+@media (min-width: 640px) {
+  .af-oto-veri-yok { grid-template-columns: 1fr auto; align-items: center; }
+}
+
+/* ---------------------------------------------------------------------
+   3. İLAN METNİ — daktilo (CSS steps), JS'siz de okunur
+   Varsayılan: satır TAM genişlikte. `.js-var` eklenmişse satır gizlenir ve
+   bölüm görününce (`.af-belirdi`) adım adım yazılır.
+   --------------------------------------------------------------------- */
+
+.af-oto-yazim {
+  display: grid;
+  gap: 6px;
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  background: color-mix(in srgb, var(--af-metin) 4%, transparent);
+  font-family: var(--af-yazi-mono);
+  font-size: clamp(0.6875rem, 0.52rem + 0.6vw, 0.8125rem);
+  line-height: 1.6;
+  color: var(--af-metin);
+}
+.af-oto-yazim-satir {
+  display: block;
+  /* VARSAYILAN: satır tam genişlikte, yani metin JS olmadan da okunur.
+     Gizleme yalnızca animasyonun `from` karesinde olur; animasyon bir sebeple
+     geçersiz kalırsa metin görünür kalır. */
+  /* 0.6ch pay: imleç çizgisi ve yuvarlama son harfi kırpmasın */
+  width: calc(var(--n) * 1ch + 0.6ch);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  border-inline-end: 2px solid transparent;
+}
+/* Son satırın sağındaki ince turuncu çizgi: metnin kurulduğu yeri gösterir */
+.af-oto-yazim-satir:last-child { border-inline-end-color: var(--af-vurgu-cizgi); }
+
+/* Bölüm görününce satırlar sırayla yazılır. Uzun yazım yerine longhand
+   kullanılıyor: `steps(var(--n))` bir tarayıcıda çözülemezse yalnızca
+   zamanlama işlevi başa döner, animasyon ve metin yine çalışır. */
+.af.js-var [data-belir].af-belirdi .af-oto-yazim-satir {
+  animation-name: af-oto-yaz;
+  animation-duration: calc(var(--n) * 34ms);
+  animation-timing-function: steps(var(--n));
+  animation-delay: calc(var(--g) * 420ms);
+  animation-fill-mode: both;
+}
+
+@keyframes af-oto-yaz {
+  from { width: 0; }
+  to { width: calc(var(--n) * 1ch + 0.6ch); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af.js-var [data-belir].af-belirdi .af-oto-yazim-satir { animation-name: none; }
+  .af-oto-sema,
+  .af-oto-sema.is-canli { --af-zincir-p: 1; }
+}
+
+/* Veri tasarrufu kipinde de daktilo kapanır */
+.af.af-hafif [data-belir].af-belirdi .af-oto-yazim-satir { animation-name: none; }
+
+/* Kayıt → metin okuna sahip ikili düzen */
+.af-oto-uretim {
+  display: grid;
+  gap: var(--af-b-24);
+  align-items: start;
+}
+.af-oto-uretim > * { min-width: 0; }
+@media (min-width: 860px) {
+  .af-oto-uretim { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+/* ---------------------------------------------------------------------
+   4. MUHASEBE PANELİ MAKETİ
+   --------------------------------------------------------------------- */
+
+.af-oto-panel {
+  border: 1px solid var(--af-kart-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  box-shadow: var(--af-kart-golge);
+  overflow: hidden;
+}
+.af-oto-panel-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  padding: var(--af-b-12) var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar-ince);
+  background: color-mix(in srgb, var(--af-metin) 4%, transparent);
+}
+.af-oto-sekmeler {
+  display: flex;
+  gap: var(--af-b-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: var(--af-b-8) var(--af-b-12);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af-oto-sekmeler::-webkit-scrollbar { display: none; }
+.af-oto-sekme {
+  flex: none;
+  padding: 6px var(--af-b-12);
+  border-radius: var(--af-r-veri);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.04em;
+  color: var(--af-metin-3);
+  white-space: nowrap;
+}
+.af-oto-sekme--aktif {
+  color: var(--af-vurgu);
+  background: var(--af-vurgu-sis);
+  box-shadow: inset 0 -2px 0 var(--af-vurgu-cizgi);
+}
+.af-oto-panel-ic {
+  display: grid;
+  gap: var(--af-b-16);
+  padding: var(--af-b-16);
+}
+/* Izgara ögesinin asgari genişliği içeriğine göre hesaplanırsa geniş tablo
+   paneli şişiriyor; kendi içinde kaymasını bu satır sağlıyor. */
+.af-oto-panel-ic > * { min-width: 0; }
+
+/* Geniş tablo sayfayı itmek yerine kendi içinde kayar */
+.af-oto-tablo-kaydir {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.af-oto-tablo-kaydir > table { min-width: 520px; }
+.af-oto-tablo-kaydir .af-veri-tablo td,
+.af-oto-tablo-kaydir .af-veri-tablo th { padding: var(--af-b-8) var(--af-b-12); }
+/* Panelin globals.css'i `thead th`ye açık zemin, `tbody tr:hover`a vurgu rengi
+   veriyor ve bu site tablolarına sızıyor (site.css bu iki özelliği yazmıyor).
+   Sızıntı yalnız kendi kapsamımızda kapatılıyor. */
+.af-oto-tablo-kaydir thead th,
+.af-oto-uretim .af-veri-tablo thead th { background: transparent; }
+.af-oto-tablo-kaydir tbody tr:hover,
+.af-oto-uretim .af-veri-tablo tbody tr:hover { background: transparent; }
+.af-oto-sayi { font-family: var(--af-yazi-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Ortak kasası payları */
+.af-oto-paylar { display: grid; gap: var(--af-b-12); }
+.af-oto-pay { display: grid; gap: 6px; }
+.af-oto-pay-ust {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--af-b-8);
+  font-size: var(--af-y-mini);
+}
+.af-oto-pay-iz {
+  height: 8px;
+  border-radius: var(--af-r-veri);
+  background: color-mix(in srgb, var(--af-metin) 9%, transparent);
+  overflow: hidden;
+}
+.af-oto-pay-cubuk {
+  height: 100%;
+  width: calc(var(--pay) * 1%);
+  background: var(--af-vurgu-cizgi);
+  border-radius: var(--af-r-veri);
+}
+
+/* Salt okunur kasa taraması uyarıları */
+.af-oto-uyarilar { display: grid; gap: var(--af-b-8); }
+.af-oto-uyari {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: var(--af-b-12);
+  align-items: start;
+  padding: var(--af-b-12);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-2);
+}
+.af-oto-uyari::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-block-start: 0.45em;
+  border-radius: 999px;
+  background: var(--af-vurgu-cizgi);
+}
+
+/* ---------------------------------------------------------------------
+   5. ORTAK KÜÇÜK PARÇALAR
+   --------------------------------------------------------------------- */
+
+/* Numaralı iş listesi (ne yaptık) */
+.af-oto-isler { display: grid; gap: var(--af-b-16); counter-reset: af-oto-is; }
+@media (min-width: 760px) {
+  .af-oto-isler { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+}
+.af-oto-is {
+  counter-increment: af-oto-is;
+  display: grid;
+  gap: var(--af-b-8);
+  padding-block-start: var(--af-b-16);
+  border-block-start: 2px solid var(--af-kenar);
+}
+.af-oto-is::before {
+  content: counter(af-oto-is, decimal-leading-zero);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.14em;
+  color: var(--af-vurgu);
+}
+.af-oto-is h3 { font-size: var(--af-y-h4); }
+.af-oto-is p { margin: 0; font-size: var(--af-y-kucuk); color: var(--af-metin-2); }
+
+/* Ok'lu bağlantıdaki ikon: tasarım sistemi .af-bag-ok svg boyutu vermiyor */
+.af-oto-ok { width: 16px; height: 16px; flex: none; }
+
+/* Zincirin üç ürün kartı */
+.af-oto-halka-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.14em;
+  color: var(--af-vurgu);
+}
+
+/* Vaka görselleri */
+.af-oto-kareler {
+  display: grid;
+  gap: var(--af-b-12);
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 45%), 1fr));
+}
+.af-oto-kareler img { border-radius: var(--af-r-kart); width: 100%; }
+
+/* Marka kilidi: May Motors logosu koyu bantta beyaz sürümüyle durur */
+.af-oto-marka {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-16);
+  flex-wrap: wrap;
+}
+.af-oto-marka img { height: 22px; width: auto; }
+
+/* =====================================================================
+   GÖRSEL YÜKSELTME — YAZILIM KANADI KİTİ
+   Kaynak dil: SITE-GIRIS.md (HARF KADRAJI). Buradaki üç parça
+   (plaka · tek ışık havuzu · grain) giriş ekranındaki doktrinin
+   aynısıdır; yalnız ek DOM gerektirmeyecek biçimde pseudo'ya alındı.
+
+   DİKKAT: Bu blok /qr-menu, /demo/qr-menu ve /otomotiv-yazilimlari
+   sayfa CSS'lerinde BİREBİR aynı duruyor. İstemci gezinmesinde CSS
+   parçaları biriktiği için üçü aynı anda yüklü olabilir; tanımlar
+   birebir aynı olmak ZORUNDA. Birini değiştiren üçünü değiştirir.
+
+   Seçiciler bilerek `.af-bant.af-yk-…` (0,2,0): `.af-bant--koyu`
+   (0,1,0) ile kaynak sırasına bağlı bir yarış olmasın.
+   ===================================================================== */
+
+.af-bant.af-yk-plaka {
+  --af-zemin: var(--af-plaka);
+  position: relative;
+  isolation: isolate;
+  background: var(--af-plaka);
+}
+
+/* Tek ışık havuzu — zenginlik DURAN karede. `background-attachment:
+   fixed` YASAK (mobil kaydırma katili), animasyon YOK.
+
+   DİKKAT — z-index 3: ışık ve zerre İÇERİĞİN ÜSTÜNDE durur (giris.css
+   ile aynı gerekçe). Altta dururlarsa saf siyah maskeli bir kutu ışık
+   havuzunu kendi sınırları boyunca KESER ve plakanın üstünde
+   dikdörtgen olarak belirir. */
+.af-bant.af-yk-plaka::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(118% 74% at 14% 6%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 90% 98%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. 180px tile
+   şart, opaklık 0,045'i geçmez (AMOLED'de bantlaşır), ASLA animasyonlu
+   değil. */
+.af-bant.af-yk-plaka::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.045;
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+.af-bant.af-yk-plaka > * {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  .af-bant.af-yk-plaka::after { opacity: 0.03; }
+}
+@media (prefers-contrast: more) {
+  .af-bant.af-yk-plaka::before,
+  .af-bant.af-yk-plaka::after { opacity: 0; }
+}
+
+/* Kesik kenar — tek köşeli sert kesik, 0 bayt. ASLA tween edilmez.
+   `.af-yapiskan` içeren bantta KULLANILMAZ (clip-path yapışkanlığı
+   kırpar). */
+.af-bant.af-yk-kesik {
+  clip-path: polygon(0 clamp(26px, 4.6vw, 68px), 46% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Devasa tek satır — bölüm başlıklarından bir kademe üstü. */
+.af-yk-devasa {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  letter-spacing: -0.042em;
+  line-height: 0.94;
+  /* `text-wrap: balance` / `pretty` KULLANILMAZ: yazı tipi geç
+     geldiğinde satır sayısını değiştirip CLS üretirler
+     (SITE-GIRIS.md, satır yüksekliği bölümü). */
+}
+
+/* =====================================================================
+   6. PLAKA ÜSTÜ KAHRAMAN — zincirin dört halkası veri şeridi olarak
+   ===================================================================== */
+
+.af-h1.af-oto-h1 {
+  font-size: clamp(2.5rem, 1.05rem + 6.4vw, 5.5rem);
+  line-height: 0.97;
+  letter-spacing: -0.042em;
+  font-weight: 800;
+}
+
+/* Halka şeridi: numara iri ve mono, ad başlık puntosunda. */
+.af-oto-halkalar-serit .af-veri-oge {
+  position: relative;
+  padding: var(--af-b-24) var(--af-b-16);
+}
+.af-oto-halkalar-serit .af-veri-etiket {
+  color: color-mix(in srgb, var(--af-vurgu) 76%, transparent);
+}
+.af-oto-halkalar-serit .af-veri-deger {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.5rem);
+  letter-spacing: -0.04em;
+}
+
+/* =====================================================================
+   7. DEĞERLEME BANDI — daha iri, okunur ve imleçli
+   Tek değişken hâlâ `--af-kirici-oran`; eklenen her şey o değişkenden
+   türüyor, yeni JS yok.
+   ===================================================================== */
+
+.af-oto-band-iz {
+  height: clamp(58px, 7vw, 78px);
+  /* Ölçek çizgileri: %25'te bir saç teli. Tek `repeating-linear-gradient`,
+     0 bayt, 0 istek. */
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--af-kenar-ince) 0 1px,
+    transparent 1px 25%
+  );
+  background-color: color-mix(in srgb, var(--af-metin) 4%, transparent);
+}
+.af-oto-band-dolu {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--af-vurgu-cizgi) 10%, transparent),
+    color-mix(in srgb, var(--af-vurgu-cizgi) 26%, transparent)
+  );
+}
+/* Düzeltilmiş göstergenin kendisi bandın ucunda yazılı durur: gözün
+   bandı ölçeğe çevirmesi gerekmiyor. İçerik `aria-hidden`, çünkü aynı
+   sayı aşağıdaki `role="status"` kutusunda zaten okunuyor. */
+.af-oto-band-imlec {
+  position: absolute;
+  /* Sayı izin ÜST yarısında, alış aralığı kutusu ALT yarısında durur:
+     oran 1'e yaklaştığında ikisi üst üste binmiyor (390px'te ölçtüm). */
+  inset-block: 0 50%;
+  inset-inline-start: calc(var(--af-kirici-oran) * 100%);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding-inline-end: var(--af-b-8);
+  transform: translateX(-100%);
+  font-family: var(--af-yazi-mono);
+  font-size: clamp(0.9375rem, 0.8rem + 0.5vw, 1.25rem);
+  font-variant-numeric: tabular-nums;
+  color: var(--af-vurgu);
+  white-space: nowrap;
+  transition: inset-inline-start var(--af-gecis-yavas);
+}
+.af-oto-band-olcek {
+  font-size: var(--af-y-mono);
+  padding-block-start: 2px;
+}
+
+/* Sonuç şeridinde vurgulu kutu DEVASA: sayfanın okunur zirvesi burası */
+.af-oto-sonuc-oge--vurgulu .af-oto-sonuc-deger {
+  font-size: clamp(1.875rem, 1.3rem + 2.2vw, 3rem);
+}
+
+/* Kırıcı çipinde basılı hissi ve seçili durumun net okunması */
+.af-oto-kirici { transition: transform var(--af-gecis), border-color var(--af-gecis); }
+.af-oto-kirici:active { transform: translateY(1px); }
+.af-oto-kirici[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-oto-kirici:active { transform: none; }
+  .af-oto-band-imlec { transition: none; }
+}
+
+/* =====================================================================
+   8. İLAN METNİ — satır numaralı daktilo
+   Numara AYRI bir kolonda: daktilo genişliği `var(--n)*1ch`
+   hesabının içine girmemeli, yoksa her satır iki karakter uzun yazılır.
+   ===================================================================== */
+
+.af-oto-yazim {
+  gap: 2px;
+  font-size: clamp(0.75rem, 0.6rem + 0.55vw, 0.9375rem);
+  background: color-mix(in srgb, var(--af-metin) 7%, transparent);
+}
+.af-oto-yazim-row {
+  display: grid;
+  grid-template-columns: 2.25ch minmax(0, 1fr);
+  gap: var(--af-b-12);
+  align-items: baseline;
+  margin: 0;
+}
+.af-oto-yazim-no {
+  font-family: var(--af-yazi-mono);
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--af-metin-3) 80%, transparent);
+  user-select: none;
+}
+/* İmleç artık son SATIRIN kendisinde değil, son satırın metin
+   kutusunda duruyor. */
+.af-oto-yazim-satir:last-child { border-inline-end-color: transparent; }
+.af-oto-yazim-row:last-child .af-oto-yazim-satir {
+  border-inline-end-color: var(--af-vurgu-cizgi);
+}
+
+/* =====================================================================
+   9. MİKRO ETKİLEŞİM — kart kalkışı ve imleç ışığı
+   Yalnız gerçek imleçte (`hover: hover`): dokunmatikte :hover yapışır.
+   ===================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  .af-oto-isik .af-kart {
+    transition: transform var(--af-gecis), border-color var(--af-gecis),
+      box-shadow var(--af-gecis);
+  }
+  .af-oto-isik .af-kart::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: inherit;
+    background: radial-gradient(120% 78% at 50% -8%, var(--af-vurgu-sis), transparent 68%);
+    transition: opacity var(--af-gecis);
+  }
+  .af-oto-isik .af-kart:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 42%, transparent);
+    box-shadow: var(--af-kart-golge-2);
+  }
+  .af-oto-isik .af-kart:hover::after { opacity: 1; }
+  .af-oto-isik .af-kart > * { position: relative; z-index: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-oto-isik .af-kart:hover { transform: none; }
+}
+
+/* Halka numarası kartın üstünde iri bir işaret olsun */
+.af-oto-isik .af-oto-halka-no,
+.af-oto-halka-no--iri {
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+}
+
+/* =====================================================================
+   10. VAKA KARELERİ — ölçek farkı: bir büyük dikey + iki küçük
+   ===================================================================== */
+
+@media (min-width: 620px) {
+  /* İki kare, iki ayrı ölçek: oran aynı (9/16) ama kolon genişliği
+     farklı olduğu için yükseklik de farklı çıkıyor. Satır atlamıyoruz
+     — iki ögeyle boş göz kalırdı. */
+  .af-oto-kareler--olcekli {
+    grid-template-columns: 1.45fr 1fr;
+    align-items: start;
+  }
+}
+.af-oto-kareler--olcekli img {
+  display: block;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+}

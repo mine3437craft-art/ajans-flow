@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/session';
 import { sql } from '@/lib/db';
 import { NAV_ITEMS } from '@/lib/permissions';
 import { MARKALAR } from '@/lib/adaylar';
+import { SITE_KOK, siteSunucusuMu } from '@/lib/site';
 
 /** "/finans" -> 'finans' gibi, kasa sayfalarının yol -> izin anahtarı eşlemesi. */
 const KASA_YOLLARI = new Map(
@@ -31,6 +32,14 @@ function kasaAnahtari(pathname: string): string | null {
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Kurumsal sitenin kendi alan adı (SITE_HOSTS): o alan adında panel yok,
+  // her istek /site/... altına yazılır. Ziyaretçi adres çubuğunda /site görmez.
+  if (siteSunucusuMu(request.headers.get('host'))) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${SITE_KOK}${pathname === '/' ? '' : pathname}`;
+    return NextResponse.rewrite(url);
+  }
   const token = request.cookies.get('af_session')?.value;
   const session = token ? await verifySession(token) : null;
 
@@ -76,7 +85,8 @@ export const config = {
   // /tanitim ve /t/<kod>: müşterilere gönderilen herkese açık tanıtım sitesi.
   // /mimarelif: public/mimarelif altındaki statik müşteri sitesi (Mimar Elif Kara).
   //   Tam eşleşme veya /mimarelif/... alt yolu; /mimarelifXYZ korumalı kalır.
+  // /site: Ajans Flow kurumsal web sitesi (herkese açık).
   matcher: [
-    '/((?!login|tanitim|mimarelif(?:$|/)|t/|api/health|_next/static|_next/image|favicon.ico).*)',
+    '/((?!login|tanitim|mimarelif(?:$|/)|site(?:$|/)|t/|api/health|_next/static|_next/image|favicon.ico).*)',
   ],
 };

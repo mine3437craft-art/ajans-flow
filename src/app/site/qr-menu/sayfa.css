@@ -1,0 +1,934 @@
+/* =====================================================================
+   /qr-menu — yalnız bu sayfaya ait stiller.
+   Renk, boşluk, radius ve gölge TASARIM SİSTEMİ değişkenlerinden gelir;
+   burada yeni token tanımlanmaz (SITE-TASARIM.md §7).
+   ===================================================================== */
+
+/* Hero'daki telefon mobilde ortada, masaüstünde sağda durur */
+.af-qr-cihaz {
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 900px) {
+  .af-qr-cihaz {
+    justify-content: flex-end;
+  }
+}
+
+/* Yetenek kartının içindeki küçük örnek kutusu */
+.af-qr-ornek {
+  display: grid;
+  gap: var(--af-b-8);
+  padding: var(--af-b-12);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  background: color-mix(in srgb, var(--af-metin) 4%, transparent);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-metin-2);
+}
+.af-qr-ornek span {
+  display: block;
+}
+/* Arapça örnek satırı sağdan sola okunur */
+.af-qr-ornek span[dir='rtl'] {
+  text-align: start;
+}
+
+/* Demo daveti: metin + telefon yan yana */
+.af-qr-demo {
+  display: grid;
+  gap: var(--af-b-32);
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .af-qr-demo {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+/* Numaralı süreç adımları */
+.af-qr-adimlar {
+  display: grid;
+  gap: var(--af-b-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.af-qr-adim {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--af-b-16);
+  align-items: start;
+}
+.af-qr-adim-no {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-cip);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-vurgu);
+  background: var(--af-vurgu-sis);
+}
+
+/* --------------------- Mevzuat bölümü --------------------- */
+
+/* Kısa cevap: bölümün başındaki tek vurgu kutusu */
+.af-qr-kisa-cevap {
+  margin: 0;
+  padding: var(--af-b-16) var(--af-b-24);
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+  background: var(--af-vurgu-sis);
+  border-radius: var(--af-r-veri);
+  font-size: var(--af-y-giris);
+  line-height: 1.5;
+  color: var(--af-metin);
+}
+
+/* Mevzuat kurumu başlığı + maddeleri */
+.af-qr-grup + .af-qr-grup {
+  margin-block-start: var(--af-b-48);
+}
+.af-qr-grup-bas {
+  display: grid;
+  gap: var(--af-b-8);
+  padding-block-end: var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar);
+}
+.af-qr-maddeler {
+  display: grid;
+  gap: var(--af-b-24);
+  margin-block-start: var(--af-b-24);
+  padding: 0;
+  list-style: none;
+}
+.af-qr-madde {
+  display: grid;
+  gap: var(--af-b-8);
+  padding-inline-start: var(--af-b-16);
+  border-inline-start: 2px solid var(--af-kenar);
+}
+.af-qr-madde p {
+  margin: 0;
+  color: var(--af-metin-2);
+}
+.af-qr-kaynak {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-4) var(--af-b-12);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  line-height: 1.5;
+  color: var(--af-metin-3);
+}
+.af-qr-kaynak a {
+  color: var(--af-vurgu);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Yanlış bilinenler: iddia üstü çizili, doğrusu altında */
+.af-qr-yanlis {
+  display: grid;
+  gap: var(--af-b-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.af-qr-yanlis-oge {
+  display: grid;
+  gap: var(--af-b-4);
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+}
+.af-qr-iddia {
+  margin: 0;
+  font-weight: 600;
+  color: var(--af-metin-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--af-vurgu-cizgi);
+  text-decoration-thickness: 2px;
+}
+.af-qr-dogru {
+  margin: 0;
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+
+/* Kaynak bağlantıları ve sorumluluk notu */
+.af-qr-kaynak-liste {
+  display: grid;
+  gap: var(--af-b-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.af-qr-kaynak-liste a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  min-height: 44px;
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-qr-kaynak-liste a:hover {
+  color: var(--af-vurgu);
+}
+.af-qr-kaynak-liste svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--af-metin-3);
+}
+.af-qr-not {
+  padding: var(--af-b-16);
+  border: 1px dashed var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+
+/* Vaka galerisi (Kök Cafe kareleri) */
+.af-qr-galeri {
+  display: grid;
+  gap: var(--af-b-12);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 760px) {
+  .af-qr-galeri {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Ortalanmış düğme grubu (kapanış çağrısı) */
+.af-qr-orta-dugmeler {
+  justify-content: center;
+}
+
+/* Dikey video kutusu fazla uzamasın */
+.af-qr-video {
+  width: min(320px, 100%);
+  margin-inline: auto;
+}
+
+/* Galeri kareleri kare oranda */
+.af-qr-galeri .af-gorsel-kutu {
+  --af-oran: 1 / 1;
+}
+
+/* Kurum / taraf adı — uzun olduğu için çip değil, mono satır */
+.af-qr-kurum {
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--af-metin-3);
+}
+
+/* Uyum takvimi — tablo değil liste: 360px'te de taşmaz */
+.af-qr-takvim {
+  display: grid;
+  gap: var(--af-b-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.af-qr-takvim > li {
+  display: grid;
+  gap: var(--af-b-4);
+  padding: var(--af-b-12) 0;
+  border-block-start: 1px solid var(--af-kenar-ince);
+}
+@media (min-width: 680px) {
+  .af-qr-takvim > li {
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    column-gap: var(--af-b-24);
+    align-items: baseline;
+  }
+  .af-qr-takvim-tarih {
+    grid-row: 1 / span 2;
+  }
+}
+.af-qr-takvim-tarih {
+  margin: 0;
+  font-weight: 600;
+  color: var(--af-vurgu);
+}
+.af-qr-takvim-kim {
+  margin: 0;
+  font-weight: 600;
+}
+.af-qr-takvim-konu {
+  margin: 0;
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+
+/* =====================================================================
+   GÖRSEL YÜKSELTME — YAZILIM KANADI KİTİ
+   Kaynak dil: SITE-GIRIS.md (HARF KADRAJI). Buradaki üç parça
+   (plaka · tek ışık havuzu · grain) giriş ekranındaki doktrinin
+   aynısıdır; yalnız ek DOM gerektirmeyecek biçimde pseudo'ya alındı.
+
+   DİKKAT: Bu blok /qr-menu, /demo/qr-menu ve /otomotiv-yazilimlari
+   sayfa CSS'lerinde BİREBİR aynı duruyor. İstemci gezinmesinde CSS
+   parçaları biriktiği için üçü aynı anda yüklü olabilir; tanımlar
+   birebir aynı olmak ZORUNDA. Birini değiştiren üçünü değiştirir.
+   Ortak dosyaya alınmadı: tasarım sistemi başka bir ajanın dosyası ve
+   sayfa klasörleri birbirinden bağımsız kalmalı.
+
+   Seçiciler bilerek `.af-bant.af-yk-…` (0,2,0): `.af-bant--koyu`
+   (0,1,0) ile kaynak sırasına bağlı bir yarış olmasın.
+   ===================================================================== */
+
+.af-bant.af-yk-plaka {
+  --af-zemin: var(--af-plaka);
+  position: relative;
+  isolation: isolate;
+  background: var(--af-plaka);
+}
+
+/* Tek ışık havuzu — zenginlik DURAN karede. `background-attachment:
+   fixed` YASAK (mobil kaydırma katili), animasyon YOK.
+
+   DİKKAT — z-index 3: ışık ve zerre İÇERİĞİN ÜSTÜNDE durur (giris.css
+   ile aynı gerekçe). Altta dururlarsa harf kadrajının saf siyah
+   maskesi ışık havuzunu kendi kutusu boyunca KESER ve duvar plakanın
+   üstünde dikdörtgen olarak belirir. Üstte tek katman olunca plaka
+   her yerde tam olarak aynı siyahtır, kutu kaybolur. */
+.af-bant.af-yk-plaka::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(118% 74% at 14% 6%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 90% 98%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. 180px tile
+   şart (Safari büyük yüzeyi yavaş rasterler), opaklık 0,045'i geçmez
+   (AMOLED'de bantlaşır), ASLA animasyonlu değil. */
+.af-bant.af-yk-plaka::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.045;
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+.af-bant.af-yk-plaka > * {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  .af-bant.af-yk-plaka::after { opacity: 0.03; }
+}
+@media (prefers-contrast: more) {
+  .af-bant.af-yk-plaka::before,
+  .af-bant.af-yk-plaka::after { opacity: 0; }
+}
+
+/* Kesik kenar — tek köşeli sert kesik, 0 bayt. ASLA tween edilmez.
+   `.af-yapiskan` içeren bantta KULLANILMAZ (clip-path yapışkanlığı
+   kırpar). */
+.af-bant.af-yk-kesik {
+  clip-path: polygon(0 clamp(26px, 4.6vw, 68px), 46% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Devasa tek kelime / tek satır — bölüm başlıklarından bir kademe
+   üstü. Satır yüksekliği yazı tipinden bağımsız değil ama blok
+   kırpılmadığı için swap kayma üretmez. */
+.af-yk-devasa {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  letter-spacing: -0.042em;
+  line-height: 0.94;
+  /* `text-wrap: balance` / `pretty` KULLANILMAZ: yazı tipi geç
+     geldiğinde satır sayısını değiştirip CLS üretirler
+     (SITE-GIRIS.md, satır yüksekliği bölümü). */
+}
+
+/* =====================================================================
+   HARF KADRAJI — sayfada EN ÇOK BİR KEZ, tek satırlık anahtar kelimede.
+   Çekirdek teknik BLEND KNOCKOUT (`background-clip: text` DEĞİL):
+     taban  turuncu gradyan
+     plan   <img>  · mix-blend-mode: screen
+     maske  #000   · mix-blend-mode: multiply
+   Matematik: siyah plaka × düzlem = siyah (gizler), beyaz harf ×
+   düzlem = düzlem (gösterir). Alttaki `screen` katmanı görüntüyü
+   turuncu tabana EKLER; harfin içi ASLA turuncudan koyu olamaz
+   (#E2541F/#000 = 5,52:1). Bu yüzden `.af-qr-kd-taban` çıkarılamaz.
+
+   Blend edilen katmana `opacity` / `filter` VERİLMEZ: Chrome blend
+   grubunu ayrı yüzeye alıp maskenin tam karartmasını engelliyor ve
+   duvarın kutusu plakanın üstünde soluk bir dikdörtgen olarak
+   beliriyor — konseptin birinci yasağı.
+   ===================================================================== */
+
+.af-qr-kadraj {
+  /* Punto / satır yüksekliği oranı 1,055 — giris.css'teki oranla
+     AYNI. Daha sıkı bir oran Türkçe büyük harflerin (Ü, Ö, İ)
+     noktalarını kırpar: satır kutusu `overflow: clip`. */
+  --kd-font: clamp(4.25rem, 25vw, 13.5rem);
+  --kd-satir-h: clamp(72px, 26.4vw, 228px);
+  margin-block-end: clamp(28px, 4vw, 52px);
+}
+
+.af-qr-kd-duvar {
+  position: relative;
+  height: var(--kd-satir-h);
+  isolation: isolate;
+  /* Videonun/karenin tek pikseli harfin dışına taşarsa büyü biter. */
+  contain: paint;
+}
+
+.af-qr-kd-taban,
+.af-qr-kd-plan,
+.af-qr-kd-maske {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* KENAR DİKİŞİ: duvar yüksekliği clamp'ten geldiği için kesirli;
+   kesirli kenarda taban ve maske kısmi alfayla boyanıyor, `multiply`
+   tam karartamıyor ve sınırda sıcak bir çizgi kalıyor. Taban ve plan
+   1px içeri alınır, maske kutuyu 2px TAŞAR. */
+.af-qr-kd-taban,
+.af-qr-kd-plan { inset: 1px; }
+
+/* Duraklar yalnız flow-sembol.svg'nin kendi stoplarından. */
+.af-qr-kd-taban {
+  background: linear-gradient(100deg, #e2541f, #ff8900 50%, #ffcf3b);
+}
+.af-qr-kd-plan { mix-blend-mode: screen; }
+.af-qr-kd-plan img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 54%;
+}
+/* saveData / 2g: kare hiç gelmez, harfler marka gradyanıyla dolar.
+   0 bayt, marka doğru, kontrast korunur. */
+.af.af-hafif .af-qr-kd-plan { display: none; }
+
+.af-qr-kd-maske {
+  inset: -2px;
+  padding: 2px;
+  background: var(--af-plaka);
+  mix-blend-mode: multiply;
+}
+
+.af-qr-kd-satir {
+  display: block;
+  margin: 0;
+  height: var(--kd-satir-h);
+  overflow: clip;
+  white-space: nowrap;
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--kd-font);
+  font-weight: 800;
+  line-height: var(--kd-satir-h);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  font-synthesis-weight: none;
+  color: #fff;
+}
+/* Satır içi perde — saf CSS, GSAP gerekmez. Perde açılması gibi
+   okunur; harf harf zıplayan açılış 2019 şablonudur. */
+.af-qr-kd-i {
+  display: block;
+  line-height: var(--kd-satir-h);
+}
+.af.js-var .af-qr-kadraj[data-belir].af-belirdi .af-qr-kd-i {
+  animation: af-qr-kd-perde 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes af-qr-kd-perde {
+  from { transform: translateY(106%); }
+  to { transform: translateY(0); }
+}
+
+/* Kadrajın altındaki mono künye — kaynağı söyler, iddia etmez. */
+.af-qr-kd-kunye {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-4) var(--af-b-16);
+  margin: var(--af-b-12) 0 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+
+/* =====================================================================
+   HERO PLAKASI — devasa tipografi + canlı telefon
+   ===================================================================== */
+
+.af-qr-hero-ic {
+  display: grid;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .af-qr-hero-ic { grid-template-columns: minmax(0, 1.05fr) auto; }
+}
+
+.af-h1.af-qr-h1 {
+  font-size: clamp(2.5rem, 1.05rem + 6.4vw, 5.5rem);
+  line-height: 0.97;
+  letter-spacing: -0.042em;
+  font-weight: 800;
+}
+
+/* Telefon: hero'da büyür. `--af-tel-g` kilidi `.af-cerceve-telefon--buyuk`
+   (0,1,0) ile yarışmasın diye seçici 0,2,0. */
+.af-qr-cihaz--buyuk .af-cerceve-telefon {
+  --af-tel-g: clamp(252px, 72vw, 384px);
+}
+
+/* Tarama köşeleri — telefonu bir karekod kadrajı gibi çerçeveler.
+   Tek `::before` + `::after`, çapraz iki köşe; 0 bayt. */
+.af-qr-kadraj-kose {
+  position: relative;
+  padding: clamp(10px, 2vw, 18px);
+}
+.af-qr-kadraj-kose::before,
+.af-qr-kadraj-kose::after {
+  content: '';
+  position: absolute;
+  width: clamp(26px, 5vw, 44px);
+  height: clamp(26px, 5vw, 44px);
+  pointer-events: none;
+  border-color: rgba(255, 137, 0, 0.62);
+  border-style: solid;
+}
+.af-qr-kadraj-kose::before {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  border-width: 2px 0 0 2px;
+}
+.af-qr-kadraj-kose::after {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  border-width: 0 2px 2px 0;
+}
+
+/* Canlı ekran: gerçek ekran görüntüsü ağır ağır kayar + tarama ışığı
+   geçer. Kutu `aspect-ratio` ile rezerve olduğu için CLS 0; iki
+   animasyon da compositor'da (`transform`), reflow yok. */
+.af-qr-ekran {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.af-qr-ekran img {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  width: 100%;
+  /* %118 yükseklik + %15,25 kayma = kare tam alt kenara oturur. */
+  height: 118%;
+  object-fit: cover;
+  object-position: 50% 0;
+}
+.af.js-var .af-qr-ekran img {
+  animation: af-qr-kaydir 24s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+@keyframes af-qr-kaydir {
+  from { transform: translateY(0); }
+  to { transform: translateY(-15.25%); }
+}
+
+.af-qr-tarama {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: 34%;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 137, 0, 0) 0%,
+    rgba(255, 137, 0, 0.16) 64%,
+    rgba(255, 207, 59, 0.5) 100%
+  );
+}
+.af.js-var .af-qr-tarama {
+  animation: af-qr-tara 6.8s linear infinite;
+}
+@keyframes af-qr-tara {
+  0% { transform: translateY(-100%); opacity: 0; }
+  14% { opacity: 0.9; }
+  76% { opacity: 0.9; }
+  100% { transform: translateY(295%); opacity: 0; }
+}
+
+/* Ekranın üstündeki durum çipi — dekor değil, ne gördüğünü söyler. */
+.af-qr-canli {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 9px;
+  inset-inline: 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: var(--af-r-veri);
+  background: rgba(0, 0, 0, 0.62);
+  font-family: var(--af-yazi-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+}
+.af-qr-canli::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--af-turuncu);
+}
+
+/* Hareket ve veri korumaları: ikisinde de ekran DURAĞAN ve DOLU kalır */
+@media (prefers-reduced-motion: reduce) {
+  .af.js-var .af-qr-ekran img,
+  .af.js-var .af-qr-tarama,
+  .af.js-var .af-qr-kadraj[data-belir].af-belirdi .af-qr-kd-i { animation: none; }
+  .af-qr-tarama { display: none; }
+}
+.af.af-hafif .af-qr-ekran img,
+.af.af-hafif .af-qr-tarama { animation: none; }
+.af.af-hafif .af-qr-tarama { display: none; }
+
+/* =====================================================================
+   BÜYÜK VERİ ŞERİDİ — uzun paragraf yerine ölçülebilir satır
+   ===================================================================== */
+
+.af-qr-serit .af-veri-deger {
+  font-size: clamp(1.75rem, 1.1rem + 2.4vw, 3.25rem);
+  letter-spacing: -0.04em;
+}
+.af-qr-serit .af-veri-oge { padding: var(--af-b-24) var(--af-b-16); }
+
+/* =====================================================================
+   MİKRO ETKİLEŞİM — kart kalkışı ve imleç ışığı
+   Yalnız gerçek imleçte (`hover: hover`): dokunmatikte :hover yapışır.
+   Işık JS'siz: kartın üst kenarından inen tek radial gradyan.
+   ===================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  .af-qr-isik .af-kart {
+    transition: transform var(--af-gecis), border-color var(--af-gecis),
+      box-shadow var(--af-gecis);
+  }
+  .af-qr-isik .af-kart::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      120% 78% at 50% -8%,
+      var(--af-vurgu-sis),
+      transparent 68%
+    );
+    transition: opacity var(--af-gecis);
+  }
+  .af-qr-isik .af-kart:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 42%, transparent);
+    box-shadow: var(--af-kart-golge-2);
+  }
+  .af-qr-isik .af-kart:hover::after { opacity: 1; }
+  .af-qr-isik .af-kart > * { position: relative; z-index: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-qr-isik .af-kart:hover { transform: none; }
+}
+
+/* =====================================================================
+   SÜREÇ — devasa mono numara, dokunma hedefi gerektirmeyen rail
+   ===================================================================== */
+
+.af-qr-adimlar--iri { gap: 0; }
+@media (min-width: 820px) {
+  .af-qr-adimlar--iri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.af-qr-adimlar--iri .af-qr-adim {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--af-b-8);
+  padding-block: var(--af-b-24);
+  border-block-start: 1px solid var(--af-kenar);
+}
+@media (min-width: 820px) {
+  .af-qr-adimlar--iri .af-qr-adim { padding-inline-end: var(--af-b-32); }
+}
+.af-qr-adimlar--iri .af-qr-adim-no {
+  display: block;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: clamp(2rem, 1.3rem + 2.6vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--af-vurgu) 54%, transparent);
+}
+
+/* =====================================================================
+   MEVZUAT — korkutucu değil, DÜZENLİ BİR BİLGİ TABLOSU
+   Kırmızı yok, ünlem yok. Tek turuncu vurgu, saç teli ayraçlar,
+   mono künye kolonu. 360px'te tek kolona iner (tablo değil ızgara).
+   ===================================================================== */
+
+.af-qr-mevzuat-serit {
+  margin-block-end: clamp(24px, 3vw, 40px);
+}
+.af-qr-mevzuat-serit .af-veri-deger {
+  font-size: clamp(1.375rem, 1.05rem + 1.2vw, 2rem);
+}
+
+/* Yanlış bilinenler: numaralı defter satırı */
+.af-qr-yanlis--defter { gap: 0; }
+.af-qr-yanlis--defter .af-qr-yanlis-oge {
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: var(--af-b-4) var(--af-b-16);
+  padding: var(--af-b-16) 0;
+  border: 0;
+  border-block-start: 1px solid var(--af-kenar-ince);
+  border-radius: 0;
+  background: none;
+}
+.af-qr-yanlis-no {
+  grid-row: 1 / span 2;
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  line-height: 1.7;
+  letter-spacing: 0.1em;
+  color: var(--af-metin-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dayanak defteri: sol mono künye kolonu, sağ madde metni */
+.af-qr-grup--defter .af-qr-grup-bas {
+  display: grid;
+  gap: var(--af-b-8);
+}
+.af-qr-maddeler--defter { gap: 0; margin-block-start: 0; }
+.af-qr-maddeler--defter .af-qr-madde {
+  padding: var(--af-b-24) 0;
+  padding-inline-start: 0;
+  border-inline-start: 0;
+  border-block-end: 1px solid var(--af-kenar-ince);
+  gap: var(--af-b-12);
+}
+@media (min-width: 760px) {
+  .af-qr-maddeler--defter .af-qr-madde {
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    column-gap: var(--af-b-32);
+  }
+  .af-qr-maddeler--defter .af-qr-madde > .af-qr-kaynak {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-content: start;
+    display: grid;
+    gap: var(--af-b-4);
+  }
+  .af-qr-maddeler--defter .af-qr-madde > .af-h4,
+  .af-qr-maddeler--defter .af-qr-madde > p:not(.af-qr-kaynak) {
+    grid-column: 2;
+  }
+}
+.af-qr-maddeler--defter .af-qr-kaynak > span:first-child {
+  color: var(--af-metin-2);
+}
+.af-qr-maddeler--defter .af-qr-madde:last-child { border-block-end: 0; }
+
+/* Uyum takvimi: tarih rayı ve dikey bağ çizgisi */
+.af-qr-takvim--ray > li {
+  position: relative;
+  padding-inline-start: var(--af-b-24);
+  border-block-start: 1px solid var(--af-kenar-ince);
+}
+.af-qr-takvim--ray > li::before {
+  content: '';
+  position: absolute;
+  inset-block: var(--af-b-12) 0;
+  inset-inline-start: 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--af-vurgu-cizgi) 34%, transparent);
+}
+.af-qr-takvim--ray > li::after {
+  content: '';
+  position: absolute;
+  inset-block-start: var(--af-b-12);
+  inset-inline-start: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--af-vurgu-cizgi);
+}
+@media (min-width: 680px) {
+  .af-qr-takvim--ray > li {
+    grid-template-columns: 10.5rem minmax(0, 1fr);
+  }
+}
+.af-qr-takvim--ray .af-qr-takvim-tarih {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   VAKA GALERİSİ — ölçek farkı: bir büyük kare + üç küçük
+   ===================================================================== */
+
+@media (min-width: 760px) {
+  .af-qr-galeri--olcekli {
+    grid-template-columns: 1.65fr 1fr;
+    grid-template-rows: repeat(3, auto);
+  }
+  .af-qr-galeri--olcekli > :first-child {
+    grid-row: 1 / span 3;
+  }
+  .af-qr-galeri--olcekli > :not(:first-child) {
+    --af-oran: 16 / 11;
+  }
+}
+
+/* =====================================================================
+   DEMO KÜNYESİ PANELİ — üçüncü telefon görseli yerine veri paneli
+   ===================================================================== */
+
+.af-qr-kapi {
+  position: relative;
+  display: grid;
+  gap: var(--af-b-16);
+  width: min(360px, 100%);
+  margin-inline: auto;
+  padding: var(--af-b-24);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: color-mix(in srgb, var(--af-metin) 4%, transparent);
+}
+@media (min-width: 860px) {
+  .af-qr-kapi { margin-inline: 0; }
+}
+.af-qr-kapi-liste {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--af-b-16);
+  margin: 0;
+}
+.af-qr-kapi-liste dt {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-qr-kapi-liste dd {
+  margin: 2px 0 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.5rem, 1.2rem + 1.1vw, 2.125rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.af-qr-kapi-diller {
+  display: flex;
+  gap: var(--af-b-8);
+  margin: 0;
+  padding-block-start: var(--af-b-16);
+  border-block-start: 1px solid var(--af-kenar-ince);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.14em;
+}
+.af-qr-kapi-diller span {
+  padding: 3px 8px;
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  color: var(--af-metin-2);
+}
+.af-qr-kapi-diller span:first-child {
+  border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent);
+  color: var(--af-vurgu);
+}
+.af-qr-kapi-not {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin: 0;
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-3);
+}
+
+/* =====================================================================
+   MEVZUAT DEFTERİ — grup künyesi
+   ===================================================================== */
+
+.af-qr-grup-sira {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-12);
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.16em;
+  color: var(--af-vurgu);
+  font-variant-numeric: tabular-nums;
+}
+.af-qr-grup-sira span {
+  padding-inline-start: var(--af-b-12);
+  border-inline-start: 1px solid var(--af-kenar);
+  letter-spacing: 0.08em;
+  color: var(--af-metin-3);
+}
+.af-h3.af-qr-grup-baslik {
+  font-size: clamp(1.375rem, 1.05rem + 1.5vw, 2.25rem);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+/* Tarih değeri rakam değil metindir: başlık puntosu taşırmasın */
+.af-veri-deger.af-qr-tarih {
+  font-size: clamp(1.0625rem, 0.95rem + 0.5vw, 1.375rem);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+/* Defterdeki "kaynağı aç" bağlantısı 44px dokunma hedefine çıkar;
+   mono künye kolonunun hizası bozulmasın diye yalnız dikey pay. */
+.af-qr-maddeler--defter .af-qr-kaynak a,
+.af-qr-kaynak a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

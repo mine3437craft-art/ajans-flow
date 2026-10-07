@@ -1,0 +1,420 @@
+/* =====================================================================
+   KURUMSAL GÖRSEL KATMAN — plaka · harf kadrajı (tek satır) · grain ·
+   ışık havuzu · kesik kenar · imleç ışığı · devasa veri şeridi.
+
+   NEDEN BU DOSYA VAR
+   Giriş ekranının dili `src/components/site/giris/giris.css` içinde ama
+   o dosya YALNIZ `HarfKadraji.tsx` ile yükleniyor (ana sayfa). Kurumsal
+   sayfalara onu ithal etmek 40 KB'lık, 100svh plakaya ve GSAP'li
+   `GirisEfekti`ye bağlı bir yığını buraya taşımak olurdu. Bu yüzden AYNI
+   TEKNİK burada LEAN biçimde yeniden yazıldı: aynı blend matematiği,
+   aynı gradyan durakları, aynı kenar dikişi koruması, aynı grain tavanı.
+
+   KAPSAM KİLİDİ
+   Paylaşılan sınıflara (`.af-cip`, `.af-dugme`, `.af-veri-serit`…)
+   dokunan her kural `.af-kr` altında yaşar. `.af-kr` yalnız kurumsal
+   sayfaların kök sarmalayıcısında bulunur, yani bu dosya başka bir
+   ajanın sayfasına sızamaz. Kendi `af-kr-*` sınıflarım benzersiz
+   olduğu için onlar kapsamsız durabilir.
+
+   DEĞİŞMEZLER (SITE-GIRIS.md jüri kuralları)
+   - Plaka ÜÇÜNCÜ ve NADİR yüzeydir: bir sayfada EN ÇOK BİR kez.
+   - Harf kadrajı bir sayfada EN ÇOK BİR kez ve TEK SATIRLIK bir
+     anahtar kelimede kullanılır (`.af-kr-knock`).
+   - Grain opaklığı 0,045'i ASLA geçmez (AMOLED'de bantlaşır) ve
+     animasyonlu değildir (kare başına yeniden rasterleme).
+   - Blend edilen katmana `opacity` / `filter` VERİLMEZ: Chrome blend
+     grubunu ayrı yüzeye alır ve duvarın kutusu soluk bir dikdörtgen
+     olarak belirir — konseptin birinci yasağı.
+   - Harf içine YALNIZ yatay kaynak girer ve kaynak YUKARI ölçeklenmez.
+   - Kutu yükseklikleri CSS'ten gelir, yazı tipi metriğinden gelmez → CLS 0.
+   ===================================================================== */
+
+/* =====================================================================
+   1. PLAKA — `af-bant af-bant--koyu` ile BİRLİKTE kullanılır.
+   Koyu bandın dokuz değişkenini devralır, yalnız zemini saf siyaha
+   çeker. Gerekçe teknik: `multiply` knockout saf siyah ister; #0E0E16
+   ile fark %0,4 görece parlaklık (gözle ayırt edilemez) ama multiply'da
+   kelimenin içini kirletir.
+   Özgüllük `.af-bant.af-kr-plaka` (0,2,0) bilinçli: `.af-bant--koyu`
+   ile aynı özgüllükte kalıp dosya sırasına güvenmek istemiyoruz.
+   ===================================================================== */
+
+.af-bant.af-kr-plaka {
+  --af-zemin: var(--af-plaka, #000);
+  --af-kart-zemin: #0a0a10;
+  --kr-zerre: 0.045;
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  color-scheme: dark;
+  padding-block: clamp(1.5rem, 1.2rem + 2.2vw, 3rem) clamp(2.75rem, 2rem + 5vw, 6.5rem);
+}
+
+@media (max-width: 700px) {
+  .af-bant.af-kr-plaka { --kr-zerre: 0.03; }
+}
+
+/* Tek ışık havuzu — zenginlik DURAN karede.
+   `background-attachment: fixed` YASAK (mobil kaydırma katili).
+
+   DİKKAT — z-index 3: ışık ve zerre İÇERİĞİN ÜSTÜNDE durur. Altta
+   dururlarsa knockout maskesi (saf siyah) ışık havuzunu kendi kutusu
+   boyunca KESER ve harf kadrajı "dikdörtgen olarak sızmış" görünür.
+   Üstte tek katman olunca plaka tabanı her yerde tam olarak aynı
+   siyahtır, kutu kaybolur, ışık harflerin içine de düşer. */
+.af-kr-isik {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(118% 76% at 14% 6%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 90% 98%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. Dijital siyahı
+   film siyahına çevirir. 180px tile şart (Safari büyük feTurbulence
+   yüzeyini yavaş rasterler). */
+.af-kr-zerre {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: var(--kr-zerre, 0.045);
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (prefers-contrast: more) {
+  .af-kr-zerre { opacity: 0; }
+}
+
+/* Plakanın içeriği ışığın ALTINDA (z-index 2) ve kendi kapsayıcısında.
+   `container-type: inline-size`: devasa satırların puntosu kolonun
+   GERÇEK genişliğinden hesaplanır, viewport'tan değil — 360px'te bile
+   satır kolondan taşmaz (aşağıda `.af-kr-dev`). */
+.af-kr-plaka-ic {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--af-kap);
+  margin-inline: auto;
+  padding-inline: var(--af-yan);
+  container-type: inline-size;
+}
+.af-kr-plaka-ic--dar { max-width: var(--af-kap-dar); }
+
+/* =====================================================================
+   2. DEVASA TİPOGRAFİ — tek satır, kutusu kilitli
+   `white-space: nowrap` + `overflow: clip`: satır asla sarmaz, asla
+   sayfayı yana kaydırmaz. Punto `cqw`'den geldiği için kolona göre
+   küçülür; `min()` içinde birim desteklenmezse önceki `clamp()` yedeği
+   devreye girer (eski tarayıcı) — ikisi de yazı tipinden bağımsız.
+
+   `--kr-en`: satırın em cinsinden TAHMİNİ genişliği (Bricolage 800,
+   -0,045em tracking, büyük harf; harf başına ~0,57em + boşluk 0,26em).
+   Kullanım yerinde yazılır ve tarayıcıda ölçülerek doğrulanır.
+   ===================================================================== */
+
+.af-kr-dev {
+  display: block;
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  font-synthesis-weight: none;
+  -webkit-text-size-adjust: none;
+  white-space: nowrap;
+  /* Yedek: cqw desteklenmeyen tarayıcı */
+  font-size: clamp(1.75rem, 9vw, var(--kr-tavan, 6.5rem));
+  /* Gerçek ölçü: kolon genişliği / satırın em genişliği */
+  font-size: min(var(--kr-tavan, 6.5rem), calc(100cqw / var(--kr-en, 6)));
+  /* TÜRKÇE AKSANLAR İÇİN PAY — ölçüldü, tahmin değil: 0,95em kutuda
+     "TEŞEKKÜRLER" satırında Ü'nün noktaları ÜSTTEN, Ş'nin çengeli
+     ALTTAN kırpılıyordu. 1,12em her ikisini de içeri alıyor.
+     Kutu yüksekliği hâlâ CSS'ten geliyor (yazı tipi metriğinden değil),
+     yani Bricolage geç gelse bile düzen kaymaz → CLS 0. */
+  line-height: 1.12;
+  height: 1.12em;
+  overflow: clip;
+}
+
+/* =====================================================================
+   3. HARF KADRAJI — tek satır, blend knockout
+   SAYFADA EN ÇOK BİR KEZ. Dekoratiftir (`aria-hidden`): gerçek bilgi
+   komşu başlıkta durur, bu katman yalnız hangi harfin açık olduğunu
+   söyler. Üç katman + bir sarmalayıcı:
+     taban   solid turuncu gradyan (marka sembolünün kendi durakları)
+     plan    <img>  mix-blend-mode: screen
+     maske   #000   mix-blend-mode: multiply, beyaz harf
+   Matematik: siyah plaka × düzlem = siyah (gizler) · beyaz harf ×
+   düzlem = düzlem (gösterir). Alttaki `screen` görüntüyü turuncu tabana
+   EKLEDİĞİ için harfin içi ASLA turuncudan koyu olamaz:
+   #E2541F / #000 = 5,52:1 (devasa metin için gereken 3:1'in iki katı).
+   "Karanlık kare geldi, kelime kayboldu" matematiksel olarak imkânsız.
+   ===================================================================== */
+
+.af-kr-knock {
+  position: relative;
+  isolation: isolate;
+  contain: paint;
+  display: block;
+  /* KUTU KELİMEYE OTURUR, KOLONA DEĞİL.
+     Blend yığını kaçınılmaz olarak kendi kutusu boyunca kompozisyon
+     yapıyor; kutu kolon kadar geniş olursa kelimenin SAĞINDA boş ama
+     ayrı kompozisyonlanmış bir alan kalıyor ve bazı GPU/ölçek
+     birleşimlerinde çok hafif bir dikdörtgen olarak okunabiliyor
+     (ana sayfadaki duvarda da aynı durum var). Kutuyu metne
+     daraltmak o alanı harflerin sınır kutusuna indiriyor; `nowrap`
+     olduğu için `fit-content` tam olarak satırın genişliği.
+     `max-width: 100%` taşmayı keser. */
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* ÖLÇÜ SATIRI — kutuyu kelimeye oturtan tek akış içi öge.
+   Üç katmanın üçü de `position: absolute` olduğu için sarmalayıcının
+   kendi genişliği yok; `fit-content` sıfıra düşerdi. Bu kopya görünmez
+   (`visibility: hidden`, ekran okuyucuya da gitmez) ama yer kaplar ve
+   genişliği BİREBİR maskedeki satırla aynı olur — ikisi de aynı punto,
+   tracking ve yazı tipini miras alıyor. */
+.af-kr-knock-olcu {
+  display: block;
+  visibility: hidden;
+}
+
+.af-kr-knock-taban,
+.af-kr-knock-plan,
+.af-kr-knock-maske {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* KENAR DİKİŞİ KORUMASI (giris.css'te ölçülen gerçek hata):
+   kutunun yüksekliği kesirli olduğu için kenar pikselinde hem taban hem
+   maske KISMİ alfayla boyanıyor; `multiply` kısmi alfada tam karartamıyor
+   ve kutunun sınırında ~1px'lik SICAK ÇİZGİ kalıyor — yani görüntü
+   dolaylı yoldan "dikdörtgen olarak" sızıyor. Çözüm: taban ve düzlem
+   1px içeri, maske 2px dışarı (padding metni tam eski yerinde tutar;
+   taşma `contain: paint` ile kırpılır). */
+.af-kr-knock-taban,
+.af-kr-knock-plan {
+  inset: 1px;
+}
+.af-kr-knock-maske {
+  inset: -2px;
+  padding: 2px;
+  background: var(--af-plaka, #000);
+  mix-blend-mode: multiply;
+  color: #fff;
+}
+
+/* KONTRAST TABANI — mimari, dekor değil. Duraklar yalnız
+   public/site/marka/flow-sembol.svg'nin KENDİ stoplarından.
+   Mor, mavi, teal, pembe ASLA. */
+.af-kr-knock-taban {
+  background: linear-gradient(100deg, #e2541f, #ff8900 50%, #ffcf3b);
+}
+
+.af-kr-knock-plan {
+  mix-blend-mode: screen;
+}
+.af-kr-knock-plan img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  /* KİŞİ KORUMASI, pazarlık konusu değil: RAPOR.md §8.2 — kaynak karenin
+     arka planında bariyer önünde iki kişi var. Açıklık karenin ÜST
+     %25'ini asla göstermez. */
+  object-position: 50% 58%;
+}
+@media (max-width: 700px) {
+  .af-kr-knock-plan img { object-position: 50% 62%; }
+}
+
+/* saveData / 2g: görüntü de yok, harfler marka gradyanıyla dolar.
+   0 bayt, marka doğru, 5,52:1 kontrast korunur. */
+.af.af-hafif .af-kr-knock-plan { display: none; }
+
+/* Maskenin içindeki satır maskenin kendi kutusunu kullanır. */
+.af-kr-knock-maske .af-kr-dev { height: auto; overflow: visible; }
+
+/* =====================================================================
+   4. KESİK KENAR — bant geçişi. 0 bayt, karakterli, ASLA tween edilmez.
+   Plakadan sonraki banda verilir; negatif üst boşluk bandı plakanın
+   üstüne bindirir, böylece kesik köşeden sayfa zemini DEĞİL plaka
+   görünür.
+   DİKKAT: `clip-path` yeni bir kırpma bağlamı kurar ve içindeki
+   `position: sticky` ögeleri bozar — yapışkan sütunu olan banda
+   VERİLMEZ.
+   ===================================================================== */
+
+.af-kr-kesik {
+  --kr-kesik: clamp(22px, 4.4vw, 62px);
+  position: relative;
+  z-index: 1;
+  margin-block-start: calc(-1 * var(--kr-kesik));
+  padding-block-start: calc(var(--af-bant-bosluk) + var(--kr-kesik));
+  clip-path: polygon(0 var(--kr-kesik), 46% 0, 100% 0, 100% 100%, 0 100%);
+}
+.af-kr-kesik--sag {
+  clip-path: polygon(0 0, 54% 0, 100% var(--kr-kesik), 100% 100%, 0 100%);
+}
+
+/* =====================================================================
+   5. İMLEÇ IŞIĞI — yalnız ince imleçte (masaüstü).
+   JS yoksa havuz kartın üst kenarından açılır (sabit konum); `Isik.tsx`
+   gelirse `--kr-ix/--kr-iy` yazılır ve havuz imleci izler. İkisi de aynı
+   CSS'i kullanır, yani yükseltme sessizce bozulur.
+   Katman ışık doktrinine uyar: pointer-events yok, en üstte, düşük alfa.
+   ===================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  .af-kr [data-isik] { position: relative; }
+  .af-kr [data-isik]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      clamp(180px, 22vw, 300px) circle at var(--kr-ix, 50%) var(--kr-iy, 0%),
+      var(--af-vurgu-sis),
+      transparent 72%
+    );
+    transition: opacity 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .af-kr [data-isik]:hover::after,
+  .af-kr [data-isik]:focus-within::after { opacity: 1; }
+}
+
+/* =====================================================================
+   6. MİKRO ETKİLEŞİM — basılı hissi ve ok kayması
+   Mobilde dokunma geri bildirimi de buradan gelir (`:active`).
+   ===================================================================== */
+
+.af-kr .af-cip,
+.af-kr .af-secenek,
+.af-kr .af-dugme {
+  transition: transform 120ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color var(--af-gecis), color var(--af-gecis), background-color var(--af-gecis),
+    box-shadow var(--af-gecis);
+}
+.af-kr .af-cip:active,
+.af-kr .af-secenek:active,
+.af-kr .af-dugme:active { transform: translateY(1px) scale(0.985); }
+
+/* Ok kayması — `.af-bag-ok svg` kart hover'ında kayıyor; bağlantının
+   KENDİ hover'ında da kaysın. */
+@media (hover: hover) {
+  .af-kr .af-bag-ok:hover svg { transform: translateX(3px); }
+}
+
+/* =====================================================================
+   7. DEVASA VERİ ŞERİDİ — `.af-veri-serit` ile birlikte
+   Uzun paragrafı kırmanın karşılığı: rakam/kelime iri, etiket mono,
+   hücreler arasında 1px ayraç. Uydurma rakam YOK — buraya yalnız
+   sayfada zaten doğrulanmış değerler girer.
+   ===================================================================== */
+
+.af-kr .af-veri-serit.af-kr-veri-dev {
+  border-inline: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.af-kr .af-kr-veri-dev .af-veri-oge {
+  padding-block: clamp(var(--af-b-16), 2.2vw, var(--af-b-32));
+  gap: var(--af-b-8);
+}
+.af-kr .af-kr-veri-dev .af-veri-deger {
+  font-size: clamp(1.625rem, 1.05rem + 2.4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+.af-kr .af-kr-veri-dev .af-veri-etiket { letter-spacing: 0.16em; }
+
+/* =====================================================================
+   8. OKUMA İLERLEME ÇİZGİSİ — 0 JS
+   Kaydırmaya bağlı CSS animasyonu (`animation-timeline: scroll()`).
+   `prefers-reduced-motion: reduce` altında HİÇ basılmaz: site.css'teki
+   genel kural `animation-duration`'ı 0,001ms'ye çekiyor ve ilerleme
+   tabanlı zaman çizelgesinde bu, çizgiyi anında doldurup YANLIŞ BİLGİ
+   verirdi. Desteklemeyen tarayıcıda da görünmez — eksik bilgi değil,
+   yalnız eksik süs (içindekiler listesi bilgiyi zaten taşıyor).
+   ===================================================================== */
+
+.af-kr-ilerleme { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll(root block)) {
+    .af-kr-ilerleme {
+      display: block;
+      position: fixed;
+      inset-block-start: var(--af-ustbar-h);
+      inset-inline: 0;
+      z-index: 50;
+      height: 2px;
+      background: var(--af-turuncu-dolu);
+      transform-origin: 0 50%;
+      scale: 0 1;
+      animation: af-kr-ilerle linear;
+      animation-timeline: scroll(root block);
+      pointer-events: none;
+    }
+  }
+}
+
+@keyframes af-kr-ilerle {
+  from { scale: 0 1; }
+  to { scale: 1 1; }
+}
+
+/* =====================================================================
+   9. BÖLÜM BAŞLIKLARI DAHA İRİ VE SIKI
+   "Düz kart ızgarası yerine ölçek farkı": kurumsal sayfalarda bölüm
+   başlığı bir punto yukarı çıkar ve tracking sıkışır.
+   ===================================================================== */
+
+.af-kr .af-kr-iri .af-h2 {
+  font-size: clamp(1.75rem, 1.05rem + 2.9vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+/* =====================================================================
+   10. PANEL SIZINTISI KAPATMA — `label { text-transform: uppercase }`
+
+   ÖLÇÜLEN HATA, tahmin değil: yönetim panelinin `src/app/globals.css`
+   dosyası (satır 205) çıplak bir `label` seçicisiyle BÜTÜN etiketleri
+   büyük harfe çeviriyor. Site kabuğu aynı belgede yaşadığı için bu
+   kural `/site` sayfalarına da uyguluyor ve `site.css`'teki `.af-etiket`
+   `text-transform`'u geri almıyor. Sonuç:
+     · alan etiketleri "İŞLETME ADI", `<legend>` ise normal yazımda —
+       aynı formun içinde iki farklı dizgi,
+     · KVKK onay cümlesinin TAMAMI büyük harf: hukuki metinde hem okunmaz
+       hem bağırgan,
+     · eksik çipleri "QR MENÜ YOK" diye bağırıyor.
+
+   `globals.css` DOKUNULMAZ (panel ajanının dosyası) ve `site.css` de
+   benim değil; bu yüzden düzeltme yalnız `.af-kr` altında, yani kurumsal
+   sayfalarda yapılıyor. Kalıcı çözüm `site.css`'te `.af-etiket`,
+   `.af-onay` ve `.af-secenek` kurallarına `text-transform: none`
+   eklemek — temel ajanına bildirildi.
+   ===================================================================== */
+
+.af-kr label { text-transform: none; letter-spacing: normal; }
+/* Aynı kuraldan `font-weight: 700` de sızıyor: KVKK onay cümlesinin
+   tamamı kalın görünüyordu. `.af-etiket` ağırlığı zaten kendi yazıyor
+   (600), `.af-secenek` 500; yalnız onay satırı açıkta kalıyor. */
+.af-kr .af-onay { font-weight: 400; }
+.af-kr .af-mono-etiket,
+.af-kr .af-ust-etiket,
+.af-kr .af-veri-etiket { text-transform: uppercase; }

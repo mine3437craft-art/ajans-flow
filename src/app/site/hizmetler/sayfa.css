@@ -1,0 +1,1094 @@
+/* =====================================================================
+   Yalnızca /hizmetler ve /hizmetler/[hizmet] sayfalarına ait stiller.
+
+   Kural: yeni renk / radius / gölge YOK. Her değer site.css'teki
+   `--af-*` tokenlarından okunur; sınıf adları `af-hz-` ile başlar.
+   ===================================================================== */
+
+/* Metin bağlantılarındaki ok ikonu (.af-bag-ok svg boyut vermiyor) */
+.af-hz-ok { width: 16px; height: 16px; }
+
+/* ---- Site izi (breadcrumb) ---- */
+.af-hz-iz {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-hz-iz a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--af-metin-2);
+}
+.af-hz-iz a:hover { color: var(--af-vurgu); }
+.af-hz-iz [aria-current] { color: var(--af-vurgu); }
+
+/* ---- Hub: öbek başlığının yanındaki sayaç ---- */
+.af-hz-grup-sayi {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+
+/* ---- "Kimin için" kartındaki sıra numarası ---- */
+.af-hz-sayi {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  color: var(--af-vurgu);
+}
+
+/* ---- Süreç adımları: dikey çizgi + numara düğümü ---- */
+.af-hz-surec {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--af-b-32);
+}
+.af-hz-surec > li {
+  position: relative;
+  min-height: 44px;
+  padding-inline-start: calc(44px + var(--af-b-16));
+}
+/* Bir sonraki adıma inen çizgi */
+.af-hz-surec > li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 22px;
+  inset-block-start: 44px;
+  inset-block-end: calc(-1 * var(--af-b-32));
+  width: 1px;
+  background: var(--af-kenar);
+}
+.af-hz-adim-no {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-cip);
+  background: var(--af-kart-zemin);
+  color: var(--af-vurgu);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+}
+.af-hz-adim-baslik {
+  font-size: var(--af-y-h4);
+  margin: 0 0 var(--af-b-8);
+  padding-block-start: var(--af-b-8);
+}
+.af-hz-adim-metin {
+  margin: 0;
+  color: var(--af-metin-2);
+  font-size: var(--af-y-kucuk);
+  max-width: 66ch;
+}
+
+/* ---- Yan sütundaki görsel: masaüstünde yapışkan ---- */
+@media (min-width: 900px) {
+  .af-hz-yan { position: sticky; inset-block-start: calc(var(--af-ustbar-h) + var(--af-b-24)); }
+}
+.af-hz-yan .af-cerceve-telefon { margin-inline: auto; }
+
+/* ---- Logo vitrini: beyaz logolar koyu kutuda okunur ---- */
+.af-hz-logo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: clamp(var(--af-b-24), 4vw, var(--af-b-48));
+  border: 1px solid var(--af-cizgi-koyu-2);
+  border-radius: var(--af-r-kart);
+  background: var(--af-koyu);
+  box-shadow: var(--af-kart-golge);
+}
+.af-hz-logo img {
+  width: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ---- Vaka kartındaki görsel ---- */
+.af-hz-vaka-gorsel img {
+  aspect-ratio: 16 / 10;
+  height: auto;
+}
+
+/* ---- İlgili hizmet satırı (ikon + ad + ok) ---- */
+.af-hz-bag-kart {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-12);
+  min-height: 44px;
+  padding: var(--af-b-12) var(--af-b-16);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  color: var(--af-metin);
+  font-weight: 500;
+  transition: border-color var(--af-gecis), transform var(--af-gecis);
+}
+.af-hz-bag-kart svg:first-child { width: 20px; height: 20px; color: var(--af-vurgu-cizgi); flex: none; }
+.af-hz-bag-kart .af-hz-ok { margin-inline-start: auto; color: var(--af-metin-3); }
+@media (hover: hover) {
+  .af-hz-bag-kart:hover { border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 45%, transparent); transform: translateY(-2px); }
+  .af-hz-bag-kart:hover .af-hz-ok { color: var(--af-vurgu); }
+}
+
+/* ---- Hub kartı: ikon ve başlık aynı satırda ---- */
+.af-hz-kart-ust {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-12);
+}
+.af-hz-kart-ust .af-kart-baslik { font-size: var(--af-y-h4); }
+
+/* ---- Ortalanmış çağrı düğmeleri ---- */
+.af-hz-orta-dugmeler { justify-content: center; }
+
+/* ---- Yan sütundaki medyanın ölçü sınırı (çok uzun kutu olmasın) ---- */
+.af-hz-dikey { max-width: 360px; margin-inline: auto; }
+.af-hz-yan > figure > .af-gorsel-kutu,
+.af-hz-yan .af-gorsel-kutu { max-width: 560px; margin-inline: auto; }
+
+/* =====================================================================
+   =====================================================================
+   GÖRSEL YÜKSELTME KATMANI
+   Dil SITE-GIRIS.md'den (HARF KADRAJI) geliyor: plaka, blend knockout,
+   grain, tek ışık havuzu, kesik kenar, kilitli satır yüksekliği.
+   Yeni renk / radius / gölge İCAT EDİLMEDİ — hepsi `--af-*` tokenı.
+   =====================================================================
+   ===================================================================== */
+
+/* =====================================================================
+   Y1. PLAKA — üçüncü ve NADİR yüzey (bant değil, BAŞLIK ANI)
+   "Bant = okunan içerik, plaka = başlık anı." Bu sayfada en çok İKİ
+   kez: hub hero'su + "Web ve yazılım" öbeği. Marka bantları
+   (--af-koyu / --af-kagit) dokunulmadı.
+   ===================================================================== */
+
+.af-hz-plaka {
+  /* Plaka da bir BANT BAĞLAMIDIR: tasarım sistemindeki dokuz değişkeni
+     yeniden yazar, böylece site.css'teki genel kurallar (kart, çip,
+     düğme, odak halkası) plakada kendiliğinden uyar. */
+  --af-zemin: var(--af-plaka);
+  --af-metin: #fff;
+  --af-metin-2: rgba(255, 255, 255, 0.68);
+  --af-metin-3: rgba(255, 255, 255, 0.48);
+  --af-kenar: var(--af-cizgi-koyu);
+  --af-kenar-ince: var(--af-cizgi-koyu-2);
+  --af-vurgu: var(--af-turuncu);
+  --af-vurgu-cizgi: var(--af-turuncu);
+  --af-vurgu-sis: var(--af-turuncu-sis-koyu);
+  --af-kart-zemin: rgba(255, 255, 255, 0.035);
+  --af-kart-kenar: var(--af-cizgi-koyu);
+  --af-kart-golge: none;
+  --af-kart-golge-2: var(--af-golge-koyu-2);
+  --af-halka: var(--af-turuncu);
+  --af-ic-isik: var(--af-golge-ic-koyu);
+  --hz-zerre: 0.045;              /* grain — ASLA >0,045 (AMOLED bant) */
+  color-scheme: dark;
+
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: var(--af-plaka);
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .af-hz-plaka { --hz-zerre: 0.03; }
+}
+
+/* Tek ışık havuzu — zenginlik DURAN karede. `background-attachment:
+   fixed` YASAK (mobil kaydırma katili).
+   z-index 3: ışık ve zerre İÇERİĞİN ÜSTÜNDE durur. Altta dururlarsa
+   knockout maskesinin saf siyahı duvarın kutusu boyunca havuzu KESER
+   ve video "dikdörtgen olarak sızmış" gibi görünür. */
+.af-hz-isik,
+.af-hz-zerre {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.af-hz-isik {
+  z-index: 3;
+  background:
+    radial-gradient(118% 76% at 14% 6%, rgba(255, 137, 0, 0.16), transparent 62%),
+    radial-gradient(86% 58% at 90% 98%, rgba(226, 84, 31, 0.12), transparent 66%);
+}
+/* Grain — 390 baytlık satır içi feTurbulence, İSTEK YOK. Dijital siyahı
+   film siyahına çevirir. ASLA animasyonlu değil; 180px tile şart. */
+.af-hz-zerre {
+  z-index: 4;
+  opacity: var(--hz-zerre, 0.04);
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (prefers-contrast: more) {
+  .af-hz-zerre { opacity: 0; }
+}
+
+/* Plakanın içeriği ışık ve zerrenin ALTINDA ama zeminin ÜSTÜNDE */
+.af-hz-plaka > .af-kap,
+.af-hz-plaka > .af-bant > .af-kap,
+.af-hz-plaka-ic { position: relative; z-index: 2; }
+
+/* Kâğıt / beyaz banda da aynı doku, çok daha hafif: "ucuz düz beyaz"
+   hissini kıran miktar. Tek `::before`, istek yok, z-index -1 + bandın
+   `isolation: isolate`i sayesinde zeminin ÜSTÜNDE, içeriğin ALTINDA. */
+.af-hz-doku { isolation: isolate; }
+.af-hz-doku::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.024;
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+/* Kâğıt bantta tek ışık havuzu — ÇOK hafif, tek gradyan, 0 bayt */
+.af-hz-doku::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(90% 60% at 88% 0%, var(--af-vurgu-sis), transparent 68%);
+}
+@media (prefers-contrast: more) {
+  .af-hz-doku::before,
+  .af-hz-doku::after { display: none; }
+}
+
+/* Kesik kenar — tek köşeli SERT kesik, yuvarlak değil. 0 bayt,
+   karakterli; gradyan yok, gölge yok, SVG yok, ASLA tween edilmez.
+   Negatif üst kenar boşluğu ZORUNLU: kesilen kama bir ÜSTTEKİ bandın
+   zeminini gösterir, yoksa sayfa zemini (beyaz) sızar. */
+.af-hz-kesik-ust {
+  --hz-kesik: clamp(22px, 4.5vw, 64px);
+  margin-block-start: calc(-1 * var(--hz-kesik));
+  clip-path: polygon(0 var(--hz-kesik), 46% 0, 100% 0, 100% 100%, 0 100%);
+  padding-block-start: calc(var(--af-bant-bosluk) + var(--hz-kesik));
+}
+/* Kesiğin hemen üstündeki bandın alt boşluğu kama kadar artar ki
+   içeriğin üstüne binmesin. */
+.af-hz-kesik-once { padding-block-end: calc(var(--af-bant-bosluk) + clamp(22px, 4.5vw, 64px)); }
+
+/* =====================================================================
+   Y2. HARF KADRAJI — blend knockout, SAYFADA YALNIZ BİR KEZ
+   (hub hero'sunun H1'inde, tek satırlık anahtar kelimede)
+
+   `background-clip: text` canlı video alamaz, SVG mask + foreignObject
+   iOS Safari'de güvenilmez, harfi path'e çevirmek SSR metnini öldürür.
+   Teknik `mix-blend-mode` knockout:
+     .af-hz-taban  turuncu gradyan (kontrast tabanı, ÇIKARILAMAZ)
+     .af-hz-plan   <img> + <video>  · screen
+     .af-hz-maske  saf siyah/#fff   · multiply
+   Matematik: siyah plaka × düzlem = siyah (gizler), beyaz harf ×
+   düzlem = düzlem (gösterir). Alttaki `screen` videoyu turuncu tabana
+   EKLER; harfin içi ASLA turuncudan koyu olamaz (#E2541F/#000 = 5,52:1).
+
+   KURALLAR: blend edilen metin ≥700 ağırlık ve ≥40px. Gövde metni
+   ASLA blend edilmez. Blend alanı duvarın sınır kutusuna kırpılı.
+   ===================================================================== */
+
+.af-hz-oyuk {
+  display: grid;
+  /* `minmax(0, 1fr)` ZORUNLU: ızgara gözü varsayılan olarak nowrap
+     başlık satırına göre büyüyüp kolondan taşıyor. */
+  grid-template-columns: minmax(0, 1fr);
+  /* Punto tavanı EN UZUN SATIRIN harf sayısından türetilir (`--hz-kat`
+     satır içi stille gelir). Böylece hiçbir duvar satırı kutusundan
+     geniş olamaz — taşan parça knockout'un dışında kalır ve
+     `color: transparent` olduğu için GÖRÜNMEZ olurdu.
+     Üç tavanın en küçüğü: tasarım ölçeği · görünen genişlik · kapsayıcı. */
+  --hz-font: min(
+    clamp(2.5rem, 13.2vw, 8.5rem),
+    calc((100vw - 2 * var(--af-yan)) / var(--hz-kat, 12)),
+    calc(var(--af-kap) / var(--hz-kat, 12))
+  );
+  /* Satır yüksekliği MUTLAK ve YAZI TİPİNDEN BAĞIMSIZ (CLS 0'ın
+     anahtarı). Bricolage swap ile geç gelse bile glif sabit kutunun
+     içinde değişir → düzen kaymaz.
+     ÖLÇÜM: 0,87 oranında virgül ve nokta taban çizgisinin altında
+     kalıp KIRPILIYORDU (`overflow: clip`). Bricolage'ın ascent+descent
+     içerik kutusu ~1,25em; 0,97'de taban çizgisi kutunun 0,86'sında
+     oluyor ve virgülün kuyruğu (~0,1em) tam sığıyor. */
+  --hz-satir-h: calc(var(--hz-font) * 0.97);
+}
+
+.af-hz-duvar {
+  grid-area: 1 / 1;
+  align-self: start;
+  /* Blend alanı YALNIZ satırların kutusu — tam ekran blend edilmez. */
+  height: calc(var(--hz-satir-sayi, 4) * var(--hz-satir-h));
+  position: relative;
+  isolation: isolate;
+  contain: paint;
+}
+
+.af-hz-taban,
+.af-hz-plan,
+.af-hz-maske {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* KENAR DİKİŞİ KORUMASI: duvarın yüksekliği kesirli olduğu için kesirli
+   kenarda hem taban hem maske kısmi alfayla boyanıyor; `multiply` kısmi
+   alfada tam karartamadığı için sınırda ~1px SICAK ÇİZGİ kalıyor ve
+   kutu plakanın üstünde beliriyor. Çözüm: taban ve düzlem 1px içeri,
+   maske tam kutuyu kaplar. */
+.af-hz-taban,
+.af-hz-plan { inset: 1px; }
+
+/* KONTRAST TABANI — mimari, dekor değil. Duraklar yalnız
+   public/site/marka/flow-sembol.svg'nin KENDİ stoplarından. */
+.af-hz-taban { background: linear-gradient(100deg, #e2541f, #ff8900 50%, #ffcf3b); }
+
+/* DİKKAT — blend edilen katmana `opacity` VERİLMEZ: Chrome katmanı ayrı
+   yüzeye alıyor, üstündeki `multiply` onu tam karartamıyor ve duvarın
+   kutusu plakanın üzerinde SOLUK DİKDÖRTGEN olarak görünüyor. */
+.af-hz-plan { mix-blend-mode: screen; }
+.af .af-hz-plan > picture,
+.af .af-hz-plan > img,
+.af .af-hz-plan > video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* `object-position` KİŞİ KORUMASIDIR: klibin arkasında bariyer önünde
+     iki kişi var (yüz seçilmiyor). Açıklık karenin ÜST %25'ini asla
+     göstermez. */
+  object-position: 50% 58%;
+}
+/* Çapraz geçiş YERİNE `poster`: Efektler `src`'yi atadığında ilk kare
+   gelene kadar <video> KENDİ posterini (aynı dolgu karesi) boyar, bu
+   yüzden kıpkırmızı bir "siyah kare" anı HİÇ oluşmaz ve CSS'in
+   bilmediği "oynuyor" durumuna bağımlılık kalmaz. Video hiç gelmezse
+   (ağ kapısı, saveData, hata) altındaki <img> duvarı dolu tutar. */
+@media (max-width: 700px) {
+  .af .af-hz-plan > picture,
+  .af .af-hz-plan > img,
+  .af .af-hz-plan > video { object-position: 50% 62%; }
+}
+
+.af-hz-maske {
+  mix-blend-mode: multiply;
+  background: var(--af-plaka);
+  color: var(--af-plaka);
+}
+
+.af .af-hz-satirlar {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--hz-font);
+  font-weight: 800;                  /* blend edilen metin ≥700 */
+  line-height: var(--hz-satir-h);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;         /* kaynak metin doğal yazımda:  */
+  font-synthesis-weight: none;       /* ekran okuyucu bağırmaz       */
+  -webkit-text-size-adjust: none;
+}
+.af .af-hz-satir {
+  display: block;
+  height: var(--hz-satir-h);
+  overflow: clip;
+  white-space: nowrap;
+}
+/* Satır içi perde — açılış SAF CSS, GSAP gerekmez. Perde açılması gibi
+   okunur, harf harf zıplayan çizgi film gibi DEĞİL. */
+.af-hz-i { display: block; line-height: var(--hz-satir-h); }
+.af.js-var .af-hz-i {
+  animation: af-hz-perde 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.af.js-var .af-hz-satir:nth-child(1) .af-hz-i { animation-delay: 0.04s; }
+.af.js-var .af-hz-satir:nth-child(2) .af-hz-i { animation-delay: 0.1s; }
+.af.js-var .af-hz-satir:nth-child(3) .af-hz-i { animation-delay: 0.16s; }
+.af.js-var .af-hz-satir:nth-child(4) .af-hz-i { animation-delay: 0.22s; }
+@keyframes af-hz-perde {
+  from { transform: translateY(108%); }
+  to { transform: translateY(0); }
+}
+
+/* İki metin katmanının kutuplaşması.
+   `position: relative; z-index: 1` ZORUNLU: `.af-hz-duvar` isolation +
+   contain ile bir yığın bağlamı yaratıyor ve konumlandırılmamış böyle
+   bir öge normal akıştaki kardeşinin ÜSTÜNDE atomik boyanıyor —
+   açıkça yükseltilmezse gerçek <h1> maskenin ALTINDA kalır. */
+.af-hz-yazi {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+}
+.af-hz-yazi .af-hz-satir--dolu { color: transparent; }
+.af-hz-maske .af-hz-satir--dolu { color: #fff; }
+
+/* Az hareket / yüksek kontrast: duvar durağan kareyle DOLU kalır,
+   kendinden emin bir afiş gibi durur. */
+@media (prefers-reduced-motion: reduce) {
+  .af.js-var .af-hz-i { animation: none; }
+  .af-hz-plan > video { transition: none; }
+}
+@media (prefers-contrast: more) {
+  .af-hz-plan { display: none; }
+}
+
+/* =====================================================================
+   Y3. DEVASA TİPOGRAFİ — detay hero'su ve plaka tek kelimesi
+   Blend YOK: burada doluluk marka gradyanından gelir (0 bayt, taşma
+   riski yok, akan metin olduğu için kırılabilir).
+   ===================================================================== */
+
+.af .af-hz-dev {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(2.375rem, 1.1rem + 6.6vw, 5.5rem);
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -0.042em;
+  text-transform: uppercase;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  margin: 0;
+  font-synthesis-weight: none;
+}
+/* Son kelime marka gradyanıyla dolu. `background-clip: text` GRADYANLA
+   her yerde çalışır (sorun yalnız canlı videoda). Yedek: `color`
+   zaten vurgu rengi, destek yoksa düz turuncu okunur. */
+.af-hz-dev-vurgu {
+  color: var(--af-vurgu);
+  background-image: linear-gradient(100deg, #e2541f, #ff8900 55%, #ffcf3b);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .af-hz-dev-vurgu { color: transparent; }
+  /* Açık bantta tavan kontrastı için daha koyu duraklar */
+  .af-bant--kagit .af-hz-dev-vurgu,
+  .af-bant--beyaz .af-hz-dev-vurgu {
+    background-image: linear-gradient(100deg, #861500, #b83c13 50%, #c5410f);
+  }
+}
+@media (prefers-contrast: more) {
+  .af-hz-dev-vurgu { color: var(--af-vurgu); background-image: none; }
+}
+
+/* Plakadaki devasa tek kelime — öbek adının içinden alınır */
+.af .af-hz-tek-kelime {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(3.25rem, 1.1rem + 11.4vw, 9rem);
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  margin: 0;
+  color: #fff;
+  font-synthesis-weight: none;
+  /* Kenarına kadar: devasa kelime kolonun soluna DAYANIR */
+  margin-inline-start: -0.035em;
+}
+.af-hz-tek-kelime > span {
+  /* ÖLÇÜM: #E2541F saf siyah üstünde devasa puntoda "kahverengi"
+     okunuyordu. Marka sembolünün daha parlak durağı (#FF5100) ile
+     başlıyoruz; duraklar hâlâ yalnız flow-sembol.svg'den. */
+  background-image: linear-gradient(100deg, #ff5100, #ff8900 52%, #ffcf3b);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .af-hz-tek-kelime > span { color: transparent; }
+}
+
+/* Hero üstündeki mono ölçü şeridi (sayfa künyesi gibi) */
+.af .af-hz-kunye {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-b-8) var(--af-b-16);
+  margin: 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-hz-kunye > span { display: inline-flex; align-items: center; gap: var(--af-b-8); }
+.af-hz-kunye > span::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: var(--af-vurgu-cizgi);
+  flex: none;
+}
+
+/* =====================================================================
+   Y4. NUMARALI VERİ ŞERİDİ — "neleri kapsar" listesinin yerine
+   Uzun madde listesi kart içinde tikli bir yığın değil, numaralı bir
+   şerittir: mono sıra · ince çizgi · madde. Tarama hızı artar.
+   ===================================================================== */
+
+.af .af-hz-serit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  column-gap: clamp(var(--af-b-24), 4vw, var(--af-b-64));
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af .af-hz-serit > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  align-items: baseline;
+  gap: var(--af-b-12);
+  min-height: 44px;
+  padding-block: var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar-ince);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-hz-serit-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  color: var(--af-vurgu);
+}
+/* İnce turuncu kılavuz: sıranın altından maddeye doğru */
+.af-hz-serit > li::before {
+  content: '';
+  position: absolute;
+  inset-block-start: calc(var(--af-b-16) + 0.52em);
+  inset-inline-start: 2.1rem;
+  width: 0.65rem;
+  height: 1px;
+  background: var(--af-vurgu-cizgi);
+  opacity: 0.55;
+}
+
+/* =====================================================================
+   Y5. VERİ SATIRI KARTI — "Reklam ve ölçüm" öbeğinin rejimi
+   Kart ızgarası değil, okunabilir bir veri şeridi: her hizmet bir
+   satır. Rakamlar İÇERİKTEN SAYILIR (kapsam maddesi, süreç adımı,
+   paket seçeneği) — uydurma oran, artış, fiyat YOK.
+   ===================================================================== */
+
+.af-hz-tablo {
+  display: grid;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-veri);
+  background: var(--af-kart-zemin);
+  overflow: clip;
+}
+.af-hz-tablo-bas,
+.af-hz-tablo-satir {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--af-b-12) var(--af-b-16);
+  padding: var(--af-b-16) var(--af-b-16);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af-hz-tablo-bas {
+  background: var(--af-vurgu-sis);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-2);
+}
+.af-hz-tablo > :last-child { border-block-end: 0; }
+.af-hz-tablo-satir {
+  position: relative;
+  color: var(--af-metin);
+  min-height: 56px;
+  text-decoration: none;
+  transition: background-color var(--af-gecis);
+}
+.af-hz-tablo-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--af-vurgu);
+}
+.af-hz-tablo-ad { display: grid; gap: 2px; min-width: 0; }
+.af .af-hz-tablo-ad > strong {
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--af-y-h4);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.af-hz-tablo-ad > span { font-size: var(--af-y-mini); color: var(--af-metin-2); }
+.af-hz-tablo-sag {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-16);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--af-metin-3);
+}
+.af-hz-tablo-olcu { display: grid; justify-items: end; gap: 2px; line-height: 1.2; }
+.af-hz-tablo-olcu > b { font-size: 1.125rem; color: var(--af-metin); font-weight: 600; }
+.af-hz-tablo-satir .af-hz-ok { color: var(--af-metin-3); transition: transform var(--af-gecis), color var(--af-gecis); }
+@media (hover: hover) {
+  .af-hz-tablo-satir:hover { background: var(--af-vurgu-sis); }
+  .af-hz-tablo-satir:hover .af-hz-ok { transform: translateX(4px); color: var(--af-vurgu); }
+}
+.af-hz-tablo-satir:active { background: var(--af-vurgu-sis); }
+/* Dar ekran: ölçü sütunu satırın altına iner, yatay taşma SIFIR */
+@media (max-width: 560px) {
+  .af-hz-tablo-bas { display: none; }
+  .af-hz-tablo-satir { grid-template-columns: 2.5rem minmax(0, 1fr); }
+  .af-hz-tablo-sag {
+    grid-column: 2;
+    justify-content: space-between;
+    width: 100%;
+    padding-block-start: var(--af-b-4);
+  }
+}
+
+/* =====================================================================
+   Y6. MOZAİK — ölçek farkı. Düz ızgara değil: kare + geniş + dikey.
+   Her kutu `aspect-ratio` ile rezerve (CLS 0).
+   ===================================================================== */
+
+.af-hz-mozaik {
+  display: grid;
+  gap: var(--af-b-12);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+@media (min-width: 900px) {
+  .af-hz-mozaik { grid-template-columns: 1.35fr 1fr 0.85fr; gap: var(--af-b-16); }
+}
+.af-hz-mozaik figure {
+  position: relative;
+  margin: 0;
+  overflow: clip;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  box-shadow: var(--af-kart-golge);
+}
+/* ÖLÇÜM: `height: 100%` + ızgaranın `stretch` hizası `aspect-ratio`'yu
+   eziyordu ve üç kutu aynı boyda çıkıyordu — "farklı ölçek" kaybolmuştu.
+   Yükseklik artık oranın kendisinden geliyor, kutular alt kenardan
+   hizalanıyor (kasıtlı editoryal mozaik, kaza değil). */
+.af .af-hz-mozaik img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  aspect-ratio: var(--af-oran, 1 / 1);
+}
+/* DAR EKRAN YERLEŞİMİ (ölçüldü, 390px):
+   "ilk kutu iki sütunu alsın" denediğimde geniş kare (1024×576) yarım
+   sütunda 160×91'e düşüyordu — şerit gibi, okunmuyordu. Açık yerleşim
+   üç oranı da ayakta tutuyor:
+     [ kare 1/1 ][ dikey 9/16 ]
+     [ geniş    ][  (2 satır) ]
+   Toplam yükseklik dikey kutunun yüksekliği kadar; boşluk yok. */
+@media (max-width: 899px) {
+  .af-hz-mozaik { align-items: start; }
+  .af-hz-mozaik > :nth-child(1) { grid-column: 1; grid-row: 1; }
+  .af-hz-mozaik > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  .af-hz-mozaik > :nth-child(3) { grid-column: 2; grid-row: 1 / span 2; }
+}
+.af-hz-mozaik figcaption {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  padding: var(--af-b-24) var(--af-b-12) var(--af-b-8);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  /* Künye uzun olabilir: tek satır, taşarsa kırpılır (taşma yok) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =====================================================================
+   Y7. KART IŞIK HAVUZU — mikro etkileşim (yalnız gerçek imleçte)
+   İmleç takibi JS ister; onun yerine kartın üst köşesinden açılan tek
+   ışık havuzu + 2px kalkma. Dokunmada basılı hissi.
+   ===================================================================== */
+
+.af-hz-isikli { position: relative; isolation: isolate; }
+.af-hz-isikli::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(120% 90% at 18% 0%, var(--af-vurgu-sis), transparent 64%);
+  transition: opacity var(--af-gecis-yavas);
+}
+@media (hover: hover) {
+  .af-hz-isikli:hover::after,
+  .af-hz-isikli:focus-within::after { opacity: 1; }
+}
+.af-hz-isikli:active { transform: translateY(1px); }
+
+/* Çipte basılı hissi */
+.af-cip.af-hz-cip:active { transform: translateY(1px); }
+
+/* =====================================================================
+   Y8. SÜREÇ ÇİZGİSİ — kaydırmaya bağlı, SIFIR JS
+   `animation-timeline: view()` destekleyen tarayıcıda çizgi kaydırmayla
+   dolar. Desteklemeyende (Safari) çizgi TAM DOLU durur — bilgi kaybı
+   yok, yalnız hareket yok. `prefers-reduced-motion` aynı yedeğe düşer.
+   ===================================================================== */
+
+.af-hz-surec { position: relative; }
+/* Dolan turuncu çizgi, mevcut gri çizginin tam üstünde */
+.af-hz-surec > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 22px;
+  inset-block-start: 44px;
+  inset-block-end: calc(-1 * var(--af-b-32));
+  width: 1px;
+  background: var(--af-vurgu-cizgi);
+  transform-origin: 50% 0;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .af-hz-surec > li:not(:last-child)::after {
+      animation: af-hz-cizgi linear both;
+      animation-timeline: view();
+      animation-range: entry 18% cover 46%;
+    }
+    .af-hz-surec > li .af-hz-adim-no {
+      animation: af-hz-dugum linear both;
+      animation-timeline: view();
+      animation-range: entry 26% cover 40%;
+    }
+  }
+}
+@keyframes af-hz-cizgi {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes af-hz-dugum {
+  from { border-color: var(--af-kenar); color: var(--af-metin-3); }
+  to { border-color: var(--af-vurgu-cizgi); color: var(--af-vurgu); }
+}
+/* Adım numarası zeminden ayrılsın: çizgi altından geçmesin */
+.af-hz-adim-no { z-index: 1; }
+
+/* =====================================================================
+   Y9. PAKET KARŞILAŞTIRMA KARTI — fiyat YOK, kapsam var
+
+   ÖLÇÜM NOTU: içerikteki üç paketin kapsam maddeleri BİRBİRİNİN ÜST
+   KÜMESİ DEĞİL — 15 hizmetin hepsinde maddelerin kesişimi SIFIR
+   (ölçtüm: `birleşim 12-20, >=2 tik 0`). Bu yüzden klasik "satır ×
+   paket + tik/çizgi" matrisi KURULMADI: köşegen bir tablo çıkar ve
+   "üst pakette şu madde YOK" gibi içerikte yazmayan bir şey iddia eder.
+   Doğru biçim: üç kapsam TEK kartın içinde, hizalı başlıklarla, yan
+   yana. Karşılaştırma gözle yapılır, uydurma veri üretilmez.
+   ===================================================================== */
+
+.af-hz-kiyas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  box-shadow: var(--af-kart-golge);
+  overflow: clip;
+}
+@media (min-width: 880px) {
+  .af-hz-kiyas { grid-template-columns: repeat(var(--hz-paket, 3), minmax(0, 1fr)); }
+}
+/* ÖLÇÜM: `align-content: start` + `margin-block-start: auto` birlikte
+   çalışmıyordu; kalem sayısı az olan kolonun düğmesi yukarıda kalıyordu.
+   Üç satırlı açık ızgara (başlık · gövde · düğme) düğmeleri hizalar. */
+.af-hz-kiyas-kolon {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af-hz-kiyas-kolon:first-child { border-block-start: 0; }
+@media (min-width: 880px) {
+  .af-hz-kiyas-kolon {
+    border-block-start: 0;
+    border-inline-start: 1px solid var(--af-kenar);
+  }
+  .af-hz-kiyas-kolon:first-child { border-inline-start: 0; }
+}
+/* Orta kolon vurgulu: en çok istenen kapsam burada durur */
+.af-hz-kiyas-kolon--vurgulu { background: var(--af-vurgu-sis); }
+
+.af-hz-kiyas-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--af-b-8);
+  padding: var(--af-b-16) clamp(var(--af-b-16), 2vw, var(--af-b-24));
+  border-block-end: 1px solid var(--af-kenar);
+  background: color-mix(in srgb, var(--af-metin) 4%, transparent);
+}
+.af-hz-kiyas-bas h3 {
+  font-size: var(--af-y-h4);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.af-hz-kiyas-kalem {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-hz-kiyas-govde {
+  display: grid;
+  align-content: start;
+  gap: var(--af-b-12);
+  padding: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+}
+.af-hz-kiyas-alt {
+  margin-block-start: auto;
+  padding: 0 clamp(var(--af-b-16), 2vw, var(--af-b-24)) clamp(var(--af-b-16), 2vw, var(--af-b-24));
+}
+
+/* =====================================================================
+   Y10. BÜYÜK VAKA MEDYASI — ilgili çalışma, iri kadrajda
+   İlk vaka tam genişlik medyayla; kalanlar normal kart.
+   ===================================================================== */
+
+.af-hz-vaka-dev {
+  position: relative;
+  display: grid;
+  gap: clamp(var(--af-b-16), 3vw, var(--af-b-32));
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .af-hz-vaka-dev { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+}
+.af-hz-vaka-dev-medya {
+  position: relative;
+  margin: 0;
+  overflow: clip;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  box-shadow: var(--af-kart-golge-2);
+  /* Kesik köşe: bant geçişlerindeki dille aynı */
+  clip-path: polygon(0 0, 100% 0, 100% 100%, clamp(18px, 4vw, 52px) 100%, 0 calc(100% - clamp(18px, 4vw, 52px)));
+}
+.af .af-hz-vaka-dev-medya img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--af-oran, 16 / 10);
+  object-fit: cover;
+}
+.af-hz-vaka-dev-govde { display: grid; gap: var(--af-b-12); align-content: start; }
+.af-hz-vaka-dev-govde .af-h3 { font-size: var(--af-y-h2); letter-spacing: -0.03em; }
+
+/* =====================================================================
+   Y11. HUB: öncü kart (ölçek farkı) + plaka kartları
+   ===================================================================== */
+
+.af-hz-oncu {
+  display: grid;
+  gap: var(--af-b-16);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 860px) {
+  .af-hz-oncu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* İlk kart iki sütunu alıp öne çıkar; ölçek farkı burada kurulur */
+  .af-hz-oncu > :first-child { grid-column: span 2; }
+  .af-hz-oncu > :first-child .af-kart-baslik { font-size: var(--af-y-h3); }
+  .af-hz-oncu > :first-child .af-kart-metin { font-size: var(--af-y-metin); max-width: 62ch; }
+}
+
+/* Plaka kartı: koyu yüzeyde telefon çerçevesi + ad + ok */
+.af-hz-plaka-kartlar {
+  display: grid;
+  gap: clamp(var(--af-b-24), 4vw, var(--af-b-48));
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 760px) {
+  .af-hz-plaka-kartlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.af-hz-plaka-kart {
+  position: relative;
+  display: grid;
+  gap: var(--af-b-16);
+  justify-items: start;
+  padding: clamp(var(--af-b-16), 2.5vw, var(--af-b-32));
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-kart-zemin);
+  transition: border-color var(--af-gecis), transform var(--af-gecis);
+}
+@media (hover: hover) {
+  .af-hz-plaka-kart:hover { border-color: color-mix(in srgb, var(--af-turuncu) 50%, transparent); transform: translateY(-2px); }
+}
+.af-hz-plaka-kart .af-cerceve-telefon { margin-inline: auto; }
+.af .af-hz-plaka-kart-ad {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.375rem, 1.1rem + 1.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+/* İmza şeridi (tek hizmetlik öbek) */
+.af-hz-imza {
+  display: grid;
+  gap: clamp(var(--af-b-24), 4vw, var(--af-b-48));
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .af-hz-imza { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); }
+}
+.af-hz-imza-vitrin {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--af-b-12);
+  align-items: stretch;
+}
+.af-hz-imza-vitrin > figure { margin: 0; }
+.af-hz-imza-vitrin .af-hz-logo { aspect-ratio: 3 / 4; padding: var(--af-b-24); }
+.af .af-hz-imza-vitrin img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--af-r-kart);
+}
+
+/* =====================================================================
+   Y12. HUB çipleri ve veri şeridi — biraz daha iri, biraz daha mono
+   ===================================================================== */
+
+.af-hz-plaka .af-veri-serit { border-color: var(--af-kenar); }
+.af-hz-plaka .af-veri-deger { font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.25rem); }
+
+/* Bölüm başlıkları daha iri ve sıkı (ritim) */
+.af-hz-iri-bas .af-h2 {
+  font-size: clamp(1.875rem, 1.1rem + 3.4vw, 3.5rem);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+/* Grup sayacı + çapa satırı aynı hizada */
+.af-hz-grup-ust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  padding-block-end: var(--af-b-12);
+  border-block-end: 1px solid var(--af-kenar);
+  margin-block-end: clamp(var(--af-b-16), 2.5vw, var(--af-b-32));
+}
+.af-hz-grup-ust .af-hz-grup-sayi { margin: 0; }
+
+/* =====================================================================
+   Y13. Mobil ve taşma güvenliği — 360-430px'te yatay kaydırma SIFIR
+   ===================================================================== */
+
+.af-hz-plaka,
+.af-hz-dev,
+.af-hz-tek-kelime,
+.af-hz-satirlar { max-width: 100%; }
+
+@media (max-width: 430px) {
+  /* Dar ekranda duvarın satır sayısı aynı, punto `--hz-kat` tavanıyla
+     zaten kutuya sığıyor; ek bir şey gerekmiyor. Mozaik künyesi
+     gizlenir (dar kutuda tek satır bile okunmuyor). */
+  .af-hz-mozaik figcaption { font-size: 0.6875rem; padding-inline: var(--af-b-8); }
+}
+
+/* JS kapalıyken: perde animasyonu zaten `.js-var` altında, duvar dolu
+   ve okunur. Ek bir kural gerekmiyor. */
+
+/* =====================================================================
+   Y14. PLAKA İÇ YERLEŞİMİ
+   `Bolum` plakada KULLANILMAZ (bant bağlamını geri yazar), bu yüzden
+   bandın dikey boşluğunu burada veriyoruz — aynı `--af-bant-bosluk`.
+   ===================================================================== */
+
+.af-hz-plaka-ic { padding-block: var(--af-bant-bosluk); }
+/* Öbek plakası: hero'dan farkı yok, adı anlam için duruyor (bant olarak
+   okunan plaka). Ayrı kural gerekirse buraya yazılır. */
+.af-hz-plaka-bant { width: 100%; }
+/* Hero'da üst boşluk daha az: site izi hemen üst barın altına oturur */
+.af-hz-hero > .af-hz-plaka-ic { padding-block: var(--af-b-24) var(--af-bant-bosluk); }
+/* Kesiğin üstündeki bandın içeriğine binmemesi için kama kadar pay */
+.af-hz-plaka.af-hz-kesik-ust > .af-hz-plaka-ic {
+  padding-block-start: calc(var(--af-bant-bosluk) + var(--hz-kesik, 44px));
+}
+/* Plakadan SONRA kesik bir bant geliyorsa, plakanın alt boşluğu kama
+   kadar artar ki kama içeriğin üstüne binmesin. */
+.af-hz-plaka.af-hz-kesik-once > .af-hz-plaka-ic {
+  padding-block-end: calc(var(--af-bant-bosluk) + clamp(22px, 4.5vw, 64px));
+}
+.af-hz-ust-24 { margin-block-start: var(--af-b-24); }
+
+/* Hero'daki devasa duvar ile çevresi arasındaki nefes */
+.af-hz-hero .af-hz-oyuk { margin-block-start: clamp(var(--af-b-12), 2vw, var(--af-b-24)); }
+
+/* İmza öbeğindeki devasa kelime AÇIK zeminde: tavan kontrastı için
+   koyu turuncu duraklar (#C5410F/#FFF = 5,08:1). */
+.af-hz-tek-kelime--acik > span {
+  background-image: linear-gradient(100deg, #861500, #b83c13 50%, #c5410f);
+}
+.af .af-hz-tek-kelime--acik { color: var(--af-vurgu); }
+
+/* Plaka başlık bloğundaki devasa kelime, h2'ye yapışık dursun */
+.af-hz-tek-kelime + .af-h2 { margin-block-start: var(--af-b-8); }
+.af-hz-plaka .af-bolum-bas { gap: var(--af-b-12); }
+
+/* İmza öbeğinde bağlantı kartları alt alta, aralıklı */
+.af-hz-imza .af-hz-bag-kart { margin-block-start: var(--af-b-8); }
+
+/* =====================================================================
+   Y15. DETAY HERO'SU ve devasa başlığın orta boyu
+   ===================================================================== */
+
+/* Hero bandı: üst boşluk site izinden geliyor, alt boşluk normal */
+.af-hz-hero-detay { padding-block: var(--af-b-16) var(--af-bant-bosluk); }
+
+/* Bölüm içinde kullanılan devasa başlık (vaka markası gibi) */
+.af .af-hz-dev--orta {
+  font-size: clamp(1.75rem, 1.1rem + 2.9vw, 3rem);
+  line-height: 1.0;
+  letter-spacing: -0.035em;
+}
+
+/* Vaka gövdesinde devasa başlıktan sonra nefes */
+.af-hz-vaka-dev-govde > .af-hz-dev { margin-block: var(--af-b-4) 0; }
+
+/* Büyük vaka bloğundaki okuma bağlantısı: ölçtüm, 43px kalıyordu (iki
+   satıra düştüğünde 44'ü geçiyor ama tek satırda geçmiyordu). */
+.af-hz-vaka-dev-govde .af-bag-ok { min-height: 44px; }

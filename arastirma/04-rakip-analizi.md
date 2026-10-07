@@ -1,0 +1,136 @@
+# Rakip site analizi ve standartlar
+
+> Araştırma ajanı çıktısı (6 Ekim 2026). Siteyi yapan bütün ajanlar bunu okur.
+
+## Özet
+
+Türkiye'deki dijital ajans siteleri (Flatart, Zeo, ZBT Media, Ador Ajans) ile QR menü / restoran yazılımı (Menulux, Adisyo, AKINSOFT QR Menü) ve otomotiv yazılım/ilan platformlarını (Otopiya, galeri yazılımları) hem sayfa yapısı hem teknik SEO açısından inceledim. Çıkan standart şu: ana sayfa tek bir net vaat + güven şeridi ile açılıyor, hizmetler açılır menüyle her biri ayrı sayfaya dağılıyor, güven sayı ve ölçülebilir vaka çalışmasıyla kuruluyor, dönüşüm form + telefon + WhatsApp üçlüsüyle alınıyor, ve asıl Google trafiği 'hizmet × sektör × bölge' matrisinden gelen 110–270 URL'lik sayfa kümesinden geliyor (ZBT 110, Ador 270 URL). Fiyat konusunda pazar net biçimde ikiye ayrılıyor: yazılım/SaaS tarafı rakamı açık yazıyor (Adisyo 1.250/1.850/2.580 ₺ kademeleri, Menulux 125–2.250 ₺, Otopiya 4 kademe), hizmet ajansları yazmıyor ama fiyatsız paket kartları + 'fiyatı belirleyen kalemler' + ayrı '...-fiyatlari' SEO sayfalarıyla aynı aramayı yakalıyor — bizim 'fiyat yazmadan paket anlatma' planı pazarın tam standardı. Teknik tarafta iyi örnekler hafif: Next.js veya düz statik HTML, lazy-load görseller, 0,2–0,4 s HTML teslimi, ağır animasyon kütüphanesi yok; buna karşılık en iyi sıralanan yerel rakipler LocalBusiness + Service/Offer + FAQPage + BreadcrumbList schema'yı agresif kullanıyor ve robots.txt'te AI botlarını bile tek tek izinliyor. Menulux gibi büyük bir firmanın schema'sı yalnızca LocalBusiness'tan oluşuyor — yapısal veri ve içerik derinliği bizim için açık bir fırsat alanı. Dikkat: Levent199 Plaza adresli ZBT Media bizimle neredeyse birebir aynı hizmet karmasına (sosyal medya + prodüksiyon + web + SEO + QR menü + CRM) sahip doğrudan komşu rakip.
+
+## Bulgular
+
+### Zorunlu sayfa iskeleti: Türkiye'de kazanan kalıp 7 ana blok + 3 SEO kümesi
+
+*Güven: kesin* · Kaynak: https://adorajans.com/sosyal-medya-ajansi , https://www.adisyo.com/ , https://www.menulux.com/
+
+İncelenen ajans ve yazılım sitelerinin tamamında aynı üst menü omurgası var: Hakkımızda/Kurumsal → Hizmetler (açılır menü, her hizmet ayrı sayfa) → İşler/Vaka çalışmaları → Referanslar → Fiyatlar veya Paketler → Blog/Rehber → İletişim. Ana sayfa sırası da neredeyse standart: (1) net vaat + tek birincil CTA, (2) güven şeridi (sayı/puan/logo), (3) hizmet kartları, (4) sonuç odaklı vaka çalışmaları, (5) süreç/nasıl çalışıyoruz, (6) sektöre göre çözümler, (7) müşteri yorumları, (8) SSS, (9) form + telefon/WhatsApp. Adisyo'da bu sıra 16 bölüme kadar çıkıyor (kampanya, işletme tipi seçici, entegrasyon, donanım, blog). Menulux'ta her ürün için ayrı alt menü + o ürünün ayrı 'fiyat' sayfası var (Dijital Menü > QR Menü Fiyatları, Menuboard Fiyatları).
+
+### Hizmet sayfası şablonu (en iyi örnek: Ador Ajans) — kopyalanacak 12 blok
+
+*Güven: kesin* · Kaynak: https://adorajans.com/sosyal-medya-ajansi
+
+Sıra şu: H1 (hizmet + vaat) → 5.0★ Google puanı + '300+ marka' + logo bandı → gerçek üretilen içerik galerisi (14 reels, canlı Instagram linkleriyle) → 'En çok yorulduğunuz 3 nokta' (problem→çözüm) → 7 adımlı süreç (brief → strateji → çekim → yayın takvimi → reklam → topluluk yönetimi → raporlama) → 3 paket kartı (fiyatsız) → 'Doğru eşleşme: kime uygun / kime uygun değil' → platform bazlı yaklaşım (IG/TikTok/LinkedIn/FB/YT) → 6 sektör kartı (her biri ayrı sayfaya link) → 'Riski biz üstleniyoruz' (uzun sözleşme yok, şifre istemiyoruz, takvim onayı sizde) → form (ad, telefon, marka, hizmet, not) + WhatsApp + 'birkaç saat içinde dönüş' → 9 soruluk SSS → ilgili hizmet/blog linkleri. 'Kime uygun değil' ve 'riski biz üstleniyoruz' blokları Türkiye'de nadir ve ayırt edici.
+
+### Google'da bulunmanın asıl motoru: hizmet × sektör × bölge matris sayfaları
+
+*Güven: kesin* · Kaynak: https://zbtmedia.com/sitemap.xml , https://adorajans.com/sitemap.xml
+
+Aranan kelimede çıkan yerel rakipler trafiği tek bir 'Hizmetler' sayfasıyla değil, yüzlerce ayrı URL ile alıyor. ZBT Media sitemap'inde 110 URL var ve kalıp net: /hizmetler/sosyal-medya-yonetimi, /hizmetler/istanbul-sosyal-medya-ajansi, /hizmetler/instagram-yonetimi, /hizmetler/tiktok-ajansi, /hizmetler/seo-hizmeti, /hizmetler/local-seo-hizmeti, /hizmetler/geo-hizmeti, /hizmetler/qr-menu-tasarimi, /hizmetler/crm-sistemi + sektör (restoran, otel, klinik, e-ticaret, sağlık turizmi) + ilçe (Şişli, Kadıköy, Ataşehir, Beşiktaş, Beykoz). Ador Ajans'ta 270 URL; menüde ayrıca 'Sektörler' ve 'Bölgeler' hub sayfaları var (/sektorler, /bolgeler) ve footer her hizmeti her bölgeyle çaprazlıyor.
+
+### '...Fiyatları' sayfaları ayrı ve çok kârlı bir SEO kümesi
+
+*Güven: kesin* · Kaynak: https://adorajans.com/sosyal-medya-yonetimi-fiyatlari
+
+Ador Ajans'ta 14 ayrı fiyat sayfası var: /sosyal-medya-yonetimi-fiyatlari, /web-tasarim-fiyatlari, /tanitim-filmi-fiyatlari, /fotograf-cekimi-fiyatlari, /logo-tasarim-fiyatlari, /google-reklam-fiyatlari, /seo-fiyatlari, /drone-cekimi-fiyatlari, /sanal-tur-fiyatlari, /fabrika-tanitim-filmi-fiyatlari vb. Title kalıbı: 'Sosyal Medya Yönetimi Fiyatları 2026 | Ador Ajans'. Meta description kalıbı: 'aylık paket ücretleri, 4 paketin karşılaştırma tablosu ve fiyatı belirleyen kalemler. Net rakam için teklif alın.' Yani fiyat sorgularını yakalayıp forma yönlendiriyorlar.
+
+### Fiyat şeffaflığı net ikiye ayrılıyor: yazılım/SaaS fiyat yazıyor, ajans yazmıyor
+
+*Güven: kesin* · Kaynak: https://www.adisyo.com/fiyatlar , https://adorajans.com/fiyatlar , https://flatart.com.tr/
+
+Yazılım tarafı rakamı açık veriyor: Adisyo 3 kademe (Lite 1.250₺/ay, Standart 1.850₺ '★EN ÇOK TERCİH EDİLEN', Pro 2.580₺), aylık/yıllık geçiş düğmesi, %17 yıllık indirim, 9 ek modül (225₺–2.500₺), 9 donanım paketi, çok şubeli için 'Sizi Arayalım'; Menulux 125₺–2.250₺ aralığı; Otopiya 4 kademe (Ücretsiz / 29.999₺ / 49.999₺ / Kurumsal). Ajans tarafı rakam vermiyor: Flatart ve Zeo'da hiç fiyat yok, Ador Ajans hizmet sayfasında fiyatsız 3 paket (Başlangıç 8–12 içerik/ay, Büyüme 16–24 + Meta/TikTok reklam, Kurumsal 30+ çok lokasyonlu) gösterip ayrı fiyat sayfasına yönlendiriyor; o sayfada 'X TL/ay'dan başlayan + KDV hariç' + fiyatı belirleyen 4 kalem (kapsam, aylık hacim, reklam bütçesi ayrı, teslim hızı) + '48 saatte ücretsiz teklif' var. ZBT Media SSS'te fiyatın deneyim/içerik frekansı/platform sayısına göre değiştiğini yazıyor.
+
+### Güven kurma araçları envanteri — hangi siteler neyi kullanıyor
+
+*Güven: kesin* · Kaynak: https://www.menulux.com/ , https://flatart.com.tr/ , https://zeo.org/tr , https://www.adisyo.com/
+
+(a) Sayı: '3000+ İşletmenin Tercihi' (Menulux), '8000+ Mutlu Müşteri' + 'Google 5.0' (Adisyo), '150+ mutlu müşteri, 500.000+ organik takipçi' (ZBT), '1.000+ Aktif Galeri' (Otopiya), '25+ uzman, yüzlerce proje' (Flatart), '50+ danışman' (Zeo), '300+ marka' + Google 5.0/29 yorum (Ador). (b) Logo bandı: 15–30 marka logosu herkeste var (Menulux: Emirgan Sütiş, Carls Jr; Flatart: Toyota, Arçelik, TCDD, Oracle; Zeo: BMW, PepsiCo, Shell). (c) Ölçülebilir vaka: Flatart 'Toyota +%35, İnci Akü +%47', Zeo 'Decathlon/Hyundai, %82 organik oturum artışı', ZBT '6 ayda %310', Adisyo 4 adet YouTube video vaka çalışması. (d) Sertifika/rozet: Google Premier Partner (Flatart), uluslararası ödüller (Zeo 15+ arama ödülü), 'yerli üretim' rozeti + iyzico/Visa/Mastercard logoları (Menulux). (e) Yasal güven: KVKK, Gizlilik, Satış Sözleşmesi linkleri + açık adres + harita + telefon (Menulux, ZBT, Ador). (f) SSS her sitede var (4–9 soru).
+
+### Dokunulabilir kanıt (canlı demo) yazılım satışında ayrıştırıcı
+
+*Güven: kesin* · Kaynak: https://qrmenu.akinsoft.com.tr/ , https://otopiya.com/
+
+AKINSOFT QR Menü ana sayfada taranabilir demo QR kodu + 'örnek restoran' linki + tanıtım videosu veriyor, CTA '30 Gün Ücretsiz Deneyin *Kredi Kartı Gerektirmez'. Adisyo '15 Gün Ücretsiz Dene' + 'Sizi Arayalım'. Ador Ajans canlı Instagram reels linkleriyle gerçek işi gösteriyor (ekran görüntüsü değil). Buna karşılık Otopiya'da canlı demo, ekran görüntüsü veya video yok — doğrudan kayıt isteniyor; bu, yazılım satışında ciddi bir dönüşüm kaybı.
+
+### Yapısal veri (schema): iyi sıralanan yerel rakipler bunu agresif kullanıyor
+
+*Güven: kesin* · Kaynak: curl ile JSON-LD @type sayımı: https://zbtmedia.com/ , https://adorajans.com/sosyal-medya-ajansi , https://www.adisyo.com/ , https://www.menulux.com/
+
+Sayfa kaynaklarından doğruladım. ZBT Media ana sayfası: LocalBusiness + PostalAddress + GeoCoordinates + OpeningHoursSpecification + AggregateRating + OfferCatalog + 12 Service + 12 Offer + FAQPage (7 soru) + WebSite/SearchAction + SpeakableSpecification + City/Country. Ador Ajans hizmet sayfası: FAQPage (9 Question/Answer) + Service + Organization + Person + BreadcrumbList + ItemList + 5 SiteNavigationElement + QuantitativeValue + ImageObject + ContactPoint. Adisyo: WebPage + Organization + FAQPage + BreadcrumbList + BlogPosting. Menulux'ta ise sadece LocalBusiness var — büyük firma olmasına rağmen schema tarafı zayıf, yani bu alan bizim için açık bir fırsat.
+
+### robots.txt + sitemap pratiği: 3 ayrı sitemap ve AI botlarının açıkça listelenmesi
+
+*Güven: kesin* · Kaynak: https://adorajans.com/robots.txt , https://zbtmedia.com/robots.txt , https://otopiya.com/robots.txt
+
+Ador Ajans robots.txt'te üç sitemap bildiriyor: /sitemap.xml, /image-sitemap.xml, /video-sitemap.xml; ayrıca Googlebot, Bingbot ve AI botlarını (OAI-SearchBot, ChatGPT-User, GPTBot, PerplexityBot, Claude-SearchBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot) tek tek yazıp 'Allow: /' veriyor (AI/LLM görünürlüğü için bilinçli tercih; ZBT bunu 'GEO hizmeti' diye ayrı sayfa olarak da satıyor). ZBT robots.txt /.git/, /node_modules/, /*.py$ gibi dizinleri kapatıp /assets/, /blog/, /hizmetler/, /basari-hikayeleri/ dizinlerini açıkça izinliyor. Menulux ve Adisyo sade 'Allow: /' + tek sitemap. Otopiya'da /robots.txt isteği HTML döndürüyor (dosya yok, Next.js uygulama kabuğu geliyor) — kaçınılması gereken teknik hata.
+
+### Teknoloji ve hız: rakipler hafif; ağır animasyon kütüphanesi kullanmıyorlar
+
+*Güven: kesin* · Kaynak: curl -w ölçümü ve kütüphane imzası taraması: https://zbtmedia.com/ , https://adorajans.com/sosyal-medya-ajansi , https://flatart.com.tr/ , https://otopiya.com/
+
+Ador Ajans, Flatart ve Otopiya Next.js (next/static) ile kurulu; ZBT Media düz statik HTML (hiç framework imzası yok). Ölçtüğüm değerler: ZBT ana sayfa HTML 104 KB, TTFB 0,29 s, toplam 0,40 s, 22 görselin 20'si loading="lazy"; Ador hizmet sayfası HTML 398 KB, TTFB 0,17 s, 88 görselin 87'si lazy. Beş sitenin hiçbirinde GSAP, Lottie, Locomotive/Lenis gibi ağır animasyon kütüphanesi tespit edilmedi. Yani pazarın standardı: hızlı, sade, lazy-load görsel; gösterişli scroll animasyonu değil.
+
+### İşe yarayan, abartısız etkileşim fikirleri (gözlemlenenler)
+
+*Güven: kesin* · Kaynak: https://www.adisyo.com/ , https://adorajans.com/ , https://qrmenu.akinsoft.com.tr/
+
+1) Logo marquee / sonsuz kayan referans bandı (Menulux, Flatart, Ador). 2) Canlı Instagram reels taşıyıcısı — gerçek linkli, otomatik oynatmayan (Ador). 3) Teklif sihirbazı: adım adım soru → anlık tahmini fiyat/paket önerisi (Ador 'quote wizard'). 4) Aylık/Yıllık fiyat geçiş düğmesi + '%17 indirim' etiketi + 'EN ÇOK TERCİH EDİLEN' şeridi (Adisyo). 5) Paket karşılaştırma tablosu + ek modül satırları (Adisyo). 6) Telefonla taranabilir demo QR kodu (AKINSOFT) — QR menü ürünü için birebir uygulanabilir. 7) Video testimonial kartı → lightbox (Adisyo'da YouTube). 8) Sayaç/animasyonlu istatistik şeridi (ZBT, Otopiya). 9) Accordion SSS (hepsi). 10) Sabit (sticky) WhatsApp + telefon + 'Sizi Arayalım' geri arama kutusu (Adisyo başlıkta, ZBT ve Ador sayfa boyunca). 11) İşletme tipi seçici sekmeler: 8 kategori arasında geçiş (Adisyo). 12) Hizmet kartlarında hover ile kısa açıklama + 'Keşfedin' (Flatart).
+
+### Yaygın hatalar ve klişeler — gerçek örneklerle
+
+*Güven: kesin* · Kaynak: https://zbtmedia.com/ , https://www.menulux.com/qr-menu , https://www.akinsoft.com.tr/ , https://otopiya.com/
+
+(a) Doldurulmamış placeholder sayı: ZBT Media ana sayfasında 'müşteri memnuniyeti' değeri 0 olarak görünüyor — tek bir unutulmuş rakam tüm güveni bozuyor. (b) Şablondan gelen yanlış meta: Menulux'un /qr-menu URL'sinde title/description İngilizce ve POS odaklı ('Restaurant POS Systems | Next Generation Cafe POS Solutions'), yani sayfa konusuyla uyumsuz ve diğer sayfalarla yinelenen meta riski var. (c) Karar felci: AKINSOFT ana sayfasında 40+ ürün listelenmesi; ziyaretçi ne satın alacağını bulamıyor. (d) Demo/ekran görüntüsü olmayan yazılım sayfası (Otopiya) ve robots.txt'in hiç olmaması. (e) Metrik içermeyen 'biz tutkulu bir ekibiz' tipi soyut hakkımızda metni ve stok fotoğraf — Flatart/Zeo bunun tersini yapıp her bölüme sayı koyuyor. (f) Rakam gösterilmeyen vaka çalışması (ZBT'de reklam tarafında yüzde verilmemiş). (g) Ajans sitelerinde klasik hata olan dev otoplay video hero ve çok adımlı slider hiçbir iyi örnekte yok — taklit etmeyelim.
+
+### 'Rehber' (blog) bölümünün kurgusu: niş + lokal + fiyat tablosu + SSS
+
+*Güven: kesin* · Kaynak: https://zbtmedia.com/blog/istanbul-video-cekim-rehberi , https://adorajans.com/sitemap.xml
+
+ZBT'nin örnek yazısı (/blog/istanbul-video-cekim-rehberi): H1 'İstanbul Video Çekim Ajansı Rehberi', H2 hiyerarşisi (neden video → 6 video türü H3 → İstanbul çekim lokasyonları → 2026 fiyat rehberi tablosu → SSS → ilgili içerikler → CTA), ~1.500–2.000 kelime, yayın ve 'son güncelleme' tarihi, yazar olarak 'ZBT Media Uzman Ekibi' + kurucu biyografisi ve fotoğrafı, metin içinde hizmet sayfalarına çok sayıda iç link, sonunda 'Ücretsiz Teklif Al' + WhatsApp. Ador Ajans blog slug'ları ise uç derecede niş ve lokal: /blog/dudullu-osb-fabrika-cekimi-izin, /blog/kadikoy-kucuk-isletme-dijital-pazarlama, /blog/drone-cekimi-nedir-yasal-mi, /blog/google-isletme-profili-optimizasyonu, /blog/instagram-reklam-fiyatlari-nasil-belirlenir, /blog/istanbul-reklam-ajansi-secerken-dikkat. Yani rehber içerikleri 'genel bilgi' değil, satın alma sorusuna cevap veriyor ve hizmet sayfasına besleme yapıyor.
+
+### CTA dili ve dönüşüm yolları standartlaşmış
+
+*Güven: kesin* · Kaynak: https://adorajans.com/sosyal-medya-ajansi , https://www.adisyo.com/ , https://qrmenu.akinsoft.com.tr/ , https://flatart.com.tr/
+
+Tekrarlayan kalıplar: 'Ücretsiz Teklif Al' / 'Hemen Teklif Alın', 'Ücretsiz Danışmanlık', 'Sizi Arayalım' (geri arama), '15 Gün Ücretsiz Dene' / '30 Gün Ücretsiz Deneyin — Kredi Kartı Gerektirmez', 'Hemen Başla', 'Proje Başlat', 'Ücretsiz Rapor/Site Analizi' (Flatart'ta modal form), 'Detaylı Bilgi', 'Tüm Çalışmaları Gör'. Üç kanal birlikte sunuluyor: form + telefon + WhatsApp (Ador'da e-posta da var) ve yanına süre taahhüdü konuyor ('birkaç saat içinde dönüş', '48 saat içinde ücretsiz teklif'). Form alanları kısa tutuluyor: ad, telefon, marka, ilgilenilen hizmet, not.
+
+### Yazılım ürün sayfası kalıbı (QR menü / otomotiv) ajans hizmet sayfasından farklı
+
+*Güven: kesin* · Kaynak: https://www.menulux.com/ , https://www.adisyo.com/ , https://otopiya.com/ , https://datadeger.com/galericiler-icin-anlik-arac-degerleme-yazilimi/
+
+Sıra: ürün vaadi + ücretsiz deneme → 4–6 özellik kartı → ekran görüntüsü/video/canlı demo → işletme tipine göre kullanım (restoran, kafe, fast food, otel, bulut mutfak — Adisyo 8 kategori) → entegrasyonlar (POS, yemek platformları; Menulux'ta 'Entegrasyon Ortakları' bölümü) → yönetim paneli/raporlama → donanım (kiosk, el terminali, menuboard) → paketler ve fiyat → referans/yorum → SSS → bayilik/yetkili satıcı sayfası (Menulux 'Bayilik' + 'Ön Başvuru', AKINSOFT 'Yetkili Satıcı'). Otomotiv tarafında satış argümanı net biçimde 'ilanı aynı anda kendi siteme ve sahibinden/arabam'a yayınlama', 'bulut, kurulum yok', 'hazır web sitesi + kendi alan adı', 'araç/müşteri/evrak/finans takibi' etrafında kuruluyor.
+
+### Doğrudan yerel rakip tespiti: Levent199 Plaza'da aynı işi yapan ajans var
+
+*Güven: kesin* · Kaynak: https://zbtmedia.com/ , https://sanatyapim.com/
+
+ZBT Media adresi 'Esentepe Mah. Büyükdere Caddesi No:199, Levent199 Plaza, 34394 Şişli/İstanbul' ve hizmet listesinde sosyal medya + prodüksiyon + web + SEO'nun yanında QR menü tasarımı ve CRM sistemi de var — yani bizim konumumuz ve hizmet karmasının neredeyse aynısı, aynı mahallede. Ayrıca Levent merkezli Diverseffect (dijital kreatif ajans, 2011) ve Levent stüdyolu Sanat Yapım (video prodüksiyon) var. Bu, 'İstanbul 4.Levent' ve 'Levent' odaklı yerel SEO'nun rekabetçi ama doğrudan hedeflenebilir olduğunu gösteriyor.
+
+### Türkiye'de ajans paket fiyat seviyeleri (bağlam için, referans amaçlı)
+
+*Güven: muhtemel* · Kaynak: https://adorajans.com/fiyatlar , https://agencies.semrush.com/tr/list/smm/ecommerce/turkey/
+
+Ador Ajans fiyat sayfasında sosyal medya yönetimi 'aylık 28.000 TL'den başlıyor' (KDV hariç) ve reklam bütçesi yönetim ücretinden ayrı tutuluyor. Semrush ajans dizininde İstanbul merkezli Reklam5'in başlangıç projesi 2.500 USD olarak listeli. Bu rakamlar tek tek firma beyanı; sektör ortalaması olarak sunulamaz, sadece paket kademelerini konumlandırırken referans alınmalı.
+
+### Doğrulanamayanlar
+
+*Güven: doğrulanmadı* · Kaynak: menuwebsitesi.com (DNS NXDOMAIN), https://fixy.digital/oto-galeri (404)
+
+(1) menuwebsitesi.com alan adı çözümlenmedi (DNS hatası) — böyle bir firma sitesini inceleyemedim. (2) 'qmenu' adlı Türkiye firmasının kurumsal sitesine ulaşamadım; aramada çıkanlar uygulama mağazası ve yabancı sağlayıcılar (doXmenu 12,99 €/ay beyanı yalnızca üçüncü taraf kaynaktan). (3) Fixy'nin /oto-galeri sayfası 404 verdi; içeriğini yalnızca arama özetinden biliyorum. (4) Rakip sitelerin gerçek Core Web Vitals / Lighthouse skorlarını ölçmedim; verdiğim süreler sadece HTML indirme (TTFB/toplam) ölçümleridir, render performansı değil. (5) Rakiplerin gerçek Google sıralamaları ve trafik hacimleri ölçülmedi — arama sonucu listelerinde görünmeleri dışında kanıt yok.
+
+## Sitede nasıl kullanılmalı
+
+- Sayfa haritasını üç katmanlı kur: (1) Omurga: Ana Sayfa, Hakkımızda, Hizmetler hub, İşler/Vaka Çalışmaları, Referanslar, Paketler, Rehber (blog), İletişim, Teklif Al. (2) Hizmet sayfaları ayrı ayrı: sosyal-medya-yonetimi, icerik-uretimi, video-produksiyon, fotograf-cekimi, reels-uretimi, google-ads, meta-ads, seo, web-tasarim, mobil-uygulama, yazilim-gelistirme, qr-menu-sistemi, oto-galeri-yazilimi, arac-ilan-platformu, crm. (3) Matris sayfaları: sektör (restoran-kafe, oto galeri, klinik, otel, e-ticaret, kurumsal/B2B) ve bölge (4.Levent, Levent, Esentepe, Şişli, Beşiktaş, Maslak, Kağıthane, Mecidiyeköy) kırılımları + /sektorler ve /bolgeler hub sayfaları. Hedef: lansmanda 35–45 anlamlı URL, 6 ay sonunda 100+ (ZBT 110, Ador 270 ile yarışıyoruz).
+- Her hizmet sayfası için tek şablon kullan ve sırayı bozma: H1 (hizmet + somut vaat) → güven şeridi (Google puanı, müşteri sayısı, logo bandı) → gerçek iş örnekleri (reels/video/ekran görüntüsü, mümkünse canlı link) → 'en çok yorulduğunuz 3 nokta' problem-çözüm bloğu → numaralı süreç (brief → strateji → üretim → yayın → reklam → raporlama) → fiyatsız 3 paket kartı → 'kime uygun / kime uygun değil' → sektör kartları (iç link) → 'riski biz üstleniyoruz' (uzun sözleşme yok, hesap şifresi istemiyoruz, takvim onayı sizde) → form + WhatsApp + telefon → 6–9 soruluk SSS → ilgili hizmet ve rehber linkleri.
+- Paketler sayfasını fiyat yazmadan ama 'boş' bırakmadan kur: hizmet başına 3 kademe (Başlangıç / Büyüme / Kurumsal) ve her kartta ölçülebilir kapsam yaz (örn. 'ayda 12 içerik + 1 çekim günü + 2 reels', 'ayda 24 içerik + 2 çekim günü + Meta/TikTok reklam yönetimi', 'çok lokasyon + 30+ içerik + aylık rapor sunumu'). Altına mutlaka 'Fiyatı belirleyen 4 kalem' bloğu koy (kapsam, aylık üretim hacmi, reklam bütçesi yönetim ücretinden ayrıdır, teslim hızı) ve '48 saat içinde ücretsiz, net teklif' taahhüdü ver. Yazılım ürünlerinde (QR menü, oto galeri) rakam vermesek de 'kurulum + aylık abonelik' modelini ve neyin dahil olduğunu açıkça yaz; pazarda SaaS'ler rakam gösterdiği için hiç bilgi vermemek dezavantaj yaratır.
+- Fiyat aramalarını yakalamak için ayrı bir SEO kümesi aç ama rakam vermeden: /sosyal-medya-yonetimi-fiyatlari, /web-tasarim-fiyatlari, /tanitim-filmi-fiyatlari, /qr-menu-fiyatlari, /oto-galeri-yazilimi-fiyatlari gibi sayfalar; title kalıbı 'X Fiyatları 2026 | Ajans Flow', içerik: fiyatı belirleyen kalemler + paket karşılaştırma tablosu (rakam yerine kapsam) + SSS + teklif formu.
+- Güven bloğunu lansmanda hazır et ve asla placeholder bırakma: gerçek müşteri sayısı, tamamlanan proje sayısı, üretilen içerik/video sayısı, Google İşletme puanı ve yorum sayısı, 10–20 referans logosu, en az 3 ölçülebilir vaka çalışması (önce/sonra sayı ile), 3 isim-unvan-logo içeren müşteri yorumu, varsa Meta/Google partner belgesi, KVKK + Gizlilik + Çerez + Satış/Hizmet Sözleşmesi sayfaları, açık adres (4.Levent) + harita + telefon. ZBT Media'daki 'memnuniyet: 0' hatası bize ders olsun: elde rakam yoksa o kutuyu hiç koyma.
+- Yazılım ürünleri için canlı demo zorunlu: QR menü sayfasına telefonla taranabilir demo QR kodu + 'örnek restoran menüsünü aç' linki; oto galeri/araç ilan platformu için demo galeri sitesi + yönetim paneli ekran görüntüleri + 60–90 saniyelik ekran kaydı videosu. Yanına 'kredi kartı gerekmez' tipi düşük riskli CTA koy (AKINSOFT ve Adisyo bu kalıbı kullanıyor; Otopiya demo koymadığı için zayıf kalıyor).
+- Dönüşüm yolunu üç kanal + hız taahhüdü olarak kur: kısa form (ad, telefon, marka, ilgilendiği hizmet, not), sabit WhatsApp düğmesi, tıklanabilir telefon ve 'Sizi Arayalım' geri arama kutusu. CTA metinlerinde pazarın tanıdığı dili kullan: 'Ücretsiz Teklif Al', 'Sizi Arayalım', 'Ücretsiz Danışmanlık', 'Demoyu Aç', 'Proje Başlat'. Her sayfada tek birincil CTA olsun.
+- Etkileşimler hafif ve amaçlı olsun; şu listeyi uygula: sonsuz kayan referans logo bandı; filtrelenebilir iş/vaka galerisi (sektöre göre); canlı reels/video taşıyıcısı (otoplay yok, poster görsel + tıkla oynat); adım adım teklif sihirbazı (3–4 soru → uygun paket önerisi → form); sayaç animasyonlu istatistik şeridi (viewport'a girince bir kez); accordion SSS; sektör/işletme tipi seçici sekmeler; paket karşılaştırma tablosu; sticky iletişim çubuğu. Kaçın: tam ekran otoplay video hero, çok adımlı slider, scroll-jacking, ağır parallax, imleç efektleri, giriş yükleme animasyonu. Rakiplerin hiçbirinde GSAP/Lottie tipi ağır kütüphane yok; biz de prefers-reduced-motion'a saygılı, CSS ağırlıklı mikro animasyonla kalalım.
+- Google'da indekslenmek için teknik tarafı ilk sürümde tamamla: her sayfaya tek ve özgün title (kalıp: 'Birincil Anahtar Kelime | İkincil Fayda - Ajans Flow') + 150–160 karakter description + tek H1; /sitemap.xml ve ek olarak /image-sitemap.xml ve /video-sitemap.xml (prodüksiyon işi için görsel/video sitemap büyük avantaj); robots.txt'te Allow: / + sitemap bildirimleri + .git, node_modules gibi dizinlerin kapatılması; AI arama botlarını (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, Applebot-Extended, Bingbot) açıkça izinle; her sayfada self-referencing canonical; 404 ve 301 planı; Otopiya'daki gibi robots.txt'in SPA kabuğu dönmesi hatasına düşme (Next.js'te app/robots.ts ve app/sitemap.ts kullan).
+- Yapısal veriyi rakiplerden daha iyi kur (burada açık fark yaratabiliriz): Ana sayfa → Organization + LocalBusiness (4.Levent adresi, geo, açılış saatleri, telefon) + WebSite/SearchAction; hizmet sayfaları → Service + OfferCatalog/Offer (fiyat yok, 'teklif üzerine') + BreadcrumbList; SSS blokları → FAQPage; rehber yazıları → Article/BlogPosting + author (gerçek kişi, Person) + datePublished/dateModified; vaka çalışmaları → CreativeWork veya Article + ImageObject; yazılım ürünleri → SoftwareApplication; video içerikler → VideoObject. Google yorum puanı gerçekse AggregateRating ekle, uydurma değer koyma.
+- Yerel SEO'yu ayrı bir iş kalemi olarak yürüt: Google İşletme Profili'ni '4.Levent' adresiyle doğrula, kategorileri (reklam ajansı, sosyal medya ajansı, yazılım şirketi) ve hizmetleri doldur, ofis/ekip/çekim fotoğrafları yükle, yorum toplama akışı kur; sitede NAP (isim-adres-telefon) bilgisini footer'da ve schema'da birebir aynı yaz; harita gömülü iletişim sayfası; '4.Levent', 'Levent', 'Esentepe', 'Şişli', 'Maslak' için gerçekten farklı içerikli bölge sayfaları yaz (kopyala-yapıştır bölge sayfası cezalandırılır).
+- Rehber (blog) bölümünü satın alma sorularına göre planla, genel bilgi yazma: ilk 12 yazı önerisi — 'QR menü sistemi nedir, restoran için maliyeti nasıl hesaplanır', 'QR menü mü basılı menü mü: restoran sahibi için karşılaştırma', 'Oto galeri web sitesi: ilanı sahibinden ve kendi siteme aynı anda yayınlamak', 'İkinci el araç ilanı için fotoğraf ve video çekim rehberi', 'Restoran sosyal medyasında işe yarayan 10 içerik formatı', 'Reels'te ilk 3 saniye: kanca yazma rehberi', 'İstanbul'da tanıtım filmi çekimi: süreç, ekip, izinler', 'Google İşletme Profili optimizasyonu adım adım', 'Ajans seçerken sorulacak 12 soru', 'Sosyal medya yönetimi fiyatını belirleyen kalemler', 'Meta reklam bütçesi ile ajans yönetim ücreti farkı', '4.Levent ve çevresindeki işletmeler için yerel dijital pazarlama'. Her yazıda: içindekiler, H2/H3 hiyerarşisi, görsel, 2–4 iç link (ilgili hizmet sayfasına), gerçek yazar adı ve güncelleme tarihi, sonda tek CTA + SSS bloğu (FAQPage schema ile).
+- İç linkleme mimarisini baştan kur: Hizmetler hub → hizmet sayfaları → ilgili sektör ve bölge sayfaları → ilgili rehber yazıları → teklif sayfası. Footer'da hizmet / sektör / bölge / kurumsal olmak üzere dört kolon (Ador Ajans kalıbı) ve her sayfanın altında 'ilgili hizmetler' + 'ilgili rehber yazıları' bloğu. Hiçbir sayfa yetim (iç linki olmayan) kalmasın; aksi halde indekslenmiyor.
+- Performansı rakip seviyesinin üstünde tut: Next.js ile statik üretim/ISR, next/image ile WebP-AVIF + loading=lazy (ilk ekran görseli hariç), yazı tipi preload ve font-display: swap, üçüncü parti script sayısını 2–3'te tut (GA4 + Meta Pixel + gerekiyorsa GBP), HTML ağırlığını 150 KB altında tut (ZBT 104 KB ile çok hızlı, Ador 398 KB'a çıkıyor), mobil öncelikli tasarla. Yayına almadan önce Search Console + GA4 bağla, sitemap'i gönder, ilk 10 sayfayı URL denetimiyle indekslemeye ver ve Lighthouse/Core Web Vitals ölçümünü mutlaka kendi sitemizde yap (rakiplerin render performansını ölçmedim).
+- Yazılım ürün sayfalarını ajans hizmet sayfasından farklı şablonla yap: ürün vaadi + demo CTA → 4–6 özellik kartı → ekran görüntüsü/video → işletme tipine göre kullanım senaryoları → entegrasyonlar (QR menü için POS/yemek platformları; oto galeri için sahibinden/arabam ilan yayını) → yönetim paneli ve raporlama → kurulum ve destek süreci → paket kapsamları (fiyatsız) → referanslar → SSS. Otomotiv tarafında satış argümanını pazarın kullandığı dille kur: 'tek panelden ilan yayını', 'bulut, kurulum yok', 'kendi alan adıyla hazır web sitesi', 'araç/müşteri/evrak/finans takibi'.
+- Konumlandırmayı komşu rakipten ayrıştır: ZBT Media aynı plazada aynı hizmet karmasını (sosyal medya + prodüksiyon + web + QR menü + CRM) satıyor. Bizim farkımız 'gerçek yazılım geliştirme' tarafı olmalı — kendi ürünlerimizi (QR menü sistemi, oto galeri/araç ilan platformu) canlı demolarıyla göstermek, 'ajans değil, hem üreten hem yöneten ekip' mesajını ana sayfada rakamla kurmak ve ürün sayfalarına SoftwareApplication schema'sı eklemek. Soyut 'tutkulu ekip' metinlerinden kaçın, her bölüme bir sayı koy.

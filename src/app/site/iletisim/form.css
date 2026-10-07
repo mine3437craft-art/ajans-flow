@@ -1,0 +1,190 @@
+/* ====================================================================
+   Talep formu — /iletisim ve /analiz sayfalarının ortak form stili.
+   Yalnız tasarım sistemi değişkenlerini kullanır; yeni renk/radius yok.
+   ==================================================================== */
+
+.af-tf {
+  display: grid;
+  gap: clamp(var(--af-b-24), 2.4vw, var(--af-b-32));
+}
+
+/* =====================================================================
+   FERAHLIK — form "ekran" olacaksa alanların da nefes alması gerekir.
+   Hepsi `.af-tf` altında: tasarım sistemindeki `.af-girdi` kuralı başka
+   sayfalarda olduğu gibi kalıyor, yalnız bu form büyütülüyor.
+   ===================================================================== */
+
+.af-tf .af-form-izgara { gap: clamp(var(--af-b-16), 2vw, var(--af-b-24)); }
+
+.af-tf .af-girdi {
+  min-height: 54px;
+  padding: var(--af-b-16);
+  /* 1rem ALTINA İNMEZ: iOS Safari odakta sayfayı yakınlaştırır. */
+  font-size: 1.0625rem;
+}
+.af-tf textarea.af-girdi { min-height: 148px; }
+
+.af-tf .af-etiket {
+  font-size: var(--af-y-kucuk);
+  letter-spacing: -0.005em;
+}
+
+/* HATA NET OLSUN — üç işaret birlikte: 2px kenar, hafif kırmızı tül ve
+   metnin önünde yuvarlak bir ünlem. Renk tek başına bilgi taşımaz
+   (renk körlüğü), bu yüzden kalınlık ve işaret de değişiyor. */
+.af-tf .af-girdi[aria-invalid='true'] {
+  border-width: 2px;
+  padding: calc(var(--af-b-16) - 1px);
+  background: color-mix(in srgb, var(--af-hata) 5%, var(--af-kart-zemin));
+}
+.af-tf .af-girdi[aria-invalid='true']:focus {
+  border-color: var(--af-hata);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--af-hata) 16%, transparent);
+}
+.af-tf .af-hata-metin {
+  align-items: start;
+  font-size: var(--af-y-kucuk);
+  line-height: 1.4;
+}
+.af-tf .af-hata-metin::before {
+  content: '!';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-block-start: 1px;
+  border-radius: var(--af-r-cip);
+  background: var(--af-hata);
+  color: #fff;
+  font-family: var(--af-yazi-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+.af-bant--koyu .af-tf .af-hata-metin::before {
+  background: var(--af-hata-koyu-bant);
+  color: var(--af-koyu);
+}
+
+/* Odaklanabilen genel bildirim: odak halkası görünsün ama kutu zıplamasın */
+.af-tf .af-tf-bildirim:focus-visible { outline-offset: 2px; }
+
+/* Alan grubu (eksikler) — fieldset'in tarayıcı çerçevesi kaldırılır */
+.af-tf-grup {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--af-b-12);
+}
+.af-tf-grup legend {
+  padding: 0;
+  margin-block-end: var(--af-b-4);
+}
+
+/* Onay kutuları ince bir çizgiyle ayrılır; ASLA tek kutuda birleşmez */
+.af-tf-onaylar {
+  display: grid;
+  gap: var(--af-b-4);
+  padding-block-start: var(--af-b-16);
+  border-block-start: 1px solid var(--af-kenar-ince);
+}
+
+/* Sunucudan dönen genel uyarı / onay bildirimi */
+.af-tf-bildirim {
+  display: grid;
+  gap: var(--af-b-4);
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kenar);
+  border-inline-start: 2px solid var(--af-metin-3);
+  border-radius: var(--af-r-veri);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-tf-bildirim strong {
+  color: var(--af-metin);
+  font-weight: 600;
+}
+.af-tf-bildirim--hata {
+  border-inline-start-color: var(--af-hata);
+  background: color-mix(in srgb, var(--af-hata) 7%, transparent);
+}
+.af-bant--koyu .af-tf-bildirim--hata {
+  border-inline-start-color: var(--af-hata-koyu-bant);
+}
+.af-tf-bildirim--olumlu {
+  border-inline-start-color: var(--af-olumlu);
+  background: color-mix(in srgb, var(--af-olumlu) 8%, transparent);
+}
+.af-bant--koyu .af-tf-bildirim--olumlu {
+  border-inline-start-color: var(--af-olumlu-koyu-bant);
+}
+
+/* Analiz kipinde formun üstündeki "seçiminiz eklendi" özeti */
+.af-tf-ozet {
+  display: grid;
+  gap: var(--af-b-8);
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: var(--af-vurgu-sis);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-tf-ozet-satir {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--af-b-8);
+}
+.af-tf-ozet-satir dt {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+  min-width: 5.5rem;
+}
+.af-tf-ozet-satir dd {
+  margin: 0;
+  color: var(--af-metin);
+  font-weight: 500;
+}
+.af-tf-ozet dl {
+  display: grid;
+  gap: var(--af-b-4);
+  margin: 0;
+}
+
+/* Onay bloğu ferahlar; iki kutu arasındaki ayrım görünür kalır */
+.af-tf-onaylar {
+  gap: var(--af-b-8);
+  padding-block-start: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+}
+.af-tf-onaylar .af-onay { font-size: var(--af-y-kucuk); line-height: 1.5; }
+
+/* Gönder satırı: mobilde tam genişlik */
+.af-tf-gonder {
+  display: grid;
+  gap: var(--af-b-12);
+  padding-block-start: clamp(var(--af-b-8), 1.4vw, var(--af-b-16));
+  border-block-start: 1px solid var(--af-kenar-ince);
+}
+.af-tf-gonder > .af-dugme { width: 100%; }
+@media (min-width: 560px) {
+  .af-tf-gonder > .af-dugme { width: auto; }
+}
+@media (min-width: 560px) {
+  .af-tf-gonder {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+/* Panelin globals.css'indeki çıplak `label` kuralı bu formu da büyük
+   harfe çeviriyor (bkz. plaka.css §10). Form başka bir bağlamda da
+   kullanılabilsin diye sıfırlama burada ayrıca duruyor. */
+.af-tf label { text-transform: none; letter-spacing: normal; }
+.af-tf .af-onay { font-weight: 400; }
+.af-tf .af-etiket { letter-spacing: -0.005em; }

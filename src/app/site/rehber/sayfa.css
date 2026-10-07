@@ -1,0 +1,383 @@
+/* =====================================================================
+   Yalnızca /rehber ve /rehber/[yazi] sayfalarına ait stiller.
+
+   İki sayfanın işi farklı:
+     /rehber        → VİTRİN. Plaka + devasa başlık + ölçek farklı kart
+                      ızgarası (öne çıkan yazı tam genişlik).
+     /rehber/[yazi] → OKUMA. Plaka + devasa başlık, sonra ferah bir
+                      metin kolonu, yapışkan içindekiler ve üst barın
+                      altında 0 JS ilerleme çizgisi.
+
+   Harf kadrajı BURADA KULLANILMIYOR: imza seyrek kalsın diye kurumsal
+   kanatta yalnız /hakkimizda (görüntülü) ve /tesekkurler (gradyanlı)
+   kullanıyor.
+
+   Kural: yeni renk / radius / gölge YOK. Her değer site.css'teki
+   `--af-*` tokenlarından okunur; sınıf adları `af-rb-` ile başlar.
+   ===================================================================== */
+
+/* Metin bağlantılarındaki ok ikonu (.af-bag-ok svg boyut vermiyor) */
+.af-rb-ok { width: 16px; height: 16px; transition: transform var(--af-gecis); }
+
+/* ---- Site izi (breadcrumb) ---- */
+.af-rb-iz {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-rb-iz a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--af-metin-2);
+}
+.af-rb-iz a:hover { color: var(--af-vurgu); }
+.af-rb-iz [aria-current] { color: var(--af-vurgu); }
+
+/* =====================================================================
+   1. PLAKA İÇİ TİPOGRAFİ
+   ===================================================================== */
+
+.af-rb-etiket {
+  margin-block: clamp(var(--af-b-16), 2.4vw, var(--af-b-32)) var(--af-b-16);
+  color: #ff8900;
+}
+.af-rb-etiket::before { background: #ff8900; }
+
+/* Hub başlığı — devasa */
+.af-rb-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(2rem, 1.1rem + 3.9vw, 5.25rem);
+  font-weight: 800;
+  line-height: 0.99;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  max-width: 22ch;
+  color: #fff;
+}
+.af-rb-giris { margin-block-start: clamp(var(--af-b-16), 2vw, var(--af-b-24)); max-width: 58ch; }
+.af-rb-cipler { margin-block-start: clamp(var(--af-b-24), 3vw, var(--af-b-32)); }
+.af-rb-veri { margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-64)); }
+
+/* Yazı başlığı — uzun olabildiği için hub başlığından bir kademe küçük
+   ve ölçüsü geniş; `text-wrap: balance` satırları dengeler. */
+.af-rb-yazi-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.75rem, 1.05rem + 3.1vw, 4rem);
+  font-weight: 800;
+  line-height: 1.01;
+  letter-spacing: -0.038em;
+  text-wrap: balance;
+  max-width: 26ch;
+  color: #fff;
+}
+
+/* ---- Künye satırı: tarih · okuma · bölüm ---- */
+.af-rb-kunye {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8) var(--af-b-12);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.04em;
+  color: var(--af-metin-3);
+}
+.af-rb-kunye-ayrac { opacity: 0.5; }
+
+/* ---- Ön işaret: başlığın altındaki kısa cevap. Plakada iri. ---- */
+.af-rb-isaret {
+  margin-block-start: clamp(var(--af-b-24), 3vw, var(--af-b-32));
+  padding-inline-start: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+  font-size: clamp(1.0625rem, 0.92rem + 0.7vw, 1.625rem);
+  line-height: 1.42;
+  letter-spacing: -0.014em;
+  color: var(--af-metin);
+  max-width: 54ch;
+}
+
+/* =====================================================================
+   2. OKUMA DÜZENİ — içindekiler + gövde
+   ===================================================================== */
+
+.af-rb-duzen {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3.4vw, var(--af-b-64));
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .af-rb-duzen { grid-template-columns: minmax(0, 250px) minmax(0, 1fr); }
+}
+
+/* ---- İçindekiler ---- */
+.af-rb-icindekiler {
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-kart);
+  padding: var(--af-b-16);
+  background: var(--af-kart-zemin);
+}
+.af-rb-icindekiler-baslik {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+  margin-block-end: var(--af-b-8);
+}
+.af-rb-icindekiler ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: af-rb-ic;
+  display: grid;
+}
+.af-rb-icindekiler li { counter-increment: af-rb-ic; }
+.af-rb-ic-alt { padding-inline-start: var(--af-b-16); }
+.af-rb-icindekiler a {
+  display: flex;
+  gap: var(--af-b-12);
+  align-items: baseline;
+  min-height: 44px;
+  padding-block: var(--af-b-8);
+  font-size: var(--af-y-kucuk);
+  line-height: 1.35;
+  color: var(--af-metin-2);
+  border-block-start: 1px solid var(--af-kenar-ince);
+  transition: color var(--af-gecis), padding-inline-start var(--af-gecis);
+}
+.af-rb-icindekiler li:first-child a { border-block-start: 0; }
+.af-rb-icindekiler a::before {
+  content: counter(af-rb-ic, decimal-leading-zero);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-metin-3);
+  flex: none;
+}
+@media (hover: hover) {
+  .af-rb-icindekiler a:hover { color: var(--af-vurgu); padding-inline-start: var(--af-b-4); }
+  .af-rb-icindekiler a:hover::before { color: var(--af-vurgu); }
+}
+
+/* Yapışkanlık yalnız geniş ekranda.
+   `af-yapiskan` sınıfı bantta `overflow-x: visible` açıyor (site.css);
+   bu yüzden bu banda `clip-path` kesik kenarı VERİLMEZ — kesik, kırpma
+   bağlamı kurup yapışkan sütunu bozardı. */
+.af-rb-duzen > .af-yapiskan { position: static; }
+@media (min-width: 1000px) {
+  .af-rb-duzen > .af-yapiskan {
+    position: sticky;
+    inset-block-start: calc(var(--af-ustbar-h) + var(--af-b-16));
+    max-height: calc(100dvh - var(--af-ustbar-h) - var(--af-b-32));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* =====================================================================
+   3. GÖVDE — uzun metin tipografisi
+   Ölçü 68ch (satır başına ~70 karakter), satır yüksekliği 1,75, bölümler
+   arası boşluk iri. Her h2'nin üstünde kısa turuncu bir çizgi var:
+   okuyucu kaydırırken bölüm sınırını çevresel görüşle yakalıyor.
+   ===================================================================== */
+
+/* Özgüllük `.af-metin.af-rb-govde` (0,2,0) bilinçli: site.css'teki
+   `.af-metin` kuralıyla aynı özgüllükte kalıp dosya sırasına güvenmek
+   istemiyoruz. */
+.af-metin.af-rb-govde {
+  max-width: 68ch;
+  font-size: var(--af-y-metin);
+  line-height: 1.75;
+  color: var(--af-metin-2);
+}
+.af-metin.af-rb-govde > * + * { margin-block-start: var(--af-b-24); }
+
+.af-metin.af-rb-govde > h2 {
+  position: relative;
+  margin-block-start: clamp(var(--af-b-48), 5vw, var(--af-b-96));
+  padding-block-start: var(--af-b-24);
+  font-size: clamp(1.375rem, 1.05rem + 1.6vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--af-metin);
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-24));
+}
+.af-metin.af-rb-govde > h2::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 44px;
+  height: 2px;
+  background: var(--af-vurgu-cizgi);
+}
+.af-metin.af-rb-govde > h3 {
+  margin-block-start: clamp(var(--af-b-32), 3vw, var(--af-b-48));
+  font-size: clamp(1.125rem, 1.02rem + 0.6vw, 1.4375rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--af-metin);
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-24));
+}
+
+/* Çapaya gidilen başlık işaretlenir (0 JS). Renk tek başına bilgi
+   taşımıyor: sayfa o başlığa zaten kaydırdı, bu yalnız doğrulama. */
+.af-metin.af-rb-govde > h2:target,
+.af-metin.af-rb-govde > h3:target {
+  padding-inline-start: var(--af-b-16);
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+}
+.af-metin.af-rb-govde > h2:target::before { inset-inline-start: var(--af-b-16); }
+
+/* Giriş paragrafı bir punto iri — yazının "ilk nefesi". */
+.af-metin.af-rb-govde > p:first-child {
+  font-size: var(--af-y-giris);
+  line-height: 1.6;
+  letter-spacing: -0.012em;
+  color: var(--af-metin);
+}
+
+.af-metin.af-rb-govde a {
+  color: var(--af-vurgu);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.af-metin.af-rb-govde strong { color: var(--af-metin); font-weight: 600; }
+.af-metin.af-rb-govde em { font-family: var(--af-yazi-serif); font-size: 1.05em; }
+.af-metin.af-rb-govde ul,
+.af-metin.af-rb-govde ol { display: grid; gap: var(--af-b-12); padding-inline-start: var(--af-b-24); }
+.af-metin.af-rb-govde ol { list-style: decimal; }
+.af-metin.af-rb-govde ol > li::marker {
+  color: var(--af-vurgu);
+  font-family: var(--af-yazi-mono);
+  font-size: 0.85em;
+}
+.af-metin.af-rb-govde ul > li { list-style: none; position: relative; }
+.af-metin.af-rb-govde ul > li::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--af-b-16));
+  inset-block-start: 0.78em;
+  width: 7px;
+  height: 2px;
+  background: var(--af-vurgu-cizgi);
+}
+.af-metin.af-rb-govde li { line-height: 1.7; }
+
+/* Gövde içindeki uyarı / not kutusu (içerik modülü `<aside>` basıyor) */
+.af-rb-not {
+  display: grid;
+  gap: var(--af-b-8);
+  border: 1px solid var(--af-kenar-ince);
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+  border-radius: var(--af-r-veri);
+  padding: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+  background: var(--af-vurgu-sis);
+  font-size: var(--af-y-kucuk);
+  line-height: 1.65;
+  color: var(--af-metin-2);
+}
+.af-rb-not > p { margin: 0; }
+
+.af-rb-etiketler {
+  margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-48));
+  padding-block-start: var(--af-b-24);
+  border-block-start: 1px solid var(--af-kenar-ince);
+}
+
+/* =====================================================================
+   4. LİSTE KARTLARI — ölçek farkı
+   ===================================================================== */
+
+.af-kart.af-rb-kart {
+  gap: var(--af-b-12);
+  padding: clamp(var(--af-b-24), 2.4vw, var(--af-b-32));
+}
+.af-rb-kart-ust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  justify-content: space-between;
+}
+.af-rb-kart-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.125rem, 1.01rem + 0.6vw, 1.4375rem);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.024em;
+  text-wrap: balance;
+  color: var(--af-metin);
+}
+.af-rb-kart-isaret {
+  font-size: var(--af-y-kucuk);
+  line-height: 1.5;
+  color: var(--af-metin-2);
+  padding-inline-start: var(--af-b-12);
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+}
+
+/* Öne çıkan yazı: tam genişlik kart, başlık iki kademe iri.
+   Düz ızgara ritmini kıran tek hamle bu. */
+@media (min-width: 760px) {
+  .af-rb-one-cikan { grid-column: 1 / -1; }
+  .af-rb-one-cikan .af-rb-kart-bas {
+    font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.5rem);
+    letter-spacing: -0.032em;
+    max-width: 30ch;
+  }
+  .af-rb-one-cikan .af-rb-kart-isaret { font-size: var(--af-y-metin); max-width: 70ch; }
+  .af-rb-one-cikan .af-kart-metin { font-size: var(--af-y-metin); max-width: 76ch; }
+}
+
+/* ---- Küme başlığının yanındaki sayaç ---- */
+.af-rb-sayi {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+
+/* =====================================================================
+   5. YAZI SONU — hizmet kartı ve boş durum
+   ===================================================================== */
+
+/* `.af-kart` flex; burada ızgaraya çeviriyoruz, bu yüzden iki sınıfla
+   yazıp özgüllüğü yükseltiyoruz (dosya sırasına güvenmeyelim). */
+.af-kart.af-rb-hizmet {
+  display: grid;
+  gap: var(--af-b-16);
+}
+@media (min-width: 760px) {
+  .af-kart.af-rb-hizmet { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+}
+.af-rb-hizmet-dugmeler { grid-column: 1 / -1; }
+
+.af-rb-bos {
+  display: grid;
+  gap: var(--af-b-16);
+  justify-items: start;
+  border: 1px dashed var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  padding: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+}
+
+/* ---- Ortalanmış çağrı düğmeleri ---- */
+.af-rb-orta-dugmeler { justify-content: center; }
+
+/* Gövde bandı biraz daha ferah başlar; yapışkan içindekiler için nefes. */
+.af-bant.af-rb-govde-bant {
+  padding-block-start: clamp(2.5rem, 1.9rem + 3.2vw, 5rem);
+}

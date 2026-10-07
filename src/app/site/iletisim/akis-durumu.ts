@@ -1,0 +1,118 @@
+/**
+ * AKIŞ KARTI sözleşmesinin kurumsal sayfa tarafı (iletişim + analiz).
+ *
+ * Ziyaretçinin seçtiği sektör ve işaretlediği eksikler `sessionStorage`
+ * içinde `af-akis` anahtarında JSON olarak durur:
+ *   { "sektor": "kafe-restoran", "eksikler": ["qr_menu", "reels_yok"] }
+ * Sektör ayrıca `document.documentElement.dataset.sektor` değerine yazılır,
+ * böylece sayfalar CSS ile tepki verebilir.
+ *
+ * DİKKAT — iki ayrı sektör sözlüğü var:
+ *   · SAYFA sözlüğü  : `site-icerik.ts` → SEKTORLER[].anahtar ("kafe-restoran")
+ *   · PANEL sözlüğü  : `adaylar.ts`     → SEKTORLER[].anahtar ("kafe")
+ * Depoda sayfa sözlüğü duruyor (sektör sayfaları ve ana sayfa onu yazıyor).
+ * `talepGonder` yalnız panel sözlüğünü kabul ettiği için form, göndermeden
+ * önce `panelSektoru()` ile çeviriyor.
+ */
+
+export const AKIS_ANAHTARI = 'af-akis';
+export const AKIS_OLAYI = 'af-akis-degisti';
+
+export type Akis = {
+  sektor: string | null;
+  eksikler: string[];
+};
+
+export const BOS_AKIS: Akis = { sektor: null, eksikler: [] };
+
+function metinDizisi(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length > 0) : [];
+}
+
+/** Depodaki durumu okur. Depo kapalıysa (gizli sekme) boş durum döner. */
+export function akisOku(): Akis {
+  if (typeof window === 'undefined') return BOS_AKIS;
+  try {
+    const ham = window.sessionStorage.getItem(AKIS_ANAHTARI);
+    if (!ham) return BOS_AKIS;
+    const veri = JSON.parse(ham) as unknown;
+    if (!veri || typeof veri !== 'object') return BOS_AKIS;
+    const nesne = veri as Record<string, unknown>;
+    return {
+      sektor: typeof nesne.sektor === 'string' && nesne.sektor ? nesne.sektor : null,
+      eksikler: metinDizisi(nesne.eksikler),
+    };
+  } catch {
+    return BOS_AKIS;
+  }
+}
+
+/**
+ * Durumu yazar: sessionStorage + `<html data-sektor>` + sayfa içi olay.
+ * Depoya yazmak başarısız olsa bile olay gider; kart ve CSS güncellenir.
+ */
+export function akisYaz(durum: Akis): void {
+  if (typeof window === 'undefined') return;
+  const temiz: Akis = { sektor: durum.sektor || null, eksikler: [...new Set(durum.eksikler)] };
+  try {
+    const kayit: Record<string, unknown> = { eksikler: temiz.eksikler };
+    if (temiz.sektor) kayit.sektor = temiz.sektor;
+    window.sessionStorage.setItem(AKIS_ANAHTARI, JSON.stringify(kayit));
+  } catch {
+    /* depo kapalı — yalnız sayfa içi durum kalır */
+  }
+  const kok = document.documentElement;
+  if (temiz.sektor) kok.dataset.sektor = temiz.sektor;
+  else delete kok.dataset.sektor;
+  window.dispatchEvent(new CustomEvent<Akis>(AKIS_OLAYI, { detail: temiz }));
+}
+
+/** Değişiklikleri dinler; temizleme işlevi döner. */
+export function akisDinle(geriCagri: (durum: Akis) => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const isle = (e: Event) => {
+    const olay = e as CustomEvent<Akis>;
+    geriCagri(olay.detail ?? akisOku());
+  };
+  window.addEventListener(AKIS_OLAYI, isle);
+  return () => window.removeEventListener(AKIS_OLAYI, isle);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sektör sözlüğü çevirisi                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * SAYFA sözlüğü → PANEL sözlüğü. Panel sözlüğündeki anahtarlar kendilerine
+ * eşlenir, böylece iki taraftan gelen değer de çalışır. Listede olmayan bir
+ * değer `null` döner ve form sektörü boş bırakır (uydurma eşleme yapılmaz).
+ */
+const SEKTOR_CEVIRISI: Record<string, string> = {
+  /* panel sözlüğü (adaylar.ts) — kendine eşlenir */
+  kafe: 'kafe',
+  saglik: 'saglik',
+  spor: 'spor',
+  egitim: 'egitim',
+  guzellik: 'guzellik',
+  otomotiv: 'otomotiv',
+  hukuk: 'hukuk',
+  emlak: 'emlak',
+  magaza: 'magaza',
+  turizm: 'turizm',
+  diger: 'diger',
+  /* sayfa sözlüğü (site-icerik.ts) */
+  'kafe-restoran': 'kafe',
+  'oto-galeri': 'otomotiv',
+  'avukat-hukuk': 'hukuk',
+  anaokulu: 'egitim',
+  otel: 'turizm',
+  /* paneldeki karşılığı olmayan sektörler "Diğer" olarak gider */
+  'go-kart': 'diger',
+  mimar: 'diger',
+};
+
+/** Depodan ya da adres çubuğundan gelen sektörü panel anahtarına çevirir. */
+export function panelSektoru(ham: string | null | undefined): string | null {
+  if (!ham) return null;
+  return Object.hasOwn(SEKTOR_CEVIRISI, ham) ? SEKTOR_CEVIRISI[ham] : null;
+}

@@ -1,0 +1,173 @@
+/* ====================================================================
+   Kurumsal sayfaların ortak stili (hakkımızda · iletişim · teşekkürler ·
+   KVKK · gizlilik · analiz). Yalnız tasarım sistemi değişkenleri.
+
+   Görsel katman (plaka, harf kadrajı, grain, ışık havuzu, imleç ışığı)
+   kardeş dosyada: `plaka.css`.
+   ==================================================================== */
+
+/* ---- Site izi ---- */
+.af-kr-iz {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+.af-kr-iz a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--af-metin-2);
+}
+.af-kr-iz a:hover { color: var(--af-vurgu); }
+.af-kr-iz [aria-current] { color: var(--af-vurgu); }
+
+/* ---- İletişim yan kolonu ---- */
+.af-kr-yan { display: grid; gap: var(--af-b-16); align-content: start; }
+
+/* ====================================================================
+   UZUN METİN SAYFASI — KVKK ve gizlilik
+   Hedef: FERAH, OKUNUR, sıkıcı ama düzgün. Gösteri yok: ne plaka ne
+   harf kadrajı. Burada "iyi görünmek" okunabilirlikle aynı şey.
+
+   Dört karar:
+     1. Ölçü 68ch'te kilitli (satır başına ~70 karakter — uzun metin için
+        en rahat aralık), satır yüksekliği 1,75.
+     2. Her madde numaralı: mono durak numarası + saç çizgisi. Ziyaretçi
+        kaçıncı maddede olduğunu görür.
+     3. İçindekiler masaüstünde yapışkan ve kendi içinde kayan bir
+        sütun; mobilde metnin üstünde duran sıradan bir liste.
+     4. Çapaya gidilen madde `:target` ile işaretlenir (0 JS).
+   ==================================================================== */
+
+.af-kr-yasal {
+  display: grid;
+  gap: clamp(var(--af-b-32), 4vw, var(--af-b-64));
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .af-kr-yasal { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
+}
+
+/* ---- İçindekiler ---- */
+.af-kr-icindekiler {
+  display: grid;
+  gap: var(--af-b-12);
+  padding: var(--af-b-16);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  /* Hangi bantta olursa olsun zeminden hafifçe ayrılır */
+  background: color-mix(in srgb, var(--af-metin) 3%, transparent);
+}
+.af-kr-icindekiler ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: af-kr-ic;
+}
+.af-kr-icindekiler li { counter-increment: af-kr-ic; }
+.af-kr-icindekiler a {
+  display: flex;
+  gap: var(--af-b-12);
+  align-items: baseline;
+  min-height: 44px;
+  padding-block: var(--af-b-8);
+  border-block-start: 1px solid var(--af-kenar-ince);
+  font-size: var(--af-y-kucuk);
+  line-height: 1.35;
+  color: var(--af-metin-2);
+  transition: color var(--af-gecis), padding-inline-start var(--af-gecis);
+}
+.af-kr-icindekiler li:first-child a { border-block-start: 0; }
+.af-kr-icindekiler a::before {
+  content: counter(af-kr-ic, decimal-leading-zero);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-metin-3);
+  flex: none;
+}
+@media (hover: hover) {
+  .af-kr-icindekiler a:hover { color: var(--af-vurgu); padding-inline-start: var(--af-b-4); }
+  .af-kr-icindekiler a:hover::before { color: var(--af-vurgu); }
+}
+
+/* Mobilde yapışkan değil: içindekiler metnin üstünde durur, ekranı
+   kapatmaz. Masaüstünde yapışır ve gerekirse kendi içinde kayar. */
+@media (min-width: 980px) {
+  .af-kr-icindekiler {
+    position: sticky;
+    inset-block-start: calc(var(--af-ustbar-h) + var(--af-b-16));
+    max-height: calc(100dvh - var(--af-ustbar-h) - var(--af-b-32));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* ---- Gövde ---- */
+.af-kr-yasal-govde {
+  display: grid;
+  gap: clamp(var(--af-b-32), 4vw, var(--af-b-64));
+}
+
+.af-kr-madde {
+  display: grid;
+  gap: var(--af-b-16);
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-24));
+}
+.af-kr-madde-ust {
+  display: grid;
+  gap: var(--af-b-8);
+  padding-block-start: var(--af-b-16);
+  border-block-start: 1px solid var(--af-kenar);
+}
+.af-kr-madde:first-child .af-kr-madde-ust { border-block-start: 0; padding-block-start: 0; }
+
+.af-kr-madde-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--af-vurgu);
+}
+.af-kr-madde-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.25rem, 1.05rem + 1.1vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.026em;
+  text-wrap: balance;
+  color: var(--af-metin);
+}
+
+/* Çapaya gidilen madde işaretlenir: solunda 2px turuncu ray.
+   Renk tek başına bilgi taşımıyor — sayfa o maddeye zaten kaydırdı. */
+.af-kr-madde:target .af-kr-madde-ust {
+  padding-inline-start: var(--af-b-16);
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+}
+
+/* FERAH OKUMA: ölçü 68ch, satır 1,75, ilk paragraf bir punto iri. */
+.af-kr-madde .af-metin {
+  max-width: 68ch;
+  font-size: var(--af-y-metin);
+  line-height: 1.75;
+  color: var(--af-metin-2);
+}
+.af-kr-madde .af-metin > p:first-child {
+  font-size: var(--af-y-giris);
+  line-height: 1.6;
+  letter-spacing: -0.012em;
+  color: var(--af-metin);
+}
+.af-kr-madde .af-metin > * + * { margin-block-start: var(--af-b-24); }
+.af-kr-madde .af-metin ul { gap: var(--af-b-12); }
+.af-kr-madde .af-metin li { line-height: 1.65; }
+.af-kr-madde .af-metin strong { color: var(--af-metin); }

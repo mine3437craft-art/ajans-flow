@@ -1,0 +1,372 @@
+/* ====================================================================
+   /analiz — Akış Kartı deneyimi TAM EKRAN BİR ARAÇ gibi çalışır.
+
+   Üç şey onu broşür olmaktan çıkarıp araca çeviriyor:
+     1. Yapışkan adım rayı (nerede olduğunuzu ve neyi bitirdiğinizi
+        söyler) — yalnız üç adım boyunca yapışır.
+     2. Her adım tam genişlikte bir EKRAN: devasa durak numarası, bol
+        dikey boşluk, iri dokunma hedefleri.
+     3. Akış Kartı beyaz bandın içinde KOYU bir araç paneli: üstünde
+        ilerleme çizgisi, köşesinde iri kesir.
+
+   Kural: yeni renk / radius / gölge YOK; her değer `--af-*`
+   tokenlarından okunur. Sınıflar `af-an-` ile başlar.
+   ==================================================================== */
+
+.af-an-arac {
+  /* Yapışkan ray yüksekliği — çapa kaydırma payı ve kart ofseti bunu
+     okur. Rayın `min-height`i ile BİREBİR aynı tutulmalı. */
+  --af-an-ray-h: 52px;
+  position: relative;
+}
+
+/* =====================================================================
+   1. PLAKA İÇİ ÖLÇEK
+   ===================================================================== */
+
+.af-an-etiket {
+  margin-block: clamp(var(--af-b-16), 2.4vw, var(--af-b-32)) var(--af-b-16);
+  color: #ff8900;
+}
+.af-an-etiket::before { background: #ff8900; }
+
+.af-an-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(2rem, 1.1rem + 3.9vw, 5.25rem);
+  font-weight: 800;
+  line-height: 0.99;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  max-width: 22ch;
+  color: #fff;
+}
+.af-an-giris {
+  margin-block-start: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+  max-width: 58ch;
+}
+.af-an-veri { margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-64)); }
+
+/* =====================================================================
+   2. ADIM RAYI — yapışkan koyu şerit
+   Plakadan kâğıt banda geçişi de bu şerit yapıyor; bu yüzden analizde
+   `clip-path` kesik kenarı kullanılmıyor (kesik, yapışkan ögeyi kırpma
+   bağlamına alıp bozardı).
+   ===================================================================== */
+
+.af-an-ray {
+  position: sticky;
+  inset-block-start: var(--af-ustbar-h);
+  /* Akış Kartı da yapışkan ve `--af-z-yapiskan` taşıyor; eşit z-index'te
+     DOM'da SONRA gelen kazanırdı ve kart rayın üstünden geçerdi. Ray bir
+     kademe yukarıda durur, böylece kart her zaman onun ALTINDAN akar. */
+  z-index: calc(var(--af-z-yapiskan) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  min-height: var(--af-an-ray-h);
+  padding-inline: var(--af-yan);
+  background: var(--af-koyu);
+  border-block-end: 1px solid var(--af-cizgi-koyu-2);
+  color: rgba(237, 237, 243, 0.62);
+  /* Yan kaydırma: dar ekranda üç durak sığmazsa şerit kendi içinde
+     kayar, SAYFA kaymaz. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+.af-an-ray::-webkit-scrollbar { display: none; }
+
+@supports (backdrop-filter: blur(1px)) {
+  .af-an-ray {
+    background: rgba(14, 14, 22, 0.86);
+    backdrop-filter: blur(12px) saturate(150%);
+  }
+}
+
+.af-an-ray-liste {
+  display: flex;
+  align-items: center;
+  gap: var(--af-b-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.af-an-ray-liste a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--af-b-8);
+  min-height: 44px;
+  padding-inline: var(--af-b-12);
+  border-radius: var(--af-r-veri);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(237, 237, 243, 0.62);
+  transition: color var(--af-gecis), background-color var(--af-gecis);
+}
+@media (hover: hover) {
+  .af-an-ray-liste a:hover { color: var(--af-turuncu); background: var(--af-turuncu-sis-koyu); }
+}
+
+.af-an-ray-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--af-r-cip);
+  border: 1px solid var(--af-cizgi-koyu);
+  font-size: 0.6875rem;
+  flex: none;
+  transition: border-color var(--af-gecis), background-color var(--af-gecis), color var(--af-gecis);
+}
+
+/* TAMAMLANDI — Akış Kartı sözleşmesinden gelir (AdimRayi.tsx).
+   Renk tek başına bilgi taşımasın: numara yerine tik basılır ve ekran
+   okuyucuya "(tamamlandı)" metni gider. */
+.af-an-ray-liste a[data-bitti] { color: var(--af-turuncu); }
+.af-an-ray-liste a[data-bitti] .af-an-ray-no {
+  background: var(--af-turuncu-dolu);
+  border-color: var(--af-turuncu-dolu);
+  color: #fff;
+  font-size: 0;
+}
+.af-an-ray-liste a[data-bitti] .af-an-ray-no::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-block-start: 0;
+  border-inline-start: 0;
+  transform: rotate(42deg) translate(-1px, -1px);
+}
+
+/* BULUNDUĞUNUZ ADIM — `:target` + `:has()`, 0 JS.
+   Çapaya tıklandığında (ya da adres satırında # ile gelindiğinde) ilgili
+   durak turuncuya döner ve altına 2px çizgi iner. Kaydırmaya bağlı aktif
+   adım takibi bilinçli olarak YAPILMIYOR: her karede bölüm konumu
+   okumak sayfadaki tek yapışkan şeridi pahalı hâle getirirdi. */
+.af-kr:has(#adim-1:target) .af-an-ray-liste a[href='#adim-1'],
+.af-kr:has(#adim-2:target) .af-an-ray-liste a[href='#adim-2'],
+.af-kr:has(#adim-3:target) .af-an-ray-liste a[href='#adim-3'] {
+  color: #fff;
+  box-shadow: inset 0 -2px 0 var(--af-turuncu);
+}
+
+.af-an-ray-sayac {
+  margin: 0;
+  padding-inline-start: var(--af-b-12);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--af-turuncu);
+}
+@media (max-width: 479px) {
+  /* Dar ekranda sayaç duraklarla yarışmasın */
+  .af-an-ray-sayac { display: none; }
+}
+
+/* =====================================================================
+   3. ADIM EKRANLARI
+   ===================================================================== */
+
+.af-bant.af-an-ekran {
+  /* Çapa kaydırma payı: üst bar + yapışkan ray + nefes */
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-an-ray-h));
+  padding-block: clamp(2.75rem, 2rem + 5vw, 7rem);
+}
+
+.af-an-adim {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--af-b-16) clamp(var(--af-b-16), 2.4vw, var(--af-b-32));
+  align-items: start;
+  margin-block-end: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+}
+.af-an-adim-no {
+  font-family: var(--af-yazi-baslik);
+  /* Devasa durak numarası — ölçek farkının taşıyıcısı */
+  font-size: clamp(3rem, 1.6rem + 6.4vw, 7.5rem);
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -0.07em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--af-vurgu-cizgi) 22%, transparent);
+  user-select: none;
+}
+.af-an-adim-bas {
+  margin: 0;
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.625rem, 1.05rem + 2.4vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  color: var(--af-metin);
+}
+.af-an-adim-giris { margin-block-start: var(--af-b-16); max-width: 60ch; }
+
+/* ---- İri dokunma hedefleri: çipler ve seçenek kutuları ---- */
+.af-an-cipler .af-cipler { gap: var(--af-b-12); }
+.af-an-cipler .af-cip,
+.af-an-cipler .af-secenek {
+  min-height: 48px;
+  padding-inline: var(--af-b-24);
+  font-size: var(--af-y-kucuk);
+}
+.af-an-cipler .af-secenek::before { width: 18px; height: 18px; }
+
+/* Seçimi kaldırma düğmesi not satırının içinde kalır */
+.af-an-not { display: flex; flex-wrap: wrap; align-items: center; gap: var(--af-b-12); }
+.af-an-not .af-dugme { min-height: 40px; }
+
+/* =====================================================================
+   4. YERLEŞİM — eksikler + araç paneli
+   ===================================================================== */
+
+.af-an-duzen {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .af-an-duzen { grid-template-columns: minmax(0, 1fr) minmax(0, 390px); }
+}
+
+.af-an-cikti {
+  display: grid;
+  gap: clamp(var(--af-b-16), 2vw, var(--af-b-32));
+}
+@media (min-width: 860px) {
+  .af-an-cikti { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.af-an-cikti-liste > li { font-size: var(--af-y-metin); }
+
+/* =====================================================================
+   5. AKIŞ KARTI — beyaz bandın içinde KOYU araç paneli
+   Bant bağlamının dokuz değişkeni burada tersine çevrilir; böylece
+   içindeki çip, bağlantı, tablo ve düğme kendiliğinden koyu zemine
+   uyar ve bileşen içinde renk sabitlemeye gerek kalmaz.
+   ===================================================================== */
+
+.af-kart.af-an-kart {
+  --af-zemin: var(--af-koyu);
+  --af-metin: #ededf3;
+  --af-metin-2: rgba(237, 237, 243, 0.68);
+  --af-metin-3: rgba(237, 237, 243, 0.48);
+  --af-kenar: var(--af-cizgi-koyu);
+  --af-kenar-ince: var(--af-cizgi-koyu-2);
+  --af-vurgu: var(--af-turuncu);
+  --af-vurgu-cizgi: var(--af-turuncu);
+  --af-vurgu-sis: var(--af-turuncu-sis-koyu);
+  --af-kart-zemin: var(--af-koyu-2);
+  --af-kart-kenar: var(--af-cizgi-koyu-2);
+  --af-halka: var(--af-turuncu);
+  color-scheme: dark;
+  position: relative;
+  overflow: hidden;
+  gap: var(--af-b-16);
+  padding: clamp(var(--af-b-24), 2.4vw, var(--af-b-32));
+  background: var(--af-koyu);
+  border-color: var(--af-cizgi-koyu);
+  color: #ededf3;
+  box-shadow: var(--af-golge-koyu-2);
+}
+/* Yapışkanlık yalnız iki kolonlu yerleşimde; mobilde kart akışta kalır */
+.af-kart.af-an-kart.af-yapiskan { position: relative; inset-block-start: auto; }
+@media (min-width: 980px) {
+  .af-kart.af-an-kart.af-yapiskan {
+    position: sticky;
+    /* Üst bar + yapışkan ray + nefes */
+    inset-block-start: calc(var(--af-ustbar-h) + var(--af-an-ray-h) + var(--af-b-16));
+  }
+}
+
+/* Üstteki ilerleme çizgisi: tek CSS değişkeni (`--af-an-oran`) sürülür,
+   düzen okunmaz. Altında ince bir ray durur ki çizgi "boş" hâlinde de
+   bir ölçek gibi okunsun. */
+.af-an-kart::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: var(--af-cizgi-koyu-2);
+}
+.af-an-kart-cizgi {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 1;
+  height: 3px;
+  width: var(--af-an-oran, 0%);
+  background: var(--af-turuncu);
+  transition: width var(--af-gecis-yavas);
+}
+
+/* Köşedeki iri kesir — "büyük veri" anı, uydurma rakam değil: sayfadaki
+   seçeneklerin kaçını işaretlediğinizi söyler. */
+.af-an-kart .af-kart-ust { align-items: baseline; }
+.af-an-kart .af-kart-ust .af-mono.af-silik-metin {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--af-metin);
+}
+
+.af-an-kart .af-kart-baslik {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.125rem, 1.02rem + 0.5vw, 1.375rem);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+
+.af-an-liste > li > span { display: grid; gap: 2px; }
+.af-an-liste-hizmet {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
+
+/* =====================================================================
+   6. FORM EKRANI (adım 3)
+   ===================================================================== */
+
+.af-an-form-sarmal {
+  max-width: var(--af-kap-dar);
+  margin-inline: auto;
+}
+.af-kart.af-an-form-kart {
+  padding: clamp(var(--af-b-24), 3.4vw, var(--af-b-48));
+  gap: var(--af-b-24);
+  box-shadow: var(--af-kart-golge-2);
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-an-ray-h) + var(--af-b-16));
+}
+.af-an-form-ust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  margin: 0;
+  padding-block-end: var(--af-b-24);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af-an-form-not {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+}
