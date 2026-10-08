@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import { ILETISIM, MARKA, siteAdresi, siteYolu } from '@/lib/site';
 import Ustbar from '@/components/site/Ustbar';
 import Altbilgi from '@/components/site/Altbilgi';
@@ -7,25 +7,68 @@ import { NAV, ALT_MENU, BIRINCIL_CAGRI } from '@/lib/site-icerik';
 import AkisHatti from '@/components/site/AkisHatti';
 import AltCtaSerit from '@/components/site/AltCtaSerit';
 import EfektlerKapisi from '@/components/site/EfektlerKapisi';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import './site.css';
 
 /* ------------------------------------------------------------------ */
-/* Yazı tipleri — kendi sunucumuzdan, latin + latin-ext                 */
+/* Yazı tipleri — DEPODAN (next/font/local), latin + latin-ext          */
+/*                                                                      */
+/* NEDEN: `next/font/google` dosyaları DERLEME ANINDA indiriyordu ve    */
+/* Turbopack'in o indirmesinde bir yarış durumu var — aynı kaynakla     */
+/* yapılan 6 derlemeden 2'si "Can't resolve '@vercel/turbopack-next/    */
+/* internal/font/google/font'" hatasıyla patlıyordu (ağ sağlamdı, 12    */
+/* hatanın tamamı JetBrains Mono'nun 6 alt kümesi × 2 ağırlığındandı).  */
+/* Dosyalar artık `./fonts/` altında: derleme HİÇ ağ isteği yapmıyor.   */
+/*                                                                      */
+/* DOSYALAR: google/fonts deposundaki değişken (variable) TTF'ten,       */
+/* fontTools ile üretildi:                                              */
+/*   1. Google'ın CSS2'de sunduğu eksenler sabitlendi (Bricolage için   */
+/*      `wdth=100`; `opsz` ve `wght` değişken kaldı — eski              */
+/*      `axes: ['opsz']` davranışı `font-optical-sizing: auto` tarayıcı */
+/*      varsayılanıyla aynen korunuyor).                                */
+/*   2. `latin` + `latin-ext` unicode aralıklarının BİRLEŞİMİne alt     */
+/*      küme alındı (1546 kod noktası) — diğer alt kümeler (kiril,      */
+/*      yunan, vietnam) dışarıda.                                       */
+/* Google'ın ayrı sunduğu iki alt küme dosyası BİRLEŞTİRİLDİ, çünkü     */
+/* o dosyalar AYRIK: `latin`te ş ğ İ Ş Ğ yok, `latin-ext`te a 0 · — ’   */
+/* yok. İki ayrı dosya `unicode-range` gerektirir; Turbopack ise        */
+/* `declarations` ile verilen `font-family`'yi @font-face'e yazıp CSS   */
+/* değişkenini yine değişken ADINDAN üretiyor (webpack'ten farklı), bu  */
+/* yüzden iki dosyalı kurulum Turbopack'te bozuk CSS üretiyor. Tek      */
+/* dosya = tek `src`, `unicode-range` gereksiz, iki paketleyicide aynı. */
+/*                                                                      */
+/* Üretilen dosyalar Google'ın sunduklarıyla BİREBİR doğrulandı:        */
+/* upem/ascent/descent/capHeight/xHeight aynı ve kullanılan her         */
+/* ağırlıkta (400/500/600/700/800) harf ilerleme genişlikleri aynı.     */
+/*                                                                      */
+/* Ağırlık aralıkları dosyaların KENDİ `fvar` tablosundan okundu:       */
+/* Bricolage wght 200–800 (+ opsz 12–96), JetBrains wght 100–800.       */
+/* Mono'da yalnız 400–500 bildiriliyor: Google'ın CSS'i de tam olarak   */
+/* bu iki ağırlığı sunuyordu, site.css'te mono yalnız 400/500           */
+/* kullanıyor — ağırlık seçimi birebir aynı kalsın diye.                */
+/*                                                                      */
 /* Metin yazı tipi (Inter) kök layout'tan `--font-inter` ile geliyor.   */
 /* ------------------------------------------------------------------ */
 
-const baslikYazisi = Bricolage_Grotesque({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-baslik',
+/* DİKKAT: Turbopack `next/font/local` ailesini JS DEĞİŞKEN ADINDAN
+   üretiyor (webpack'teki gibi hash'lemiyor). Bu yüzden değişken adları
+   proje genelinde TEKİL olmak zorunda: aynı adı kullanan iki çağrı aynı
+   `font-family` adını ve aynı `… Fallback` yüzünü üretir, biri diğerini
+   ezer. Adı değiştirirken bunu unutmayın. */
+const siteBaslikYazisi = localFont({
+  src: './fonts/bricolage-grotesque.woff2',
+  weight: '200 800',
+  style: 'normal',
   display: 'swap',
-  axes: ['opsz'],
+  variable: '--font-baslik',
 });
 
-const monoYazisi = JetBrains_Mono({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-mono',
+const siteMonoYazisi = localFont({
+  src: './fonts/jetbrains-mono.woff2',
+  weight: '400 500',
+  style: 'normal',
   display: 'swap',
-  weight: ['400', '500'],
+  variable: '--font-mono',
 });
 
 /* ------------------------------------------------------------------ */
@@ -157,7 +200,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     // hidrasyondan ÖNCE `js-var` sınıfını ekliyor; bu bilinçli bir fark.
     <div
       id={KOK_ID}
-      className={`af ${baslikYazisi.variable} ${monoYazisi.variable}`}
+      className={`af ${siteBaslikYazisi.variable} ${siteMonoYazisi.variable}`}
       suppressHydrationWarning
     >
       {/* Kök layout (panel) <head>'e roket emojili bir favicon basıyor ve o
@@ -166,10 +209,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           kazanır. Kök layout bizim dosyamız değil; tek dokunmadan çözüm bu. */}
       <link rel="icon" href={siteYolu('/marka/flow-sembol.svg')} type="image/svg+xml" />
       <script dangerouslySetInnerHTML={{ __html: KAPI_BETIGI }} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       <a className="af-atla" href="#af-icerik">
         İçeriğe geç

@@ -562,9 +562,25 @@ html.lenis body {
   font-weight: 500;
   color: var(--af-vurgu);
   min-height: 44px;
+  max-width: 100%;
+  transition: color var(--af-gecis);
 }
-.af-bag-ok svg { transition: transform var(--af-gecis); flex: none; }
-.af-bag-ok:hover svg { transform: translateX(3px); }
+
+/* OK BOYUTU BURADA TANIMLIDIR — sayfa CSS'leri kendi kopyasını yazmasın.
+   Neden zorunlu: `Ikonlar.tsx` satır içi SVG'leri `viewBox` veriyor ama
+   `width`/`height` VERMİYOR; boyut CSS'ten gelmezse tarayıcı kutunun
+   %100'ünü kullanır, ok devasa çıkar ve metni ikinci satıra atar
+   (sahibinin bildirdiği kusur). 16px, metnin x-yüksekliğiyle orantılı. */
+.af-bag-ok svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  transition: transform var(--af-gecis);
+}
+/* Dokunmatikte `:hover` yapışır — kapıyı koy. */
+@media (hover: hover) {
+  .af-bag-ok:hover svg { transform: translateX(3px); }
+}
 
 /* Kartın tamamını tıklanabilir yapan görünmez katman */
 .af-kaplayan-bag { position: absolute; inset: 0; z-index: 2; }
@@ -771,25 +787,101 @@ button.af-cip:hover { border-color: var(--af-vurgu-cizgi); color: var(--af-vurgu
 .af-kart--veri { border-radius: var(--af-r-veri); }
 .af-kart--vurgulu { border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent); }
 
-/* Tıklanabilir kart */
-.af-kart--tikla { transition: transform var(--af-gecis), box-shadow var(--af-gecis), border-color var(--af-gecis); }
+/* =====================================================================
+   TIKLANABİLİR KART — kalkma, imleç ışığı, basılı hissi
+
+   Kartın tamamı zaten tıklanabilir (`.af-kaplayan-bag`); buradaki hiçbir
+   şey BİLGİ taşımaz, hepsi yükseltmedir. JS hiç gelmezse kart olduğu gibi
+   okunur ve bağlantı çalışır.
+
+   Katman planı: ışık havuzu tek bir `::after`, yalnız `data-isik`
+   taşıyan kartta. `isolation: isolate` da aynı kapının ardında duruyor
+   (havuzun `z-index: -1` ile karttan dışarı sızmamasını sağlıyor);
+   kapının dışındaki kartların yığın bağlamına DOKUNMUYOR, çünkü bazı
+   sayfalar kart içinde `mix-blend-mode` kullanıyor.
+   ===================================================================== */
+
+.af-kart--tikla {
+  transition: transform var(--af-gecis), box-shadow var(--af-gecis), border-color var(--af-gecis);
+}
+
+/* İmleç takipli ışık havuzu — YALNIZCA gerçek imleçte. Dokunmatikte
+   `:hover` yapıştığı için hiç kurulmaz.
+   `Isik.tsx` varsa `--kr-ix/--kr-iy` yazılır ve havuz imleci izler;
+   gelmezse aynı CSS havuzu kartın üst kenarından açar — yükseltme
+   sessizce bozulur, hover hissi yine durur.
+
+   KAPI: `data-isik`. Bu, `Isik.tsx`'in dinlediği öznitelikle AYNI
+   sözleşme — kart ya ortak ışık sistemine katılır (`data-isik`) ya da
+   kendi havuzunu getirir (ör. `/calismalar` vitrin kartındaki
+   `.af-vk-isik-havuz`). Böylece iki havuz asla üst üste binmez. */
+@media (hover: hover) and (pointer: fine) {
+  .af-kart--tikla[data-isik] { isolation: isolate; }
+  .af-kart--tikla[data-isik]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      clamp(180px, 22vw, 320px) circle at var(--kr-ix, 50%) var(--kr-iy, -6%),
+      var(--af-vurgu-sis),
+      transparent 70%
+    );
+    transition: opacity var(--af-gecis-yavas);
+  }
+  .af-kart--tikla[data-isik]:hover::after,
+  .af-kart--tikla[data-isik]:focus-within::after { opacity: 1; }
+}
+
 @media (hover: hover) {
   .af-kart--tikla:hover {
     transform: translateY(-3px);
     box-shadow: var(--af-kart-golge-2);
     border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 40%, transparent);
   }
+  /* Alt satır canlanır: renk vurguya döner, ok metnin yanından kayar. */
+  .af-kart--tikla:hover .af-kart-alt .af-bag-ok { color: var(--af-vurgu); }
   .af-kart--tikla:hover .af-bag-ok svg { transform: translateX(3px); }
+  /* İkon kutusu canlanır — kenar vurguya döner, kutu 1px kalkar. */
+  .af-kart--tikla:hover .af-ikon-kutu {
+    border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 45%, transparent);
+    transform: translateY(-1px);
+  }
 }
+
+/* Dokunmatikte basılı hissi — tek compositor işi (transform). */
+.af-kart--tikla:active { transform: translateY(1px); }
+
 .af-kart--tikla:focus-within {
   outline: 2px solid var(--af-halka);
   outline-offset: 3px;
+}
+
+/* Hareketi azalt: kalkma ve basılı hissi kalkar, ışık havuzu kalır
+   (hareket etmiyor, yalnız imlecin ZATEN olduğu yerde duruyor). */
+@media (prefers-reduced-motion: reduce) {
+  .af-kart--tikla:hover,
+  .af-kart--tikla:active { transform: none; }
+  .af-kart--tikla:hover .af-ikon-kutu { transform: none; }
+  .af-kart--tikla:hover .af-bag-ok svg { transform: none; }
 }
 
 .af-kart-ust { display: flex; align-items: center; justify-content: space-between; gap: var(--af-b-12); }
 .af-kart-baslik { font-size: var(--af-y-h4); }
 .af-kart-metin { color: var(--af-metin-2); font-size: var(--af-y-kucuk); margin: 0; }
 .af-kart-alt { margin-block-start: auto; padding-block-start: var(--af-b-8); }
+
+/* Kart altındaki eylem satırı ("İncele →").
+   Kartın tamamı tıklanabilir olduğu için bu satır yalnızca ÇAĞRIYI
+   gösterir: kısa yazılır ve ASLA iki satıra kaymaz. Tam ad ekran
+   okuyucuya `.af-kaplayan-bag` içindeki gizli metinle verilir. */
+.af-kart-alt .af-bag-ok {
+  white-space: nowrap;
+  font-size: var(--af-y-kucuk);
+}
 .af-kart-gorsel {
   margin: calc(-1 * clamp(var(--af-b-16), 2vw, var(--af-b-24)));
   margin-block-end: var(--af-b-4);
@@ -810,6 +902,7 @@ button.af-cip:hover { border-color: var(--af-vurgu-cizgi); color: var(--af-vurgu
   background: var(--af-vurgu-sis);
   color: var(--af-vurgu);
   flex: none;
+  transition: transform var(--af-gecis), border-color var(--af-gecis);
 }
 .af-ikon-kutu svg { width: 22px; height: 22px; }
 

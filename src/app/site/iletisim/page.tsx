@@ -9,6 +9,7 @@ import {
   IkonTelefon,
   IkonWhatsApp,
 } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { EKSIKLER, SEKTORLER as PANEL_SEKTORLERI } from '@/lib/adaylar';
 import { ILETISIM, MARKA, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import { ANA_SAYFA } from '@/lib/site-icerik';
@@ -121,10 +122,7 @@ export default async function IletisimSayfasi({
 
   return (
     <div className="af-kr">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ================================================================
           GİRİŞ — PLAKA (sayfanın tek plakası)

@@ -6,6 +6,7 @@ import SSS from '@/components/site/SSS';
 import Video from '@/components/site/Video';
 import { CerceveTelefon } from '@/components/site/Cerceve';
 import { Ikon, IkonOk, IkonTik, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { MARKA, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import {
   BIRINCIL_CAGRI,
@@ -36,8 +37,12 @@ import '../sayfa.css';
 
 type Parametre = { sektor: string };
 
+// oto-galeri'nin KENDİ statik rotası var (src/app/site/sektorler/oto-galeri/).
+// Burada da üretilirse `next build` aynı yolu iki kez üretmeye çalışır.
+const OZEL_ROTALAR = ['oto-galeri'];
+
 export function generateStaticParams(): Parametre[] {
-  return SEKTORLER.map((s) => ({ sektor: s.slug }));
+  return SEKTORLER.filter((s) => !OZEL_ROTALAR.includes(s.slug)).map((s) => ({ sektor: s.slug }));
 }
 
 export async function generateMetadata({
@@ -182,10 +187,7 @@ export default async function SektorSayfasi({ params }: { params: Promise<Parame
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri(sektor)) }}
-      />
+      <YapisalVeri veri={yapisalVeri(sektor)} />
       <SektorIsaretle anahtar={sektor.anahtar} />
 
       {/* ============ İz şeridi ============ */}
@@ -280,135 +282,126 @@ export default async function SektorSayfasi({ params }: { params: Promise<Parame
         </div>
       </section>
 
-      {/* ============ ÇİFT KANAT ============
+      {/* ============ ÇİFT KANAT — iki taraf yan yana, HER KANAT DOLU ======
           Bant farkının KENDİSİ bir bölümdür: koyu = yazılım, kâğıt =
           stüdyo. Ziyaretçi iki tarafın ayrı olduğunu okumadan ÖNCE
-          görür. İki kanadın arasındaki sert kesik tek `clip-path`. */}
+          görür. İki kanadın arasındaki sert kesik tek `clip-path`.
+
+          Eskiden burada yalnız iki dev kelime dururdu; maddeler iki ayrı
+          bantta AŞAĞIDA tekrar ederdi. Sonuç: kelimelerin altında ve
+          bölümün ardında yüzlerce piksel ölü boşluk, üstelik aynı sayı
+          ("09 parça") üç ayrı yerde. Artık maddeler kelimenin HEMEN
+          ALTINDA; bölümün yüksekliğini içerik belirliyor, sabit
+          `min-height` yok. Kanatların kimliği değişmedi: koyu taraf veri
+          hücresi, kâğıt taraf editoryal satır. */}
       <section
         className="af-bant af-bant--kagit af-bant--ustsuz af-bant--altsiz"
         aria-label="İki kanat"
+        data-akis="veri"
       >
         <div className="af-kap af-kap--tasma">
           <div className="af-kanat">
-            <a className="af-kanat-yari af-kanat-yari--koyu" href="#web">
+            {/* ---------- Yazılım kanadı: koyu zemin, veri hücreleri ---------- */}
+            <div className="af-kanat-yari af-kanat-yari--koyu" id="web">
               <p className="af-kanat-rozet">
                 <span>Yazılım kanadı</span>
                 <span>{ikiBasamak(sektor.webTarafi.maddeler.length)} parça</span>
               </p>
               <p className="af-kanat-dev" aria-hidden="true">Yazılım</p>
-              <span className="af-kanat-alt">
-                Web sitesi tarafı
-                <IkonOk />
-              </span>
-            </a>
-            <a className="af-kanat-yari af-kanat-yari--kagit" href="#sosyal">
+              <p className="af-kanat-alt">Web sitesi tarafı</p>
+              <h2 className="af-kanat-bas">{sektor.webTarafi.baslik}</h2>
+              <p className="af-kanat-giris">
+                Aşağıdakiler hazır bir şablonun özellikleri değil; işin akışına göre seçtiğimiz
+                parçalar. Hangisi sizin için gerekli, görüşmede birlikte işaretliyoruz.
+              </p>
+              <p className="af-sk-veri-bas">
+                <span>Seçmeli · şablon değil</span>
+              </p>
+              {/* Numaralar sıra değil, okumayı kolaylaştıran sayaç: aria-hidden. */}
+              <ul className="af-sektor-veri">
+                {sektor.webTarafi.maddeler.map((madde, i) => (
+                  <li
+                    key={madde}
+                    data-belir
+                    style={{ ['--i' as string]: Math.min(i, 6) } as React.CSSProperties}
+                  >
+                    <span className="af-sektor-veri-no" aria-hidden="true">
+                      {ikiBasamak(i + 1)}
+                    </span>
+                    <span>{madde}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* ---------- Stüdyo kanadı: kâğıt zemin, editoryal satır ---------- */}
+            <div className="af-kanat-yari af-kanat-yari--kagit" id="sosyal">
               <p className="af-kanat-rozet">
                 <span>Stüdyo kanadı</span>
                 <span>{ikiBasamak(sektor.sosyalTarafi.maddeler.length)} parça</span>
               </p>
               <p className="af-kanat-dev af-sk-gradyan" aria-hidden="true">Stüdyo</p>
-              <span className="af-kanat-alt">
-                Sosyal medya tarafı
-                <IkonOk />
-              </span>
-            </a>
+              <p className="af-kanat-alt">Sosyal medya tarafı</p>
+              <h2 className="af-kanat-bas">{sektor.sosyalTarafi.baslik}</h2>
+              <p className="af-kanat-giris">
+                Çekim, kurgu, paylaşım düzeni ve reklam aynı ekipten çıkıyor; içerikle siteyi
+                birbirine bağlamak için ayrı ajansla konuşmanız gerekmiyor.
+              </p>
+              <ol className="af-sk-studyo-liste">
+                {sektor.sosyalTarafi.maddeler.map((madde, i) => (
+                  <li
+                    key={madde}
+                    data-belir
+                    style={{ ['--i' as string]: Math.min(i, 6) } as React.CSSProperties}
+                  >
+                    <span className="af-sk-studyo-no" aria-hidden="true">
+                      {ikiBasamak(i + 1)}
+                    </span>
+                    <span>{madde}</span>
+                  </li>
+                ))}
+              </ol>
+
+              {kolaj.length ? (
+                <div className="af-sk-kolaj" data-belir="olcek">
+                  {kolaj.map((g) => (
+                    <figure key={g.dosya}>
+                      <span
+                        className="af-sk-kolaj-kutu"
+                        style={{ ['--sk-oran' as string]: g.oran } as React.CSSProperties}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={g.yol}
+                          alt={g.alt}
+                          width={g.genislik}
+                          height={g.yukseklik}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </span>
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                /* Bu sektörde yayımlanabilir çekim arşivimiz yok: stok
+                   fotoğraf koymuyoruz, tipografik çözüme düşüyoruz. */
+                <aside className="af-sk-levha" data-belir="olcek">
+                  <p className="af-sk-levha-bas af-sk-gradyan">{sektor.ad}</p>
+                  <p className="af-sk-levha-metin">{kisaVaat(sektor)}</p>
+                  <p className="af-sk-levha-metin">
+                    İçerik akışı bu sektörde de aynı sırayla yürüyor: çekim, kurgu, paylaşım düzeni
+                    ve bölge hedefli reklam.
+                  </p>
+                  <p className="af-dugme-not af-ust-0">
+                    Yayımlanabilir çekim arşivimiz olmayan sektörlerde stok fotoğraf kullanmıyoruz.
+                  </p>
+                </aside>
+              )}
+            </div>
           </div>
         </div>
       </section>
-
-      {/* ============ YAZILIM KANADI (koyu bant) ============ */}
-      <Bolum
-        bant="koyu"
-        sinif="af-sk-kesik-oncesi"
-        id="web"
-        ustEtiket="Yazılım kanadı"
-        baslik={sektor.webTarafi.baslik}
-        giris="Aşağıdakiler hazır bir şablonun özellikleri değil; işin akışına göre seçtiğimiz parçalar. Hangisi sizin için gerekli, görüşmede birlikte işaretliyoruz."
-        akis="veri"
-      >
-        <p className="af-sk-veri-bas">
-          <span>
-            Kapsam · <b>{ikiBasamak(sektor.webTarafi.maddeler.length)}</b> parça
-          </span>
-          <span>Seçmeli · şablon değil</span>
-        </p>
-        {/* Numaralar sıra değil, okumayı kolaylaştıran sayaç: aria-hidden. */}
-        <ul className="af-sektor-veri">
-          {sektor.webTarafi.maddeler.map((madde, i) => (
-            <li key={madde} data-belir style={{ ['--i' as string]: Math.min(i, 6) } as React.CSSProperties}>
-              <span className="af-sektor-veri-no" aria-hidden="true">
-                {ikiBasamak(i + 1)}
-              </span>
-              <span>{madde}</span>
-            </li>
-          ))}
-        </ul>
-      </Bolum>
-
-      {/* ============ STÜDYO KANADI (kâğıt bant) ============ */}
-      <Bolum
-        bant="kagit"
-        sinif="af-sk-kesik"
-        id="sosyal"
-        ustEtiket="Stüdyo kanadı"
-        baslik={sektor.sosyalTarafi.baslik}
-        giris="Çekim, kurgu, paylaşım düzeni ve reklam aynı ekipten çıkıyor; içerikle siteyi birbirine bağlamak için ayrı ajansla konuşmanız gerekmiyor."
-        akis="kare"
-      >
-        <div className="af-sk-studyo">
-          <ol className="af-sk-studyo-liste">
-            {sektor.sosyalTarafi.maddeler.map((madde, i) => (
-              <li
-                key={madde}
-                data-belir
-                style={{ ['--i' as string]: Math.min(i, 6) } as React.CSSProperties}
-              >
-                <span className="af-sk-studyo-no" aria-hidden="true">
-                  {ikiBasamak(i + 1)}
-                </span>
-                <span>{madde}</span>
-              </li>
-            ))}
-          </ol>
-
-          {kolaj.length ? (
-            <div className="af-sk-kolaj" data-belir="olcek">
-              {kolaj.map((g) => (
-                <figure key={g.dosya}>
-                  <span
-                    className="af-sk-kolaj-kutu"
-                    style={{ ['--sk-oran' as string]: g.oran } as React.CSSProperties}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={g.yol}
-                      alt={g.alt}
-                      width={g.genislik}
-                      height={g.yukseklik}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </span>
-                </figure>
-              ))}
-            </div>
-          ) : (
-            /* Bu sektörde yayımlanabilir çekim arşivimiz yok: stok
-               fotoğraf koymuyoruz, tipografik çözüme düşüyoruz. */
-            <aside className="af-sk-levha" data-belir="olcek">
-              <p className="af-sk-levha-bas af-sk-gradyan">{sektor.ad}</p>
-              <p className="af-sk-levha-metin">{kisaVaat(sektor)}</p>
-              <p className="af-sk-levha-metin">
-                İçerik akışı bu sektörde de aynı sırayla yürüyor: çekim, kurgu, paylaşım düzeni ve
-                bölge hedefli reklam.
-              </p>
-              <p className="af-dugme-not af-ust-0">
-                Yayımlanabilir çekim arşivimiz olmayan sektörlerde stok fotoğraf kullanmıyoruz.
-              </p>
-            </aside>
-          )}
-        </div>
-      </Bolum>
 
       {/* ============ ÖRNEK İŞ — yalnız gerçekten varsa ============ */}
       {vaka && sektor.ornekIs ? (

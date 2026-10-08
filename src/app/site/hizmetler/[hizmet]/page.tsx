@@ -7,6 +7,7 @@ import SSS from '@/components/site/SSS';
 import Video from '@/components/site/Video';
 import { CerceveTelefon } from '@/components/site/Cerceve';
 import { Ikon, IkonTik, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import {
   BIRINCIL_CAGRI,
@@ -248,10 +249,7 @@ export default async function HizmetSayfasi({ params }: { params: Promise<Parame
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri(hizmet, grup?.ad)) }}
-      />
+      <YapisalVeri veri={yapisalVeri(hizmet, grup?.ad)} />
 
       {/* ============ Site izi + hero: DEVASA TİPOGRAFİ ============ */}
       <div data-alt-cta-gizle>
@@ -508,6 +506,7 @@ export default async function HizmetSayfasi({ params }: { params: Promise<Parame
                   <article
                     className="af-kart af-kart--tikla af-hz-isikli"
                     key={vaka.slug}
+                    data-isik
                     data-belir
                     style={kademe(i)}
                   >
@@ -528,13 +527,15 @@ export default async function HizmetSayfasi({ params }: { params: Promise<Parame
                     <h3 className="af-kart-baslik">{vaka.marka}</h3>
                     <p className="af-kart-metin">{vaka.ozet}</p>
                     <p className="af-kart-alt">
-                      <span className="af-bag-ok">
-                        Çalışmayı okuyun
-                        <Ikon ad="ok" className="af-hz-ok" />
+                      <span className="af-bag-ok" aria-hidden="true">
+                        Çalışmayı oku
+                        <Ikon ad="ok" />
                       </span>
                     </p>
                     <a className="af-kaplayan-bag" href={vakaYolu(vaka)}>
-                      <span className="af-gizli-metin">{`${vaka.marka} — ${vaka.baslik}`}</span>
+                      <span className="af-gizli-metin">
+                        {`${vaka.marka} — ${vaka.baslik} çalışmasını okuyun`}
+                      </span>
                     </a>
                   </article>
                 );
@@ -575,6 +576,7 @@ export default async function HizmetSayfasi({ params }: { params: Promise<Parame
                 className="af-hz-bag-kart af-hz-isikli"
                 href={hizmetYolu(h)}
                 key={h.anahtar}
+                data-isik
                 data-belir
                 style={kademe(i)}
               >

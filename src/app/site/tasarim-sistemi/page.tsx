@@ -270,8 +270,8 @@ export default function TasarimSistemi() {
                 <h3 className="af-kart-baslik">QR dijital menü</h3>
                 <p className="af-kart-metin">Çok dilli menü, arama, alerjen filtresi, anında fiyat güncelleme.</p>
                 <p className="af-kart-alt">
-                  <span className="af-bag-ok">
-                    Hizmeti gör
+                  <span className="af-bag-ok" aria-hidden="true">
+                    İncele
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
                       <path d="M4.5 12h15M13.5 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

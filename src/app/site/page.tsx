@@ -39,12 +39,14 @@ import AkisKarti, { type KartOnerisi, type KartSektoru } from '@/components/site
 import EksikSecici, { type EksikSecenegi } from '@/components/site/anasayfa/EksikSecici';
 import SektorKapisi, { type SektorSecenegi } from '@/components/site/anasayfa/SektorKapisi';
 import QrKod from '@/components/site/anasayfa/QrKod';
+import Isik from './iletisim/_ortak/Isik';
 import {
   EKSIK_HIZMETI,
   HIZMET_GRUPLARI,
   HIZMET_IKONU,
   hizmetinSektorleri,
 } from '@/components/site/anasayfa/veri';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import '../../components/site/anasayfa/anasayfa.css';
 
 /* ================================================================== */
@@ -197,6 +199,7 @@ function HizmetKarti({ anahtar, sira }: { anahtar: string; sira: number }) {
     <article
       className="af-kart af-kart--tikla af-as-hizmet"
       data-sektor-oneri={hizmetinSektorleri(anahtar) || undefined}
+      data-isik
       data-belir
       style={{ ['--i' as string]: Math.min(sira, 6) } as React.CSSProperties}
     >
@@ -210,12 +213,12 @@ function HizmetKarti({ anahtar, sira }: { anahtar: string; sira: number }) {
       <p className="af-kart-metin">{hizmet.ozet}</p>
       <p className="af-kart-alt">
         <span className="af-bag-ok" aria-hidden="true">
-          Hizmeti gör
+          İncele
           <IkonOk />
         </span>
       </p>
       <a className="af-kaplayan-bag" href={hizmetYolu(hizmet)}>
-        <span className="af-gizli-metin">{hizmet.ad} hizmetini görün</span>
+        <span className="af-gizli-metin">{hizmet.ad} hizmetini inceleyin</span>
       </a>
     </article>
   );
@@ -261,10 +264,7 @@ export default function AnaSayfa() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ============ 1 · GİRİŞ: HARF KADRAJI ============
           İKİ PLAKA (siyah → beyaz), blend knockout ile harflerin İÇİNDEN
@@ -408,6 +408,7 @@ export default function AnaSayfa() {
                   <article
                     className="af-kart af-kart--tikla af-as-hizmet"
                     data-sektor-oneri="oto-galeri"
+                    data-isik
                     data-belir
                     style={{ ['--i' as string]: 1 } as React.CSSProperties}
                   >
@@ -426,7 +427,7 @@ export default function AnaSayfa() {
                     </p>
                     <p className="af-kart-alt">
                       <span className="af-bag-ok" aria-hidden="true">
-                        Yazılım tarafını gör
+                        İncele
                         <IkonOk />
                       </span>
                     </p>
@@ -536,6 +537,7 @@ export default function AnaSayfa() {
                 <article
                   className="af-kart af-kart--tikla af-kat-2"
                   key={is.ad}
+                  data-isik
                   data-belir
                   style={{ ['--i' as string]: i } as React.CSSProperties}
                 >
@@ -599,7 +601,7 @@ export default function AnaSayfa() {
       >
         <div className="af-kaydir">
           {VAKALAR.map((vaka, i) => (
-            <article className="af-kart af-kart--tikla af-as-is" key={vaka.slug}>
+            <article className="af-kart af-kart--tikla af-as-is" key={vaka.slug} data-isik>
               <VakaGorseli vaka={vaka} sira={i} />
               <div className="af-as-is-marka">
                 <p className="af-mono-etiket">{vaka.sektor}</p>
@@ -608,7 +610,7 @@ export default function AnaSayfa() {
               <p className="af-kart-metin">{vaka.baslik}</p>
               <p className="af-kart-alt">
                 <span className="af-bag-ok" aria-hidden="true">
-                  Çalışmayı gör
+                  Çalışmayı oku
                   <IkonOk />
                 </span>
               </p>
@@ -803,6 +805,12 @@ export default function AnaSayfa() {
           </div>
         </div>
       </section>
+
+      {/* İmleç ışığı: `[data-isik]` ve `.af-kart--tikla` kartlarında havuz
+          imleci izler. TEK `pointermove` dinleyicisi, rAF ile kısıtlı;
+          dokunmatikte ve saveData/2g'de hiç kurulmaz. Gelmezse havuz
+          kartın üst kenarından açılır (site.css kart katmanı). */}
+      <Isik />
     </>
   );
 }

@@ -1,0 +1,670 @@
+/* =====================================================================
+   OTO GALERİ SUNUM SAYFASI — /sektorler/oto-galeri
+
+   KAPSAM KİLİDİ: bütün seçiciler `.af-og` kökünün altında. Paylaşılan
+   tasarım sistemi sınıflarına (`.af-kart`, `.af-cerceve-*`, `.af-tikli`)
+   dokunan her kural da `.af-og` ile başlar; başka bir ajanın sayfasına
+   sızamaz.
+
+   KULLANILAN KATMANLAR
+   · `site.css`  — bant, kart, çerçeve, veri şeridi, tik listesi
+   · `plaka.css` — plaka, harf kadrajı, grain, ışık havuzu, kesik kenar
+     (sayfanın kökü `af-kr` taşıdığı için o dosyanın kapsamlı kuralları
+      da burada geçerli)
+
+   YENİ RENK / RADIUS / GÖLGE İCAT EDİLMEDİ: hepsi `--af-*` token.
+
+   PERFORMANS SÖZLEŞMESİ
+   · Her görsel kutusu `aspect-ratio` ile önceden rezerve → CLS 0.
+   · Yatay kaydırma yalnız `.af-og-tel-sira` içinde ve kendi kutusunda;
+     sayfa gövdesi 360–430 px arasında ASLA yana kaymaz.
+   · Dokunma hedefleri ≥ 44 px.
+   · Hareket yalnız geçişlerden ibaret; `prefers-reduced-motion`
+     site.css'teki genel kuralla zaten kapanıyor.
+   ===================================================================== */
+
+/* =====================================================================
+   1. PLAKA — giriş
+   ===================================================================== */
+
+.af-og .af-og-etiket {
+  margin-block-start: var(--af-b-24);
+}
+
+/* Harf kadrajının hemen altındaki gerçek başlık. Kadraj dekoratif
+   (aria-hidden); bilgi burada. */
+.af-og .af-og-bas {
+  margin-block-start: var(--af-b-12);
+  font-size: clamp(1.625rem, 1.08rem + 2.4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  max-width: 18ch;
+}
+
+.af-og .af-og-giris {
+  margin-block-start: var(--af-b-16);
+  max-width: 54ch;
+}
+
+/* ---- Üç paket rayı — katlama çizgisinin ÜSTÜNDE durur -------------- */
+
+.af-og-ray {
+  display: grid;
+  gap: var(--af-b-8);
+  margin: var(--af-b-24) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+/* Geniş ekranda üçü yan yana: tek kolonda üç satır, 1200 px'lik
+   kapsayıcıda ortasını boş bırakıyordu. */
+@media (min-width: 880px) {
+  .af-og-ray {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 1000px;
+  }
+}
+
+.af-og-ray > li {
+  display: flex;
+}
+.af-og-ray > li > a {
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--af-b-12);
+  min-height: 56px;
+  padding: var(--af-b-12) var(--af-b-16);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: color-mix(in srgb, var(--af-metin) 5%, transparent);
+  color: var(--af-metin);
+  text-decoration: none;
+  transition: border-color var(--af-gecis), background-color var(--af-gecis);
+}
+
+@media (hover: hover) {
+  .af-og-ray > li > a:hover {
+    border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 55%, transparent);
+    background: var(--af-vurgu-sis);
+  }
+  .af-og-ray > li > a:hover svg {
+    transform: translateX(3px);
+  }
+}
+
+.af-og-ray svg {
+  width: 18px;
+  height: 18px;
+  color: var(--af-vurgu);
+  flex: none;
+  transition: transform var(--af-gecis);
+}
+
+.af-og-ray-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  color: var(--af-vurgu);
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-veri);
+  padding: 2px 6px;
+}
+
+.af-og-ray-metin {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.af-og-ray-metin > b {
+  font-family: var(--af-yazi-baslik);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-size: var(--af-y-h4);
+  line-height: 1.2;
+}
+.af-og-ray-metin > span {
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-3);
+  line-height: 1.35;
+}
+
+/* =====================================================================
+   2. EKRAN GÖRÜNTÜLERİ — ortak iskelet
+   `<picture>` kullandığımız için site.css'in `.af-cerceve-ekran > img`
+   kuralı eşleşmiyor; aynı davranışı burada kuruyoruz.
+   ===================================================================== */
+
+.af-og .af-og-ekran {
+  margin: 0;
+}
+
+/* MUTLAK KONUM, `height: 100%` DEĞİL — ölçülen hata:
+   dizüstü kapağının ekranı yüksekliğini `aspect-ratio`dan alıyor
+   (`height: auto`), bu yüzden yüzdelik yükseklik sıfıra düşüyor ve
+   çerçevenin içi bembeyaz kalıyordu. `inset: 0` her iki çerçevede de
+   (telefon: sabit yükseklik, dizüstü: oran) doğru çalışır. */
+.af-og .af-cerceve-ekran > picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.af-og .af-cerceve-ekran > picture > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* TELEFON ÇERÇEVESİNİN ORANI EKRANA TAŞINIR.
+   Ölçülen hata: çerçevenin kendisi `aspect-ratio: 390/844` ama 10px'lik
+   iç boşluk ekranın oranını 0,436'ya düşürüyor; `cover` da her iki yandan
+   ~%3 kırpıyor ve arayüzün sol kenar boşluğu yenmiş görünüyor (May Motors
+   logosu çerçeveye yapışıyordu). Oranı ekrana verince kırpma sıfır olur;
+   yükseklik yine CSS'ten geldiği için kutu önceden rezerve edilir (CLS 0). */
+.af-og .af-cerceve-telefon {
+  aspect-ratio: auto;
+}
+.af-og .af-cerceve-telefon .af-cerceve-ekran {
+  aspect-ratio: 390 / 844;
+  height: auto;
+}
+
+/* Dizüstü tabanı kapaktan %12 geniş (`--af-diz-g` + `-6%` kaydırma).
+   Kapak kolonu tam doldurursa taban kenardan taşar ve `overflow-x:
+   clip` tarafından kesilir; %92'de taban da kolonun içinde kalır. */
+.af-og .af-cerceve-dizustu {
+  width: min(var(--af-diz-g, 760px), 92%);
+  margin-inline: auto;
+}
+
+/* Altyazı + "örnek veri" damgası tek satırda. */
+.af-og-altyazi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--af-b-8);
+  margin-block-start: var(--af-b-12);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+  text-align: center;
+}
+
+/* Çerçevesiz kutu — kapak yerine ince kenar. Oran ekranın GERÇEK
+   oranıdır (1400×875 = 16/10), yani kırpma yok ve kutu önceden
+   rezerve edilmiş olur. */
+.af-og-kutu {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-kart);
+  background: color-mix(in srgb, var(--af-metin) 6%, transparent);
+  box-shadow: var(--af-kart-golge);
+}
+.af-og-kutu > picture,
+.af-og-kutu > picture > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: 50% 0;
+}
+.af-og-kutu--dikey {
+  aspect-ratio: 9 / 16;
+}
+
+/* Dizüstü çerçevesi: kolonu doldurur, taşmaz. */
+.af-og .af-og-ekran--genis {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.af-og .af-og-ekran--orta .af-cerceve-dizustu {
+  --af-diz-g: 920px;
+  margin-inline: auto;
+}
+
+/* Cihaz satırı: dizüstü + telefon. Dar ekranda alt alta geçer. */
+.af-og-cihazlar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--af-b-24);
+}
+.af-og-cihazlar > .af-og-ekran--tel {
+  flex: 0 0 auto;
+}
+.af-og-cihazlar .af-cerceve-telefon {
+  --af-tel-g: 200px;
+}
+
+/* Telefon şeridi — dar ekranda kaydırılır (sayfa değil, ŞERİT kayar),
+   geniş ekranda sarmalayan satır olur. */
+.af-og-tel-sira {
+  /* Şeridin tek ölçüsü: hem çerçeve hem figür bunu okur. Figürü telefon
+     genişliğine kilitlemezsek öge genişliği ALTYAZIYA göre büyüyor ve
+     1200 px'lik kolona dört telefon sığmayıp dördüncüsü alt satıra
+     düşüyor (ölçüldü: 4 × ~285 px). */
+  --og-tel: 200px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--af-b-16);
+  margin-block-start: var(--af-b-16);
+  padding-block: var(--af-b-4);
+  padding-inline: var(--af-yan);
+  margin-inline: calc(-1 * var(--af-yan));
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+.af-og-tel-sira::-webkit-scrollbar {
+  display: none;
+}
+.af-og-tel-sira > * {
+  flex: 0 0 var(--og-tel);
+  width: var(--og-tel);
+  scroll-snap-align: center;
+}
+/* `.af-cerceve-telefon` `--af-tel-g`'yi KENDİ kuralında tanımlıyor, yani
+   kalıtım işe yaramaz: aynı değişkeni daha yüksek özgüllükte yazıyoruz. */
+.af-og-tel-sira .af-cerceve-telefon {
+  --af-tel-g: var(--og-tel);
+}
+
+@media (min-width: 860px) {
+  .af-og-tel-sira {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    overflow: visible;
+    padding-inline: 0;
+    margin-inline: 0;
+    gap: var(--af-b-32);
+  }
+}
+@media (min-width: 1100px) {
+  .af-og-tel-sira {
+    --og-tel: 232px;
+  }
+}
+
+/* =====================================================================
+   3. ÜÇ PAKET KARTI
+   ===================================================================== */
+
+.af-og-paketler {
+  display: grid;
+  gap: var(--af-b-24);
+}
+@media (min-width: 720px) {
+  .af-og-paketler {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1080px) {
+  .af-og-paketler {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.af-og .af-og-paket {
+  gap: var(--af-b-16);
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-24));
+}
+
+/* Kartın tepesindeki ekran alanı — `.af-kart-gorsel` ile aynı negatif
+   boşluk mantığı, içinde telefon çerçevesi var. */
+.af-og-paket-ekran {
+  display: flex;
+  justify-content: center;
+  margin: calc(-1 * clamp(var(--af-b-16), 2vw, var(--af-b-24)));
+  margin-block-end: 0;
+  padding: var(--af-b-24) var(--af-b-16) var(--af-b-16);
+  border-radius: calc(var(--af-r-kart) - 1px) calc(var(--af-r-kart) - 1px) 0 0;
+  border-block-end: 1px solid var(--af-kenar-ince);
+  background:
+    radial-gradient(130% 90% at 50% 0%, var(--af-vurgu-sis), transparent 68%),
+    color-mix(in srgb, var(--af-metin) 5%, transparent);
+}
+.af-og-paket-ekran .af-cerceve-telefon {
+  --af-tel-g: min(52vw, 184px);
+}
+@media (min-width: 720px) {
+  .af-og-paket-ekran .af-cerceve-telefon {
+    --af-tel-g: 190px;
+  }
+}
+
+.af-og-paket-ust {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  margin: 0;
+}
+.af-og-paket-no {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--af-vurgu);
+  font-variant-numeric: tabular-nums;
+}
+
+.af-og .af-og-kapsam {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* =====================================================================
+   4. İKİLİ DÜZEN — görsel solda, anlatı sağda
+   ===================================================================== */
+
+.af-og-ikili {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .af-og-ikili {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+}
+
+.af-og .af-og-not {
+  gap: var(--af-b-12);
+}
+/* `.af-kart` bir kolon flex kutusu: `inline-flex` rozet de `stretch`
+   ile kenardan kenara uzuyordu. Rozet kendi genişliğinde kalsın. */
+.af-og .af-og-not > .af-mono-etiket {
+  align-self: flex-start;
+}
+.af-og .af-og-not .af-kart-baslik {
+  line-height: 1.2;
+}
+.af-og .af-og-not--uyari {
+  border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 45%, transparent);
+  max-width: 76ch;
+}
+
+/* =====================================================================
+   5. MAY MOTORS — vaka künyesi
+   ===================================================================== */
+
+.af-og-vaka {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .af-og-vaka {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  }
+}
+
+/* Logo levhası — `maymotors-logo-yatay.svg` BEYAZ dolgulu bir vektör
+   (kaynak dosyanın kendi rengi). Kâğıt bandın üstünde görünmez olduğu
+   için markanın kendi koyu zeminini taşıyan bir levhanın içinde durur.
+   Logoya dokunulmuyor: germe, renk değiştirme, gölge yok. */
+.af-og-logo-levha {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  width: fit-content;
+  padding: var(--af-b-12) var(--af-b-16);
+  border-radius: var(--af-r-kart);
+  background: var(--af-koyu);
+  border: 1px solid var(--af-cizgi-koyu-2);
+  max-width: 100%;
+}
+/* Özgüllük notu: site.css satır 374'teki `.af img { height: auto }`
+   (0,1,1) kuralını geçmek için iki sınıf gerekiyor — yoksa logo kendi
+   iç ölçüsünde (1157 px) basılıyor. */
+.af-og .af-og-logo {
+  width: auto;
+  height: 26px;
+  max-width: 100%;
+}
+
+.af-og-alinti {
+  margin: 0;
+  padding-inline-start: var(--af-b-16);
+  border-inline-start: 2px solid var(--af-vurgu-cizgi);
+  color: var(--af-metin-2);
+}
+.af-og-alinti > p {
+  margin: 0;
+}
+.af-og-alinti-etiket {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
+  margin-block-end: var(--af-b-4) !important;
+}
+
+.af-og-canli {
+  justify-self: center;
+}
+.af-og-canli .af-cerceve-telefon {
+  --af-tel-g: min(68vw, 280px);
+}
+
+/* Veri şeridi: kenardan kenara, mono etiketli. */
+.af-og .af-og-veri {
+  margin-block: 0;
+}
+.af-og .af-og-veri dd {
+  margin: 0;
+}
+
+/* =====================================================================
+   6. SOSYAL MEDYA — stüdyo kanadı (kâğıt bant)
+   ===================================================================== */
+
+.af-og-sosyal {
+  display: grid;
+  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .af-og-sosyal {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+    /* Dikey Reels karesi listeden uzun: `start` hizası solda yüzlerce
+       piksel ölü boşluk bırakıyordu. */
+    align-items: center;
+  }
+}
+
+.af-og-sosyal-liste {
+  display: grid;
+  gap: var(--af-b-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.af-og-sosyal-liste > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--af-b-12);
+  align-items: baseline;
+  padding-block-end: var(--af-b-12);
+  border-block-end: 1px solid var(--af-kenar-ince);
+  font-size: var(--af-y-kucuk);
+  color: var(--af-metin-2);
+}
+.af-og-sosyal-liste > li:last-child {
+  border-block-end: 0;
+  padding-block-end: 0;
+}
+.af-og-sosyal-no {
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  color: var(--af-vurgu);
+  font-variant-numeric: tabular-nums;
+}
+
+.af-og-dikey {
+  justify-self: center;
+  width: min(100%, 260px);
+}
+
+/* =====================================================================
+   7. SÜREÇ — dikey ray
+   ===================================================================== */
+
+.af-og-surec {
+  display: grid;
+  gap: var(--af-b-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+.af-og-surec > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--af-b-16);
+  align-items: start;
+  padding-block-end: var(--af-b-24);
+  border-block-end: 1px solid var(--af-kenar-ince);
+}
+.af-og-surec > li:last-child {
+  border-block-end: 0;
+  padding-block-end: 0;
+}
+.af-og-surec-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-cip);
+  background: var(--af-vurgu-sis);
+  color: var(--af-vurgu);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mini);
+  font-variant-numeric: tabular-nums;
+}
+.af-og .af-og-surec-bas {
+  font-size: var(--af-y-h4);
+  margin-block-end: var(--af-b-4);
+}
+.af-og-surec-cikti {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--af-b-8);
+  margin-block-start: var(--af-b-12);
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-2);
+}
+.af-og-surec-cikti .af-veri-etiket {
+  border: 1px solid var(--af-kenar);
+  border-radius: var(--af-r-veri);
+  padding: 1px 6px;
+}
+
+/* =====================================================================
+   8. ÇAĞRI VE DİZİN
+   ===================================================================== */
+
+.af-og-cagri {
+  display: grid;
+  gap: var(--af-b-16);
+  justify-items: center;
+}
+.af-og-cagri .af-dugmeler {
+  justify-content: center;
+}
+.af-og-cagri .af-dugme-not {
+  text-align: center;
+  max-width: 48ch;
+}
+.af-og-damga-not {
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--af-b-8);
+  max-width: 56ch;
+  margin: 0;
+  font-size: var(--af-y-mini);
+  color: var(--af-metin-3);
+}
+
+.af-og-indeks {
+  display: grid;
+  gap: var(--af-b-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 700px) {
+  .af-og-indeks {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  }
+}
+.af-og-indeks > li > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--af-b-12);
+  min-height: 48px;
+  padding: var(--af-b-12) var(--af-b-16);
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-kart);
+  color: var(--af-metin);
+  text-decoration: none;
+  font-size: var(--af-y-kucuk);
+  transition: border-color var(--af-gecis), background-color var(--af-gecis);
+}
+.af-og-indeks svg {
+  width: 16px;
+  height: 16px;
+  color: var(--af-vurgu);
+  flex: none;
+  transition: transform var(--af-gecis);
+}
+@media (hover: hover) {
+  .af-og-indeks > li > a:hover {
+    border-color: color-mix(in srgb, var(--af-vurgu-cizgi) 45%, transparent);
+    background: var(--af-vurgu-sis);
+  }
+  .af-og-indeks > li > a:hover svg {
+    transform: translateX(3px);
+  }
+}
+
+/* =====================================================================
+   9. ÇAPA KAYDIRMASI — yapışkan üst bar başlığı yemesin
+   ===================================================================== */
+
+.af-og [id] {
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-16));
+}
+
+/* =====================================================================
+   10. YAVAŞ AĞ (`af-hafif`) — süs gradyanları sadeleşir.
+   Görseller zaten `loading="lazy"`; burada yalnız boyama işi azalıyor.
+   ===================================================================== */
+
+.af-hafif .af-og-paket-ekran {
+  background: color-mix(in srgb, var(--af-metin) 5%, transparent);
+}

@@ -5,6 +5,7 @@ import Bolum from '@/components/site/Bolum';
 import Dugme from '@/components/site/Dugme';
 import SSS from '@/components/site/SSS';
 import { Ikon, IkonTik, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import { BIRINCIL_CAGRI, hizmetBul, hizmetYolu } from '@/lib/site-icerik';
 import {
@@ -12,6 +13,7 @@ import {
   icindekiler,
   kelimeSayisi,
   ilgiliYazilar,
+  komsuYazilar,
   kumeBul,
   rehberBul,
   rehberYolu,
@@ -113,16 +115,14 @@ export default async function RehberYazisiSayfasi({ params }: { params: Promise<
   const basliklar = icindekiler(yazi.govde);
   const hizmet = hizmetBul(yazi.ilgiliHizmet);
   const oneriler = ilgiliYazilar(yazi, 2);
+  const { onceki, sonraki } = komsuYazilar(yazi);
   const waBaglanti = whatsappBaglantisi(
     `Merhaba, sitenizdeki “${yazi.baslik}” yazısını okudum. İşletmem için konuşabilir miyiz?`,
   );
 
   return (
     <div className="af-kr">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri(yazi, kume?.ad)) }}
-      />
+      <YapisalVeri veri={yapisalVeri(yazi, kume?.ad)} />
 
       {/* ================================================================
           BAŞLIK — PLAKA
@@ -215,6 +215,27 @@ export default async function RehberYazisiSayfasi({ params }: { params: Promise<
             ))}
           </div>
         </div>
+
+        {/* ---- Önceki / sonraki yazı ----
+            Liste sırasına göre komşular: "önceki" daha yeni, "sonraki" daha
+            eski yazı. Tek yazı varsa hiç basılmaz; bir tanesi yoksa o taraf
+            boş bırakılmıyor, ızgara tek sütuna düşüyor. */}
+        {onceki || sonraki ? (
+          <nav className="af-rb-komsu" aria-label="Diğer yazılar">
+            {onceki ? (
+              <a className="af-rb-komsu-bag af-rb-komsu-bag--geri" href={rehberYolu(onceki)}>
+                <span className="af-mono-etiket">Önceki yazı</span>
+                <span className="af-rb-komsu-bas">{onceki.baslik}</span>
+              </a>
+            ) : null}
+            {sonraki ? (
+              <a className="af-rb-komsu-bag af-rb-komsu-bag--ileri" href={rehberYolu(sonraki)}>
+                <span className="af-mono-etiket">Sonraki yazı</span>
+                <span className="af-rb-komsu-bas">{sonraki.baslik}</span>
+              </a>
+            ) : null}
+          </nav>
+        ) : null}
       </Bolum>
 
       {/* ============ Yazıya özel SSS ============ */}

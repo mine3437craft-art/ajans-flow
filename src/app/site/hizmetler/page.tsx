@@ -6,6 +6,7 @@ import MarkaSeridi from '@/components/site/MarkaSeridi';
 import SSS from '@/components/site/SSS';
 import { CerceveTelefon } from '@/components/site/Cerceve';
 import { Ikon, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import {
   ANA_SAYFA,
@@ -30,6 +31,7 @@ import {
 } from './gruplar';
 import { Duvar, HeroDuzlemi, kadrajKat } from './kadraj';
 import { hizmetMedyasi } from './medya';
+import Isik from '../iletisim/_ortak/Isik';
 import './sayfa.css';
 
 const YOL = '/hizmetler';
@@ -106,7 +108,12 @@ const HERO_SATIRLARI = [
 /* ==================================================================== */
 function HizmetKarti({ hizmet, sira }: { hizmet: Hizmet; sira: number }) {
   return (
-    <article className="af-kart af-kart--tikla af-hz-isikli" data-belir style={kademe(sira)}>
+    <article
+      className="af-kart af-kart--tikla af-hz-isikli"
+      data-isik
+      data-belir
+      style={kademe(sira)}
+    >
       <div className="af-hz-kart-ust">
         <span className="af-ikon-kutu">
           <Ikon ad={hizmetIkonu(hizmet.anahtar)} />
@@ -115,13 +122,13 @@ function HizmetKarti({ hizmet, sira }: { hizmet: Hizmet; sira: number }) {
       </div>
       <p className="af-kart-metin">{hizmet.ozet}</p>
       <p className="af-kart-alt">
-        <span className="af-bag-ok">
-          Hizmeti gör
-          <Ikon ad="ok" className="af-hz-ok" />
+        <span className="af-bag-ok" aria-hidden="true">
+          İncele
+          <Ikon ad="ok" />
         </span>
       </p>
       <a className="af-kaplayan-bag" href={hizmetYolu(hizmet)}>
-        <span className="af-gizli-metin">{hizmet.ad}</span>
+        <span className="af-gizli-metin">{`${hizmet.ad} hizmetini inceleyin`}</span>
       </a>
     </article>
   );
@@ -303,7 +310,13 @@ function PlakaObegi({ grup, liste }: { grup: HizmetGrubu; liste: Hizmet[] }) {
             {liste.map((h, i) => {
               const m = mozaik[i];
               return (
-                <article className="af-hz-plaka-kart" key={h.anahtar} data-belir style={kademe(i)}>
+                <article
+                  className="af-hz-plaka-kart af-hz-isikli"
+                  key={h.anahtar}
+                  data-isik
+                  data-belir
+                  style={kademe(i)}
+                >
                   {m?.tur === 'telefon' ? (
                     <CerceveTelefon altyazi={m.altyazi} boy="kucuk">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -321,13 +334,13 @@ function PlakaObegi({ grup, liste }: { grup: HizmetGrubu; liste: Hizmet[] }) {
                   <h3 className="af-hz-plaka-kart-ad">{h.kisaAd}</h3>
                   <p className="af-kart-metin">{h.ozet}</p>
                   <p className="af-kart-alt">
-                    <span className="af-bag-ok">
-                      Hizmeti gör
-                      <Ikon ad="ok" className="af-hz-ok" />
+                    <span className="af-bag-ok" aria-hidden="true">
+                      İncele
+                      <Ikon ad="ok" />
                     </span>
                   </p>
                   <a className="af-kaplayan-bag" href={hizmetYolu(h)}>
-                    <span className="af-gizli-metin">{h.ad}</span>
+                    <span className="af-gizli-metin">{`${h.ad} hizmetini inceleyin`}</span>
                   </a>
                 </article>
               );
@@ -374,7 +387,13 @@ function ImzaObegi({ grup, liste }: { grup: HizmetGrubu; liste: Hizmet[] }) {
           <div className="af-ust-24">
             <GrupUstu sayi={liste.length} rejim="İmza · kimlik" />
             {liste.map((h, i) => (
-              <a className="af-hz-bag-kart af-hz-isikli" key={h.anahtar} href={hizmetYolu(h)} style={kademe(i)}>
+              <a
+                className="af-hz-bag-kart af-hz-isikli"
+                key={h.anahtar}
+                href={hizmetYolu(h)}
+                data-isik
+                style={kademe(i)}
+              >
                 <Ikon ad={hizmetIkonu(h.anahtar)} />
                 {h.ad}
                 <Ikon ad="ok" className="af-hz-ok" />
@@ -443,10 +462,7 @@ export default function HizmetlerHub() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ============ Hero — SİYAH PLAKA + harf kadrajı ============ */}
       <div data-alt-cta-gizle>
@@ -644,6 +660,11 @@ export default function HizmetlerHub() {
           </Dugme>
         </div>
       </Bolum>
+
+      {/* İmleç ışığı: `.af-kart--tikla` / `.af-hz-isikli` kartlarında havuz
+          imleci izler. TEK `pointermove` dinleyicisi, rAF ile kısıtlı;
+          dokunmatikte ve saveData/2g'de hiç kurulmaz. */}
+      <Isik />
     </>
   );
 }

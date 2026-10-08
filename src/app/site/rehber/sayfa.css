@@ -66,6 +66,19 @@
 .af-rb-cipler { margin-block-start: clamp(var(--af-b-24), 3vw, var(--af-b-32)); }
 .af-rb-veri { margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-64)); }
 
+/* Veri şeridindeki tek bağlantı (feed.xml) satır yüksekliği kadar
+   kalıyordu; dokunma hedefini 44 px'e çıkarmak için kutuyu büyütmek
+   yerine görünmez bir örtü seriyoruz — şeridin hizası bozulmasın. */
+.af-rb-veri .af-veri-deger a { position: relative; }
+.af-rb-veri .af-veri-deger a::after {
+  content: '';
+  position: absolute;
+  inset-inline: calc(-1 * var(--af-b-8));
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  height: 44px;
+}
+
 /* Yazı başlığı — uzun olabildiği için hub başlığından bir kademe küçük
    ve ölçüsü geniş; `text-wrap: balance` satırları dengeler. */
 .af-rb-yazi-bas {
@@ -192,8 +205,13 @@
 /* Özgüllük `.af-metin.af-rb-govde` (0,2,0) bilinçli: site.css'teki
    `.af-metin` kuralıyla aynı özgüllükte kalıp dosya sırasına güvenmek
    istemiyoruz. */
+/* ÖLÇÜ: `ch` kullanmıyoruz — bu yazı tipinde "0" glifi geniş ve 68ch
+   tarayıcıda ~84 karakterlik satır veriyordu (uzun metinde göz satır
+   başını kaybediyor). `em` yazı tipinden bağımsız ve ölçülebilir:
+   37em ≈ 629 px ≈ satır başına 70-72 karakter. Değeri değiştirirseniz
+   tarayıcıda ölçüp 60-75 aralığında kaldığını doğrulayın. */
 .af-metin.af-rb-govde {
-  max-width: 68ch;
+  max-width: 37em;
   font-size: var(--af-y-metin);
   line-height: 1.75;
   color: var(--af-metin-2);
@@ -289,6 +307,57 @@
 }
 .af-rb-not > p { margin: 0; }
 
+/* Mevzuat yazılarının başındaki "son kontrol" damgası: aynı kutu, ama
+   kesik kenarlı ki okuyucu bunun içerik değil künye olduğunu anlasın. */
+.af-rb-damga {
+  border-style: dashed;
+  border-inline-start-style: solid;
+  background: transparent;
+}
+
+/* ---- Gövde içindeki alıntı (formül / çekirdek cümle) ----
+   `.af-alinti` site.css'ten geliyor; burada yalnız punto ve nefes. */
+.af-metin.af-rb-govde > blockquote {
+  font-size: clamp(1.0625rem, 0.95rem + 0.6vw, 1.375rem);
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  color: var(--af-metin);
+}
+.af-metin.af-rb-govde > blockquote > p { margin: 0; }
+
+/* ---- Gövde içindeki tablo ----
+   Tablo, metin kolonundan taşabilecek tek öge. Sarmalayıcı yatay
+   kaydırma alıyor; böylece 360 px'te SAYFA kaymıyor, yalnız tablo
+   kayıyor. `th` nowrap'i (site.css) burada çözülüyor, aksi hâlde üç
+   sütunlu başlık satırı dar ekranda taşıyor. */
+.af-rb-tablo {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-veri);
+  padding-inline: var(--af-b-4);
+}
+.af-rb-tablo table { margin: 0; }
+.af-rb-tablo th { white-space: normal; }
+.af-rb-tablo caption {
+  caption-side: top;
+  text-align: start;
+  padding: var(--af-b-12) var(--af-b-12) 0;
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--af-metin-3);
+}
+.af-rb-tablo td { vertical-align: top; }
+
+/* ---- Birincil kaynak listesi (yazının sonu) ----
+   Madde işareti yok: bunlar okuma maddesi değil, künye satırı. */
+.af-metin.af-rb-govde ul.af-rb-kaynaklar { gap: var(--af-b-8); padding-inline-start: 0; }
+.af-rb-kaynaklar > li { font-size: var(--af-y-kucuk); line-height: 1.55; }
+.af-metin.af-rb-govde ul.af-rb-kaynaklar > li::before { content: none; }
+.af-rb-kaynaklar a { overflow-wrap: anywhere; }
+
 .af-rb-etiketler {
   margin-block-start: clamp(var(--af-b-32), 4vw, var(--af-b-48));
   padding-block-start: var(--af-b-24);
@@ -380,4 +449,61 @@
 /* Gövde bandı biraz daha ferah başlar; yapışkan içindekiler için nefes. */
 .af-bant.af-rb-govde-bant {
   padding-block-start: clamp(2.5rem, 1.9rem + 3.2vw, 5rem);
+}
+
+/* =====================================================================
+   6. ÖNCEKİ / SONRAKİ YAZI
+   Yazının sonunda, etiket şeridinin altında. İki kutu; biri yoksa
+   ızgara tek sütuna düşüyor (boş kutu basılmıyor).
+   ===================================================================== */
+
+.af-rb-komsu {
+  display: grid;
+  gap: var(--af-b-12);
+  margin-block-start: var(--af-b-24);
+}
+@media (min-width: 760px) {
+  .af-rb-komsu { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+}
+.af-rb-komsu-bag {
+  display: grid;
+  gap: var(--af-b-8);
+  align-content: start;
+  min-height: 44px;
+  border: 1px solid var(--af-kenar-ince);
+  border-radius: var(--af-r-kart);
+  padding: clamp(var(--af-b-16), 2vw, var(--af-b-24));
+  background: var(--af-kart-zemin);
+  color: var(--af-metin);
+  transition: border-color var(--af-gecis), transform var(--af-gecis);
+}
+/* "Sonraki" kutusu sağa dayanır: yön bilgisi renkle değil hizayla
+   verilsin (renk tek başına bilgi taşımamalı). */
+.af-rb-komsu-bag--ileri { text-align: end; justify-items: end; }
+.af-rb-komsu-bas {
+  font-family: var(--af-yazi-baslik);
+  font-size: clamp(1rem, 0.96rem + 0.3vw, 1.1875rem);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+@media (hover: hover) {
+  .af-rb-komsu-bag:hover { border-color: var(--af-vurgu); }
+  .af-rb-komsu-bag:hover .af-rb-komsu-bas { color: var(--af-vurgu); }
+}
+/* Dönüşüm yalnız harekete izin verildiğinde; site.css'teki genel
+   `prefers-reduced-motion` kuralı süreyi sıfırlıyor, burada hareketi
+   tamamen kaldırıyoruz. */
+@media (prefers-reduced-motion: reduce) {
+  .af-rb-komsu-bag { transition: none; }
+}
+
+/* =====================================================================
+   7. ÇAPA HİZASI
+   Konu öbeği çipleri bölüm çapalarına gidiyor; yapışkan üst bar
+   bölümün başlığını yutmasın diye her çapalı banda pay bırakıyoruz.
+   ===================================================================== */
+.af-kr .af-bant[id] {
+  scroll-margin-block-start: calc(var(--af-ustbar-h) + var(--af-b-16));
 }

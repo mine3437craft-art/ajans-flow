@@ -4,9 +4,7 @@ import { ImageResponse } from 'next/og';
 
 /**
  * flowajans.com bağlantılarının WhatsApp / Instagram / Google önizleme görseli.
- * Marka sembolü dosyadan okunup veri adresi olarak gömülüyor (ağ isteği yok).
- * Türkçe karakterler için yazı tipi Google Fonts'tan yalnızca kullanılan
- * harflerle indiriliyor; indirilemezse görsel yine üretiliyor.
+ * Marka sembolü ve yazı tipi dosyadan okunuyor — HİÇ ağ isteği yok.
  */
 
 export const alt = 'Ajans Flow — Sosyal Medya Ajansı ve Yazılım · İstanbul / 4.Levent';
@@ -22,22 +20,22 @@ const METIN = {
   konum: 'İstanbul / 4.Levent',
 };
 
-const HARFLER = Object.values(METIN).join(' ');
-
-async function yaziTipi(agirlik: number): Promise<ArrayBuffer | null> {
-  try {
-    const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@${agirlik}&text=${encodeURIComponent(HARFLER)}`,
-      { signal: AbortSignal.timeout(5000) },
-    );
-    if (!css.ok) return null;
-    const kaynak = (await css.text()).match(/src:\s*url\(([^)]+)\)\s*format\('(?:opentype|truetype)'\)/)?.[1];
-    if (!kaynak) return null;
-    const dosya = await fetch(kaynak, { signal: AbortSignal.timeout(5000) });
-    return dosya.ok ? await dosya.arrayBuffer() : null;
-  } catch {
-    return null;
-  }
+/**
+ * Yazı tipi DEPODAN okunuyor — ağ isteği yok.
+ *
+ * ÖNCE Google Fonts'tan `&text=` ile indiriliyordu. Ağ erişilemediğinde
+ * `fonts` dizisi boş kalıyor, satori de "No fonts are loaded" diye
+ * PATLIYORDU: bu rota prerender edildiği için DERLEMEYİ Google Fonts'a
+ * bağımlı kılıyordu (ağ kesikken `next build` burada ölüyordu).
+ *
+ * Dosyalar artık depoda: google/fonts deposundaki değişken Plus Jakarta
+ * Sans'tan fontTools ile 600/800 sabit örnekleri üretildi; alt küme ASCII
+ * + tüm Türkçe harfler + işaretler (≈17 KB/dosya). satori woff2 OKUMAZ,
+ * bu yüzden TTF.
+ */
+async function yaziTipi(agirlik: 600 | 800): Promise<ArrayBuffer> {
+  const d = await readFile(join(process.cwd(), `public/yazi/plus-jakarta-sans-${agirlik}.ttf`));
+  return new Uint8Array(d).buffer;
 }
 
 /** Marka sembolü: public klasöründen okunup base64 veri adresine çevriliyor. */
@@ -52,7 +50,7 @@ async function sembol(): Promise<string | null> {
 
 export default async function Gorsel() {
   const [kalin, orta, logo] = await Promise.all([yaziTipi(800), yaziTipi(600), sembol()]);
-  const aile = kalin || orta ? 'Jakarta' : 'sans-serif';
+  const aile = 'Jakarta';
 
   return new ImageResponse(
     (
@@ -109,8 +107,8 @@ export default async function Gorsel() {
     {
       ...size,
       fonts: [
-        ...(kalin ? [{ name: 'Jakarta', data: kalin, weight: 800 as const, style: 'normal' as const }] : []),
-        ...(orta ? [{ name: 'Jakarta', data: orta, weight: 600 as const, style: 'normal' as const }] : []),
+        { name: 'Jakarta', data: kalin, weight: 800 as const, style: 'normal' as const },
+        { name: 'Jakarta', data: orta, weight: 600 as const, style: 'normal' as const },
       ],
     },
   );

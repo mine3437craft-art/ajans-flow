@@ -1,10 +1,24 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
 // Uygulamanın kendi sunucusundan, önceden yüklenerek gelir: Google Fonts
 // stil dosyası sayfanın ilk çizimini bekletiyordu (özellikle tanıtım sitesi).
-const inter = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-inter', display: 'swap' });
+//
+// Dosya DEPODA: `next/font/google` derleme anında fonts.googleapis.com'a
+// gidiyordu ve Turbopack'in o indirmesinde bir yarış durumu var (aynı
+// kaynakla 6 derlemeden 2'si patlıyordu). Artık derleme ağa çıkmıyor.
+// `./fonts/inter.woff2`, google/fonts deposundaki değişken Inter'den
+// fontTools ile üretildi: `opsz` Google'ın sunduğu gibi varsayılanda
+// sabit, `wght` 100–900 değişken (aralık fontun fvar tablosundan okundu),
+// alt küme `latin` + `latin-ext` birleşimi (Türkçe ş ğ ı İ dahil).
+const inter = localFont({
+  src: './fonts/inter.woff2',
+  weight: '100 900',
+  style: 'normal',
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 // Paylaşım kartlarındaki (og:image, og:url) göreli adresler bununla tam
 // adrese çevrilir. Vercel üretim adresini kendisi verir.

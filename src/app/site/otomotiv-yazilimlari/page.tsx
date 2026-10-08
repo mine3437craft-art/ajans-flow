@@ -4,6 +4,7 @@ import Dugme from '@/components/site/Dugme';
 import SSS from '@/components/site/SSS';
 import { CerceveTelefon } from '@/components/site/Cerceve';
 import { Ikon, IkonOk, IkonTik, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import {
   medyaYolu,
@@ -97,10 +98,7 @@ export default function OtomotivYazilimlari() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
       <AkisKaydi sektor={sektor?.anahtar ?? 'oto-galeri'} />
 
       {/* ====================== Kahraman PLAKASI ======================

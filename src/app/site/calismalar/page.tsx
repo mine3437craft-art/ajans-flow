@@ -3,6 +3,7 @@ import Bolum from '@/components/site/Bolum';
 import Dugme from '@/components/site/Dugme';
 import MarkaSeridi from '@/components/site/MarkaSeridi';
 import { IkonOkAsagi, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ANA_SAYFA, BIRINCIL_CAGRI, VAKALAR } from '@/lib/site-icerik';
 import { siteYolu, whatsappBaglantisi } from '@/lib/site';
 import Duvar from './Duvar';
@@ -113,10 +114,7 @@ function yapisalVeri() {
 export default function CalismalarSayfasi() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
       <style>{URETILEN_CSS}</style>
 
       {/* ============================================================

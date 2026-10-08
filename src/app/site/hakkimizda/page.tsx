@@ -10,6 +10,7 @@ import {
   IkonTik,
   IkonWhatsApp,
 } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, MARKA, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import { ANA_SAYFA, BIRINCIL_CAGRI, HAKKIMIZDA, HIZMETLER, SEKTORLER } from '@/lib/site-icerik';
 import Iz from '../iletisim/_ortak/Iz';
@@ -69,10 +70,7 @@ export default function HakkimizdaSayfasi() {
 
   return (
     <div className="af-kr">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ================================================================
           GİRİŞ — PLAKA (sayfanın tek plakası)

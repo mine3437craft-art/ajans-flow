@@ -16,6 +16,7 @@ import {
   IkonTik,
   IkonWhatsApp,
 } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, MARKA, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import {
   QR_MENU_BILGI,
@@ -196,10 +197,7 @@ const MODULLER = [
 export default function QrMenuSayfasi() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ============ 1 · Hero PLAKASI (yazılım kanadı) ============
           Plaka = başlık anı (SITE-GIRIS.md): saf siyah zemin, tek ışık

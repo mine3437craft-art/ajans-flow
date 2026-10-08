@@ -1,5 +1,5 @@
 import type { CSSProperties, JSX } from 'react';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import './tanitim.css';
 
 import type { Iletisim, Kisisel } from './tipler';
@@ -64,9 +64,26 @@ import OnceSonra from './OnceSonra';
 import QrMenu from './QrMenu';
 import Sss from './Sss';
 
-/** Başlık yazı tipi: Türkçe karakterler için latin-ext şart. */
-const baslikYazisi = Plus_Jakarta_Sans({
-  subsets: ['latin', 'latin-ext'],
+/**
+ * Başlık yazı tipi: Türkçe karakterler için latin-ext şart.
+ *
+ * Dosya DEPODA (`next/font/local`): `next/font/google` derleme anında
+ * fonts.googleapis.com'a gidiyordu ve Turbopack'in o indirmesinde bir
+ * yarış durumu var — aynı kaynakla 6 derlemeden 2'si patlıyordu. Artık
+ * derleme hiç ağ isteği yapmıyor. `./fonts/plus-jakarta-sans.woff2`,
+ * google/fonts deposundaki değişken fonttan fontTools ile üretildi:
+ * `wght` 200–800 (aralık fontun fvar tablosundan okundu), alt küme
+ * `latin` + `latin-ext` birleşimi — ş ğ ı İ ö ü ç dahil.
+ */
+/* DİKKAT: Turbopack `next/font/local` ailesini JS DEĞİŞKEN ADINDAN
+   üretiyor (webpack'teki gibi hash'lemiyor). Bu yüzden değişken adları
+   proje genelinde TEKİL olmak zorunda: aynı adı kullanan iki çağrı aynı
+   `font-family` adını ve aynı `… Fallback` yüzünü üretir, biri diğerini
+   ezer. Adı değiştirirken bunu unutmayın. */
+const tanitimBaslikYazisi = localFont({
+  src: './fonts/plus-jakarta-sans.woff2',
+  weight: '200 800',
+  style: 'normal',
   variable: '--tn-font-baslik',
   display: 'swap',
 });
@@ -116,7 +133,7 @@ export default function TanitimSayfasi({
   const yil = new Date().getFullYear();
 
   return (
-    <div id={KOK_ID} className={`tn ${baslikYazisi.variable}`} suppressHydrationWarning>
+    <div id={KOK_ID} className={`tn ${tanitimBaslikYazisi.variable}`} suppressHydrationWarning>
       <script dangerouslySetInnerHTML={{ __html: KAPI_BETIGI }} />
       <a className="tn-atla" href="#tn-icerik">
         İçeriğe geç

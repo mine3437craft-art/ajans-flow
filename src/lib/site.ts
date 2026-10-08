@@ -36,8 +36,12 @@ export function siteSunucusuMu(host: string | null | undefined): boolean {
  * Alan adı tanımlıysa o, değilse Vercel adresi kullanılır.
  */
 export function siteAdresi(): string {
-  const alan = siteSunuculari().find((h) => !h.startsWith('www.')) ?? siteSunuculari()[0];
-  if (alan) return `https://${alan}`;
+  // Alan adı Vercel'e BAĞLANDIĞINDA ortam değişkeni verilir:
+  //   SITE_ADRES="https://flowajans.com"
+  // O güne kadar canonical/sitemap Vercel adresini gösterir; aksi hâlde
+  // Google çözülmeyen bir alan adına canonical görür ve hiçbir sayfa indekslenmez.
+  const elle = (process.env.SITE_ADRES ?? '').trim().replace(/\/$/, '');
+  if (elle) return elle;
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   return vercel ? `https://${vercel}${SITE_KOK}` : `http://localhost:3000${SITE_KOK}`;
 }

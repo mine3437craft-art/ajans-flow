@@ -1,0 +1,133 @@
+{
+  "aciklama": "Oto galeri sunum sayfasında (/sektorler/oto-galeri) kullanılan yazılım ekran görüntüleri. Kaynak: ~/Desktop/AJANSFLOW_EKRANLAR (bkz. EKRANLAR.md). Her ekran yerel kurulumda ve YALNIZ DEMO VERİYLE çekildi: plakalar '34 DEMO 01' biçiminde, ortak adları 'Ortak A/B/C', satıcı 'Demo Satıcı', telefon '0500 000 00 00'. Hiçbir uygulama canlı sunucuya bağlanmadı; görünen tutar, tarih ve araç bilgilerinin hepsi örnektir. Sayfada her görselin yanında 'örnek veri' damgası zorunludur.",
+  "uretim": "sips -Z <uzunKenar> (masaüstü 1280, telefon 844 = kendi ölçüsü) → .avif (formatOptions 70) + .jpg (formatOptions 74) yedek. Sayfada <picture> ile AVIF önce, JPEG yedek. DİKKAT: macOS sips, uzun kenarı 1280 pikseli AŞAN görselleri döşemeli (grid) AVIF olarak yazıyor ve Chromium bu dosyaları BOŞ çiziyor (tarayıcıda ölçüldü: 1400 px bozuk, 1280 px sağlam). Masaüstü ekranları bu yüzden 1280×800.",
+  "dogrulama": "Her görsel tek tek açılıp kontrol edildi: gerçek plaka, gerçek kişi adı veya gerçek telefon numarası görünmüyor; tutarlar demo veriden üretilmiştir. DİKKAT: bu bir \"hiçbir hassas bilgi yok\" garantisi DEĞİL — ekranlarda müşterinin uygulama kullanıcı adı (maymotors), demo kasa bakiyeleri ve otomobil marka adları görünebiliyor. Sayfaya yeni ekran eklenirken her kare yeniden açılıp bakılmalı; künyeye güvenilmemeli.",
+  "kullanilmayanlar": [
+    {
+      "dosya": "03-sahibinden-agent-*.png",
+      "neden": "Terminal çıktısı; pencere başlığında ve komut isteminde üçüncü marka adı büyük görünüyor. Sayfada 'otomatik veri çekme / senkronizasyon' izlenimi doğurmaması için hiç kullanılmadı."
+    },
+    {
+      "dosya": "01-may-ai-raporlar-masaustu.png",
+      "neden": "Rapor başlığında 'Kaynak: sahibinden.com ilan örneklemi' yazıyor. SITE-BRIEF.md §8.1 gereği veri çekme iddiası doğuracak her görsel elendi."
+    },
+    {
+      "dosya": "04-maymotors-arac-sat-secim-telefon.png",
+      "neden": "Telefonda basamaklı sütunların ilki kesiliyor ve siyah bir dikdörtgen olarak kalıyor; kırık görünüyor."
+    },
+    {
+      "dosya": "04-maymotors-ilan-sihirbazi-fiyat-telefon.png",
+      "neden": "SONRADAN ÇIKARILDI (7 Ekim 2026). Karede galerinin alış teklif aralığı açıkça yazılı: \"Alış teklif aralığımız · piyasanın %10-15 altı · 490.000 - 520.000\". Bu sayfa galericilere açık bir sunum sayfası; müşterinin alım marjını yayınlamayız. Ayrıca aynı karede hedef ilan sitesinin adı iki yerde geçiyor (\"22 ... ilanı\" ve \"... İLAN NO\" etiketi) ve SITE-BRIEF §8.1'in temkinli dil kuralına aykırı duruyor. İlan sihirbazı sayfada artık üç adımla anlatılıyor."
+    }
+  ],
+  "dosyalar": [
+    {
+      "dosya": "maymotors-aracini-sat-fiyat-telefon",
+      "kaynak": "04-maymotors-arac-sat-fiyat-telefon.png",
+      "yazilim": "MAY Motors Web (maket)",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "Aracını Sat akışının son adımı: tahmini nakit alış fiyatı ve randevu düğmesi.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "maymotors-aracini-sat-fiyat-masaustu",
+      "kaynak": "04-maymotors-arac-sat-fiyat-masaustu.png",
+      "yazilim": "MAY Motors Web (maket)",
+      "genislik": 1280,
+      "yukseklik": 800,
+      "gosteriyor": "Aracını Sat akışının 5 adımlı rayı ve fiyat tahmini ekranı. Telefon numarası demo (0500 000 00 00).",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "maymotors-ilan-kimlik-telefon",
+      "kaynak": "04-maymotors-ilan-sihirbazi-kimlik-telefon.png",
+      "yazilim": "MAY Motors Web — ilan sihirbazı",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "İlan sihirbazının 1/6 adımı: araç kimliği, marka ve model çipleri.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "maymotors-ilan-hasar-telefon",
+      "kaynak": "04-maymotors-ilan-sihirbazi-hasar-telefon.png",
+      "yazilim": "MAY Motors Web — ilan sihirbazı",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "3/6 adım: kaporta şeması üzerinde orijinal / lokal boyalı / boyalı / değişen işaretleme.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "maymotors-ilan-onizleme-telefon",
+      "kaynak": "04-maymotors-ilan-sihirbazi-onizleme-telefon.png",
+      "yazilim": "MAY Motors Web — ilan sihirbazı",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "İlanın müşteriye nasıl görüneceği: fiyat, rozetler ve teknik özellik tablosu.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-degerleme-masaustu",
+      "kaynak": "01-may-ai-degerleme-masaustu.png",
+      "yazilim": "MAY-Aİ — araç değerleme",
+      "genislik": 1280,
+      "yukseklik": 800,
+      "gosteriyor": "Dükkandaki değerleme ekranı: 13 parçalı kaporta şeması, sonuç, fiyat kırıcılar ve dayanak ilanlar.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-finans-ozet-telefon",
+      "kaynak": "02-may-finans-ozet-telefon.png",
+      "yazilim": "MAY Motors Finans",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "Telefonda günün geliri, gideri ve ayın net kârı.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-finans-kayitlar-telefon",
+      "kaynak": "02-may-finans-kayitlar-telefon.png",
+      "yazilim": "MAY Motors Finans",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "Gelir-gider kayıtları kart görünümünde: kategori, açıklama, ödeme yöntemi.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-finans-veri-girisi-telefon",
+      "kaynak": "02-may-finans-veri-girisi-telefon.png",
+      "yazilim": "MAY Motors Finans",
+      "genislik": 390,
+      "yukseklik": 844,
+      "gosteriyor": "Hızlı gelir-gider kaydı: tür, ödeme yöntemi, tarih, kategori, tutar.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-finans-aylik-analiz-masaustu",
+      "kaynak": "02-may-finans-aylik-analiz-masaustu.png",
+      "yazilim": "MAY Motors Finans",
+      "genislik": 1280,
+      "yukseklik": 800,
+      "gosteriyor": "Yıllık gelir, gider ve net kâr kartları ile 12 aylık trend grafiği.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-finans-arac-alim-satim-masaustu",
+      "kaynak": "02-may-finans-arac-alim-satim-masaustu.png",
+      "yazilim": "MAY Motors Finans",
+      "genislik": 1280,
+      "yukseklik": 800,
+      "gosteriyor": "Araç alım-satım takibi: stok, ciro, net kâr ve araç kartlarında maliyet, ortak payları, muayene tarihi. Plakalar '34 DEMO 01' biçiminde.",
+      "veri": "örnek"
+    },
+    {
+      "dosya": "may-finans-ortak-kasalari-masaustu",
+      "kaynak": "02-may-finans-ortak-kasalari-masaustu.png",
+      "yazilim": "MAY Motors Finans",
+      "genislik": 1280,
+      "yukseklik": 800,
+      "gosteriyor": "Ortak bazında kasa bakiyesi, araç başına ortalama kâr ve avans/para giriş-çıkış geçmişi. Ortak adları 'Ortak A/B/C'.",
+      "veri": "örnek"
+    }
+  ]
+}

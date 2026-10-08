@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Bolum from '@/components/site/Bolum';
 import Dugme from '@/components/site/Dugme';
 import { IkonEposta, IkonTelefon } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, MARKA, siteAdresi, siteYolu } from '@/lib/site';
 import { KVKK_METNI, SON_GUNCELLEME } from '@/lib/site-yasal';
 import Ilerleme from '../iletisim/_ortak/Ilerleme';
@@ -55,10 +56,7 @@ function yapisalVeri() {
 export default function KvkkSayfasi() {
   return (
     <div className="af-kr">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       <div data-alt-cta-gizle>
         <div className="af-bant af-bant--koyu af-bant--altsiz af-bant--sikis">

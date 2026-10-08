@@ -3,6 +3,7 @@ import Bolum from '@/components/site/Bolum';
 import Dugme from '@/components/site/Dugme';
 import MarkaSeridi from '@/components/site/MarkaSeridi';
 import { IkonOk, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { MARKA, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import { BIRINCIL_CAGRI, SEKTORLER, medyaYolu, sektorVakasi, sektorYolu } from '@/lib/site-icerik';
 import { ikiBasamak, kisaVaat, oranaUygun, vakaFotograflari } from './ortak';
@@ -137,10 +138,7 @@ export default function SektorlerSayfasi() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ============ İz şeridi ============
           Üst bar yapışkan ve kâğıt kutupta. Saf siyah plaka sayfanın ilk

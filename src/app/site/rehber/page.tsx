@@ -4,6 +4,7 @@ import Bolum, { type Bant } from '@/components/site/Bolum';
 import Dugme from '@/components/site/Dugme';
 import SSS from '@/components/site/SSS';
 import { Ikon, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import { ANA_SAYFA, BIRINCIL_CAGRI, SSS_GENEL, hizmetBul, hizmetYolu } from '@/lib/site-icerik';
 import {
@@ -151,8 +152,13 @@ function YaziKarti({
 export default function RehberHub() {
   const yazilar = rehberSirali();
   const kumeler = doluKumeler();
-  // Dört yazıya kadar "son yazılar" şeridi gereksiz: konu öbekleri yeterli.
-  const sonListe = yazilar.length > 4 ? yazilar.slice(0, 4) : [];
+  /* "Son yazılar" şeridi, konu öbeklerinin tamamını tek ekranda
+     göstermenin mümkün olmadığı noktada anlam kazanıyor. Daha önce
+     eşik dörttü; beş yazıda şerit, öbeklerdeki kartların dördünü ikinci
+     kez basıyordu (aynı bağlantı sayfada iki kez). Eşiği altıya
+     çektik: o noktadan sonra öbekler uzuyor ve şerit gerçekten
+     kısayol oluyor. */
+  const sonListe = yazilar.length > 6 ? yazilar.slice(0, 4) : [];
 
   // Bantlar sırayla hesaplanır; hero koyu, "son yazılar" (varsa) beyaz.
   const bastakiBant: Bant = sonListe.length ? 'beyaz' : 'koyu';
@@ -178,10 +184,7 @@ export default function RehberHub() {
 
   return (
     <div className="af-kr">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri()) }}
-      />
+      <YapisalVeri veri={yapisalVeri()} />
 
       {/* ================================================================
           GİRİŞ — PLAKA (sayfanın tek plakası)
@@ -202,14 +205,19 @@ export default function RehberHub() {
           <h1 className="af-rb-bas">{REHBER_SAYFASI.baslik}</h1>
           <p className="af-giris af-rb-giris">{REHBER_SAYFASI.giris}</p>
 
+          {/* Konu öbeği süzgeci: 0 JS. Çipler aşağıdaki öbek bölümlerinin
+              çapalarına gidiyor; yazısı olmayan öbek `doluKumeler()`
+              sayesinde hiç basılmıyor, yani tıklanan her çip dolu bir
+              bölüme iniyor. JavaScript kapalıyken de çalışır. */}
           {kumeler.length ? (
-            <div className="af-cipler af-rb-cipler">
+            <nav className="af-cipler af-rb-cipler" aria-label="Konu öbekleri">
               {kumeler.map((k) => (
                 <a className="af-cip" key={k.anahtar} href={kumeCapasi(k.anahtar)}>
                   {k.kisaAd}
+                  <span className="af-gizli-metin"> — {kumeYazilari(k.anahtar).length} yazı</span>
                 </a>
               ))}
-            </div>
+            </nav>
           ) : null}
 
           {REHBER.length ? (

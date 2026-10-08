@@ -4,6 +4,7 @@ import Bolum from '@/components/site/Bolum';
 import Dugme from '@/components/site/Dugme';
 import SSS from '@/components/site/SSS';
 import { Ikon, IkonOk, IkonTik, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import { ILETISIM, siteAdresi, siteYolu, whatsappBaglantisi } from '@/lib/site';
 import { sektorBul, sektorYolu, vakaBul, vakaYolu } from '@/lib/site-icerik';
 import AkisKaydi from '../_parcalar/AkisKaydi';
@@ -102,10 +103,7 @@ export default async function UrunSayfasi({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri(urun)) }}
-      />
+      <YapisalVeri veri={yapisalVeri(urun)} />
       <AkisKaydi sektor={sektor?.anahtar ?? 'oto-galeri'} />
 
       {/* ====================== Kahraman PLAKASI ======================

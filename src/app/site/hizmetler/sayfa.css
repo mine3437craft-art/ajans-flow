@@ -732,27 +732,36 @@
 
 /* =====================================================================
    Y7. KART IŞIK HAVUZU — mikro etkileşim (yalnız gerçek imleçte)
-   İmleç takibi JS ister; onun yerine kartın üst köşesinden açılan tek
-   ışık havuzu + 2px kalkma. Dokunmada basılı hissi.
+   `Isik.tsx` (sayfanın sonunda mount edilir) `--kr-ix/--kr-iy` yazarsa
+   havuz İMLECİ İZLER; yazmazsa aynı gradyan kartın üst köşesinden açılır.
+   Tek pseudo (`::after`), tek geçiş (opacity) → compositor işi.
+   Dokunmada :active basılı hissi.
    ===================================================================== */
 
 .af-hz-isikli { position: relative; isolation: isolate; }
-.af-hz-isikli::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(120% 90% at 18% 0%, var(--af-vurgu-sis), transparent 64%);
-  transition: opacity var(--af-gecis-yavas);
-}
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
+  .af-hz-isikli::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      clamp(180px, 22vw, 320px) circle at var(--kr-ix, 18%) var(--kr-iy, 0%),
+      var(--af-vurgu-sis),
+      transparent 70%
+    );
+    transition: opacity var(--af-gecis-yavas);
+  }
   .af-hz-isikli:hover::after,
   .af-hz-isikli:focus-within::after { opacity: 1; }
 }
 .af-hz-isikli:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) {
+  .af-hz-isikli:active { transform: none; }
+}
 
 /* Çipte basılı hissi */
 .af-cip.af-hz-cip:active { transform: translateY(1px); }
@@ -952,6 +961,16 @@
 }
 @media (hover: hover) {
   .af-hz-plaka-kart:hover { border-color: color-mix(in srgb, var(--af-turuncu) 50%, transparent); transform: translateY(-2px); }
+  /* Alt satır canlanır — kart `.af-kart--tikla` değil, kuralı burada ver. */
+  .af-hz-plaka-kart:hover .af-bag-ok { color: var(--af-vurgu); }
+  .af-hz-plaka-kart:hover .af-bag-ok svg { transform: translateX(3px); }
+}
+/* Dokunmatikte basılı hissi */
+.af-hz-plaka-kart:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) {
+  .af-hz-plaka-kart:hover,
+  .af-hz-plaka-kart:active { transform: none; }
+  .af-hz-plaka-kart:hover .af-bag-ok svg { transform: none; }
 }
 .af-hz-plaka-kart .af-cerceve-telefon { margin-inline: auto; }
 .af .af-hz-plaka-kart-ad {

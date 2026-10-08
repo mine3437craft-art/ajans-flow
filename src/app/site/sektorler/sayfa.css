@@ -465,13 +465,17 @@
 @media (min-width: 760px) {
   .af .af-vitrin-yan { align-items: flex-end; text-align: end; }
 }
+/* Kısa vaat MOBİLDE DE durur. Gizliyken örnek işi olmayan sektörler
+   (avukat, diş kliniği, anaokulu, otel…) telefonda yalnız ad + ok
+   olarak kalıyor, örnek işi olanların yanında "eksik satır" gibi
+   okunuyordu. Satır zaten menüde yazılı olan tek cümle; uydurma yok. */
 .af .af-vitrin-vaat {
   font-size: var(--af-y-mini);
   color: var(--af-metin-3);
-  display: none;
+  display: block;
 }
 @media (min-width: 760px) {
-  .af .af-vitrin-vaat { display: block; max-width: 24ch; }
+  .af .af-vitrin-vaat { max-width: 24ch; }
 }
 .af .af-vitrin-etiket {
   font-family: var(--af-yazi-mono);
@@ -687,6 +691,12 @@
    Koyu = yazılım, kâğıt = stüdyo. İki kanat yan yana, aralarında tek
    köşeli SERT kesik (clip-path, 0 bayt). Ziyaretçi iki tarafın ayrı
    olduğunu okumadan ÖNCE görür.
+
+   Kanat artık sayfanın GİRİŞİ değil KENDİSİ: dev kelimenin altında o
+   sektörün maddeleri duruyor. Bu yüzden `min-height` ve
+   `justify-content: space-between` KALDIRILDI — sabit yükseklik, dev
+   kelimeyi havada bırakıp altında yüzlerce piksel ölü boşluk üretiyordu.
+   Yükseklik artık yalnız içerikten gelir.
    ===================================================================== */
 .af .af-kanat { display: grid; background: var(--af-kagit); }
 @media (min-width: 760px) {
@@ -695,12 +705,10 @@
 .af .af-kanat-yari {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--af-b-24);
-  padding: clamp(var(--af-b-24), 3.4vw, var(--af-b-48)) var(--af-yan);
-  min-height: clamp(168px, 20vw, 248px);
+  align-items: stretch;
+  gap: var(--af-b-16);
+  padding: clamp(var(--af-b-32), 4vw, var(--af-b-64)) var(--af-yan);
   text-decoration: none;
-  transition: background-color var(--af-gecis);
 }
 .af .af-kanat-yari--koyu {
   background: var(--af-koyu);
@@ -709,7 +717,14 @@
   --af-metin-2: rgba(237, 237, 243, 0.7);
   --af-metin-3: rgba(237, 237, 243, 0.5);
   --af-vurgu: var(--af-turuncu);
+  --af-vurgu-cizgi: var(--af-turuncu);
   --af-halka: var(--af-turuncu);
+  /* Kanat koyu ama bandı kâğıt: hücre çizgileri bandın AÇIK
+     tokenlarını miras alırsa koyu zeminde beyaz tel örgü çıkar. */
+  --af-kenar: var(--af-cizgi-koyu);
+  --af-kenar-ince: var(--af-cizgi-koyu-2);
+  --af-kart-zemin: var(--af-koyu-2);
+  --af-kart-kenar: var(--af-cizgi-koyu-2);
   color-scheme: dark;
 }
 .af .af-kanat-yari--kagit {
@@ -724,6 +739,8 @@
   .af .af-kanat-yari--koyu {
     clip-path: polygon(0 0, 100% 0, calc(100% - 4.5vw) 100%, 0 100%);
     padding-inline-end: calc(var(--af-yan) + 4.5vw);
+    /* Akış hattı sol kenarda sabit duruyor; dev kelime ona binmesin. */
+    padding-inline-start: clamp(var(--af-yan), 3.4vw, var(--af-b-64));
   }
   .af .af-kanat-yari--kagit { padding-inline-start: clamp(var(--af-b-16), 2vw, var(--af-b-32)); }
 }
@@ -734,38 +751,89 @@
   text-transform: uppercase;
   color: var(--af-vurgu);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--af-b-8);
+  margin: 0;
 }
 .af .af-kanat-rozet span:last-child { color: var(--af-metin-3); }
-/* İki kanadın adı TEK KELİME ve devasa. Bölüm başlığını tekrar
-   etmiyoruz: aynı cümle 300px arayla iki kez görünürse hata gibi
-   okunuyor. "Yazılım" ve "Stüdyo" tasarım sisteminin bant anlamının
-   kendi sözcükleri (koyu = yazılım, kâğıt = stüdyo). */
+/* İki kanadın adı TEK KELİME ve devasa. "Yazılım" ve "Stüdyo" tasarım
+   sisteminin bant anlamının kendi sözcükleri (koyu = yazılım, kâğıt =
+   stüdyo); altındaki başlık o kelimenin cümlesi, tekrarı değil. */
 .af .af-kanat-dev {
   font-family: var(--af-yazi-baslik);
   font-weight: 800;
-  font-size: clamp(2.75rem, 1.4rem + 6vw, 6.5rem);
+  font-size: clamp(2.75rem, 1.4rem + 4.4vw, 5.5rem);
   line-height: 0.92;
   letter-spacing: -0.05em;
   text-transform: uppercase;
   margin: 0;
   color: var(--af-metin);
 }
+/* Dev kelimenin altyazısı — eskiden kanadı aşağıdaki banda bağlayan
+   bağlantıydı; bant kanadın İÇİNE girdiği için ok kalktı, kelime kaldı. */
 .af .af-kanat-alt {
   display: flex;
   align-items: center;
   gap: var(--af-b-8);
   margin: 0;
-  min-height: 44px;
-  font-size: var(--af-y-mini);
-  color: var(--af-vurgu);
+  font-family: var(--af-yazi-mono);
+  font-size: var(--af-y-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--af-metin-3);
 }
-.af .af-kanat-alt svg { width: 16px; height: 16px; transition: transform var(--af-gecis); }
-@media (hover: hover) {
-  .af .af-kanat-yari--koyu:hover { background: var(--af-koyu-2); }
-  .af .af-kanat-yari--kagit:hover { background: var(--af-kagit-2); }
-  .af .af-kanat-yari:hover .af-kanat-alt svg { transform: translateX(4px); }
+.af .af-kanat-bas {
+  margin: 0;
+  margin-block-start: clamp(var(--af-b-8), 1.2vw, var(--af-b-24));
+  font-family: var(--af-yazi-baslik);
+  font-size: var(--af-y-h3);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--af-metin);
+  text-wrap: balance;
+}
+.af .af-kanat-giris {
+  margin: 0;
+  margin-block-end: clamp(var(--af-b-8), 1.2vw, var(--af-b-24));
+  max-width: 54ch;
+  font-size: var(--af-y-kucuk);
+  line-height: 1.55;
+  color: var(--af-metin-2);
+}
+/* Kanat yarım genişlikte: veri hücreleri tek sütuna iner, kanadın kendi
+   ızgarasını zorlamaz. (Özgüllük 0,3,0 → bölüm 7/8'teki medya
+   sorgularını kaynak sırasından bağımsız yener.) */
+.af .af-kanat-yari .af-sektor-veri { grid-template-columns: minmax(0, 1fr); }
+.af .af-kanat-yari .af-sk-studyo-liste > li { font-size: clamp(1rem, 0.96rem + 0.22vw, 1.1875rem); }
+.af .af-kanat-yari .af-sk-veri-bas { margin-block-end: 0; }
+.af .af-kanat-yari .af-sk-levha { margin-block-start: var(--af-b-8); }
+/* Kolaj masaüstünde kanadın yarısına sığıyor: altı sütunluk kaydırmalı
+   kurgu 713px'lik kolonda 730px yükseliyor ve kâğıt kanadı koyu kanattan
+   yüzlerce piksel aşağı taşırıyordu — karşı kanatta ölü boşluk demek.
+   İki eşit sütun, kaydırma yok. Kutu oranı yine her karede kilitli. */
+@media (min-width: 760px) {
+  .af .af-kanat-yari .af-sk-kolaj {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-block-start: var(--af-b-8);
+  }
+  /* `:nth-child(n)` özgüllüğü yükseltir: bölüm 8'teki kaydırma kuralları
+     bu dosyada DAHA SONRA geliyor, eşit özgüllükte onlar kazanırdı. */
+  .af .af-kanat-yari .af-sk-kolaj > *:nth-child(n) { grid-column: auto; margin-block-start: 0; }
+
+  /* ÖLÜ BOŞLUK KAPANIR — iki kanat yan yanayken ızgara ikisini de uzun
+     olanın boyuna çeker; kısa kalan kanadın altında koca bir boşluk
+     kalırdı. Boşluğu listeye veriyoruz: artan yükseklik satırlara EŞİT
+     dağılır, dibe yığılmaz. `flex-grow` yalnız POZİTİF boşluk dağıttığı
+     için uzun kanadın listesi kendi doğal boyunda kalır — kimse
+     şişmez. */
+  .af .af-kanat-yari > .af-sektor-veri,
+  .af .af-kanat-yari > .af-sk-studyo-liste { flex: 1 1 auto; }
+  .af .af-kanat-yari > .af-sektor-veri { display: flex; flex-direction: column; }
+  .af .af-kanat-yari > .af-sektor-veri > li { flex: 1 1 auto; }
+  .af .af-kanat-yari > .af-sk-studyo-liste { display: flex; flex-direction: column; }
+  .af .af-kanat-yari > .af-sk-studyo-liste > li { flex: 1 1 auto; align-content: center; }
 }
 
 /* =====================================================================
@@ -842,14 +910,10 @@
 
 /* =====================================================================
    8. STÜDYO KANADI (kâğıt bant) — kutu YOK, editoryal satır
+   Liste ve kolaj artık ayrı bir bantta değil, kâğıt kanadın İÇİNDE alt
+   alta duruyor; bu yüzden eski iki sütunlu `.af-sk-studyo` sarmalı
+   kaldırıldı (kanadın kendi dikey akışı onun yerini aldı).
    ===================================================================== */
-.af .af-sk-studyo {
-  display: grid;
-  gap: clamp(var(--af-b-24), 3vw, var(--af-b-48));
-}
-@media (min-width: 1000px) {
-  .af .af-sk-studyo { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); align-items: start; }
-}
 .af .af-sk-studyo-liste {
   display: grid;
   gap: 0;
@@ -1064,8 +1128,9 @@
   .af .af-vitrin-kare img { transform: none; transition: none; }
   .af .af-vitrin-bag,
   .af .af-vitrin-ok,
-  .af .af-sk-indeks a,
-  .af .af-kanat-alt svg { transition: none; }
+  .af .af-sektor-veri > li,
+  .af .af-sektor-veri > li::after,
+  .af .af-sk-indeks a { transition: none; }
 }
 @media (prefers-contrast: more) {
   .af .af-sk-plan { display: none; }

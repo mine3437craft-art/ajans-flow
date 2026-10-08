@@ -6,6 +6,7 @@ import Dugme from '@/components/site/Dugme';
 import Video from '@/components/site/Video';
 import { CerceveDizustu, CerceveTelefon } from '@/components/site/Cerceve';
 import { Ikon, IkonOk, IkonOkSagUst, IkonWhatsApp } from '@/components/site/Ikonlar';
+import { YapisalVeri } from '@/components/site/YapisalVeri';
 import {
   ANA_SAYFA,
   BIRINCIL_CAGRI,
@@ -212,10 +213,7 @@ export default async function VakaSayfasi({ params }: Parametre) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri(vaka, yapisalGorseller)) }}
-      />
+      <YapisalVeri veri={yapisalVeri(vaka, yapisalGorseller)} />
 
       {/* ============================================================
           PLAKA — markanın tek sözcüklü anahtarı devasa, harf kadrajı
@@ -558,13 +556,13 @@ export default async function VakaSayfasi({ params }: Parametre) {
               <h3 className="af-kart-baslik">{hizmet.kisaAd}</h3>
               <p className="af-kart-metin">{hizmet.ozet}</p>
               <p className="af-kart-alt">
-                <span className="af-bag-ok">
-                  Hizmeti gör
+                <span className="af-bag-ok" aria-hidden="true">
+                  İncele
                   <IkonOk />
                 </span>
               </p>
               <a className="af-kaplayan-bag" href={hizmetYolu(hizmet)}>
-                <span className="af-gizli-metin">{hizmet.ad}</span>
+                <span className="af-gizli-metin">{`${hizmet.ad} hizmetini inceleyin`}</span>
               </a>
             </article>
           ))}

@@ -1,9 +1,10 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 
 /**
  * /tanitim ve /t/[kod] bağlantılarının WhatsApp / Instagram önizleme görseli.
- * Türkçe karakterler (ı İ ş ğ ü ö ç) için yazı tipi Google Fonts'tan yalnızca
- * kullanılan harflerle (&text=) indirilir; indirilemezse görsel yine üretilir.
+ * Türkçe karakterler (ı İ ş ğ ü ö ç) dahil yazı tipi DEPODAN okunur — ağ yok.
  */
 
 export const alt = 'Ajans Flow · Sosyal Medya Ajansı · İstanbul / 4.Levent — Fikirler hareket kazanır.';
@@ -22,19 +23,19 @@ const METIN = {
   rec: 'REC',
 };
 
-async function yaziTipi(agirlik: number, metin: string): Promise<ArrayBuffer | null> {
-  try {
-    const cssAdresi = `https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@${agirlik}&text=${encodeURIComponent(metin)}`;
-    const cssYaniti = await fetch(cssAdresi, { signal: AbortSignal.timeout(5000) });
-    if (!cssYaniti.ok) return null;
-    const css = await cssYaniti.text();
-    const kaynak = css.match(/src:\s*url\(([^)]+)\)\s*format\('(?:opentype|truetype)'\)/)?.[1];
-    if (!kaynak) return null;
-    const dosya = await fetch(kaynak, { signal: AbortSignal.timeout(5000) });
-    return dosya.ok ? await dosya.arrayBuffer() : null;
-  } catch {
-    return null;
-  }
+/**
+ * Yazı tipi DEPODAN okunuyor — ağ isteği yok.
+ *
+ * ÖNCE Google Fonts'tan `&text=` ile indiriliyordu ve ağ erişilemediğinde
+ * `fonts` boş kalıyordu; satori ise en az bir yazı tipi İSTER ("No fonts
+ * are loaded" ile patlar). Aşağıdaki eski `ciz([])` yedeği de bu yüzden
+ * ASLA çalışmıyordu: bu rota prerender edildiği için ağ kesikken
+ * `next build` burada ölüyordu. Dosyalar artık depoda (bkz.
+ * `public/yazi/`, /site/opengraph-image.tsx ile aynı iki TTF).
+ */
+async function yaziTipi(agirlik: 600 | 800): Promise<ArrayBuffer> {
+  const d = await readFile(join(process.cwd(), `public/yazi/plus-jakarta-sans-${agirlik}.ttf`));
+  return new Uint8Array(d).buffer;
 }
 
 const TURUNCU = '#FF6B35';
@@ -261,26 +262,17 @@ function kart(aile: string) {
 }
 
 export default async function Image() {
-  const tumMetin = Array.from(new Set(Object.values(METIN).flat().join('') + '✓•·')).join('');
-  const [kalin, orta] = await Promise.all([yaziTipi(800, tumMetin), yaziTipi(600, tumMetin)]);
+  const [kalin, orta] = await Promise.all([yaziTipi(800), yaziTipi(600)]);
 
-  const fonts: YaziTipi[] = [];
-  if (kalin) fonts.push({ name: 'Jakarta', data: kalin, weight: 800, style: 'normal' });
-  if (orta) fonts.push({ name: 'Jakarta', data: orta, weight: 600, style: 'normal' });
+  const fonts: YaziTipi[] = [
+    { name: 'Jakarta', data: kalin, weight: 800, style: 'normal' },
+    { name: 'Jakarta', data: orta, weight: 600, style: 'normal' },
+  ];
 
   // Önce tamamen çizip belleğe alıyoruz: çizim hatası akış ortasında değil
-  // burada yakalanır ve yazı tipsiz yedek görsele düşülür.
-  const ciz = (yazilar: YaziTipi[]) =>
-    new ImageResponse(kart(yazilar.length ? 'Jakarta' : 'sans-serif'), {
-      ...size,
-      ...(yazilar.length ? { fonts: yazilar } : {}),
-    }).arrayBuffer();
-
-  let png: ArrayBuffer;
-  try {
-    png = await ciz(fonts);
-  } catch {
-    png = await ciz([]);
-  }
+  // burada yakalanır. Yazı tipi artık depodan geldiği için "yazı tipsiz
+  // yedek" yolu KALDIRILDI — satori en az bir yazı tipi ister, o yüzden
+  // boş `fonts` ile çizim zaten her zaman patlıyordu.
+  const png = await new ImageResponse(kart('Jakarta'), { ...size, fonts }).arrayBuffer();
   return new Response(png, { headers: { 'Content-Type': contentType } });
 }
