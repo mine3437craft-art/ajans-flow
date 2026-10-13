@@ -62,11 +62,12 @@ gSave:$('[data-garage-save]'),gClear:$('[data-garage-clear]'),gNote:$('[data-gar
 flt:$('[data-flt]'),fltPanel:$('[data-flt-panel]'),fltBody:$('[data-flt-body]'),fltShow:$('[data-flt-show]'),
 fltOpen:$('[data-flt-open]'),fltCount:$('[data-flt-count]'),
 results:$('.cat-results'),count:$('[data-cat-count]'),sort:$('[data-cat-sort]'),tabs:$('[data-sort-tabs]'),
-chips:$('[data-cat-chips]'),mcode:$('[data-mcode]'),msg:$('[data-cat-msg]'),grid:$('[data-cat-grid]'),pager:$('[data-cat-pager]')
+chips:$('[data-cat-chips]'),mcode:$('[data-mcode]'),msg:$('[data-cat-msg]'),grid:$('[data-cat-grid]'),pager:$('[data-cat-pager]'),
+side:$('[data-side-nav]'),ctx:$('[data-cat-ctx]'),genChips:$('[data-gen-chips]'),subChips:$('[data-sub-chips]'),note:$('[data-cat-note]')
 };
 if(!el.grid)return;
 if(!SHOW_OLD)$$('[data-sort="indirim"], option[value="indirim"]').forEach(n=>n.remove());
-const DEF=()=>({q:'',model:'',grup:'',marka:[],kalite:[],min:null,max:null,stok:false,firsat:false,sirala:'onerilen',sayfa:1});
+const DEF=()=>({q:'',model:'',kasa:'',grup:'',alt:'',marka:[],kalite:[],min:null,max:null,stok:false,firsat:false,sirala:'onerilen',sayfa:1});
 let S=DEF();
 let cat=null,P=[],ORDER={},CODE=new Map(),BRANDS=[],brandByKey=new Map();
 let view={from:1};
@@ -77,6 +78,8 @@ let brandAll=false;
 let restoreY=null;
 let lastTracked='';
 let MODEL_KEYS=new Set(),MAKE_OF=new Map(),MAKE_MODELS=new Map();
+let GENS=new Map(),SUBS=new Map(),NAV=null;
+const pGens=p=>(Array.isArray(p.gens)?p.gens:[]);
 const brandKey=s=>String(s||'').toLocaleUpperCase('tr-TR').replace(/İ/g,'I').trim();
 const uniq=a=>[...new Set(a)];
 const splitList=v=>(v||'').split(',').map(s=>s.trim()).filter(Boolean);
@@ -93,7 +96,9 @@ const u=new URLSearchParams(search);
 const s=DEF();
 s.q=(u.get('q')||'').trim().slice(0,800);
 s.model=(u.get('model')||'').trim();
+s.kasa=(u.get('kasa')||'').trim();
 s.grup=(u.get('grup')||'').trim();
+s.alt=(u.get('alt')||'').trim();
 s.marka=splitList(u.get('marka'));
 s.kalite=splitList(u.get('kalite'));
 const mn=parseFloat(u.get('min')),mx=parseFloat(u.get('max'));
@@ -109,11 +114,25 @@ const isVirtual=k=>k==='land-rover'||k==='pickup';
 const validModel=k=>MODEL_KEYS.has(k)||isVirtual(k);
 const makeOf=k=>(isVirtual(k)?k:MAKE_OF.get(k)||'');
 const makeDef=k=>MAKES.find(m=>m.key===k);
-const vLabel=k=>(isVirtual(k)?makeDef(k).label:cat.modelLabel(k));
+const mLabel=k=>(cat?cat.modelLabel(k):(NAV&&NAV.model(k)?NAV.model(k).label:(D.modelLabels&&D.modelLabels[k])||k));
+const gLabel=k=>(cat?cat.groupLabel(k):(NAV&&NAV.group(k)?NAV.group(k).label:k));
+const vLabel=k=>(isVirtual(k)?makeDef(k).label:mLabel(k));
 const modelMatch=(p,k)=>(isVirtual(k)?p.__mk.includes(k):p.models.includes(k));
 function sanitize(){
-if(S.model&&!validModel(S.model))S.model='';
-if(S.grup&&!cat.groups.some(g=>g.key===S.grup))S.grup='';
+if(S.kasa){
+const g=GENS.get(S.kasa);
+if(!g)S.kasa='';
+else if(!S.model)S.model=g.model;
+else if(g.model!==S.model)S.kasa='';
+}
+if(S.model&&!validModel(S.model)){S.model='';S.kasa='';}
+if(S.alt){
+const a=SUBS.get(S.alt);
+if(!a)S.alt='';
+else if(!S.grup)S.grup=a.group;
+else if(a.group!==S.grup)S.alt='';
+}
+if(S.grup&&!cat.groups.some(g=>g.key===S.grup)){S.grup='';S.alt='';}
 S.marka=uniq(S.marka.map(brandKey).filter(k=>brandByKey.has(k)));
 S.kalite=uniq(S.kalite.filter(k=>k in Q_ORDER));
 if(S.min!=null&&S.max!=null&&S.min>S.max)[S.min,S.max]=[S.max,S.min];
@@ -121,7 +140,9 @@ if(S.min!=null&&S.max!=null&&S.min>S.max)[S.min,S.max]=[S.max,S.min];
 function toQuery(s){
 const u=new URLSearchParams();
 if(s.model)u.set('model',s.model);
+if(s.kasa)u.set('kasa',s.kasa);
 if(s.grup)u.set('grup',s.grup);
+if(s.alt)u.set('alt',s.alt);
 if(s.q)u.set('q',s.q);
 if(s.marka.length)u.set('marka',s.marka.map(k=>(brandByKey.get(k)||{name:k}).name).join(','));
 if(s.kalite.length)u.set('kalite',s.kalite.join(','));
@@ -140,8 +161,25 @@ if(url!==location.pathname+location.search){
 try{history.replaceState(history.state,'',url);}catch(e){}
 }
 }
+function indexLabels(){
+const raw=window.DKY_CATALOG||{};
+GENS=new Map();SUBS=new Map();
+((cat&&cat.gens)||raw.gens||[]).forEach(g=>g&&g.key&&GENS.set(g.key,{key:g.key,model:g.model,code:g.code||'',years:g.years||'',label:g.label||''}));
+((cat&&cat.subs)||raw.subs||[]).forEach(x=>x&&x.key&&SUBS.set(x.key,{key:x.key,group:x.group,label:x.label||x.key}));
+if(NAV){
+NAV.makes.forEach(mk=>mk.models.forEach(m=>(m.gens||[]).forEach(g=>{
+const e=GENS.get(g.key);
+if(e)e.count=g.count;else GENS.set(g.key,{key:g.key,model:m.key,code:g.code,years:g.years,label:g.label,count:g.count});
+})));
+NAV.groups.forEach(g=>g.subs.forEach(x=>{if(!SUBS.has(x.key))SUBS.set(x.key,{key:x.key,group:g.key,label:x.label});}));
+}
+}
+const genOf=k=>GENS.get(k)||null;
+const subOf=k=>SUBS.get(k)||null;
+const genShort=g=>(g?g.code||g.years:'');
 function index(){
 P=cat.products;
+indexLabels();
 MODEL_KEYS=new Set(cat.models.map(m=>m.key));
 MAKES.forEach(mk=>{
 let list;
@@ -218,35 +256,46 @@ QC={key:q,multi:null,rank:new Map(hits.map((p,i)=>[p.id,i]))};
 return QC;
 }
 function fails(p,mk,kk){
+const gm=!!S.grup&&p.group!==S.grup;
 return(S.model&&!modelMatch(p,S.model)?1:0)
-|(S.grup&&p.group!==S.grup?2:0)
+|(S.kasa&&!pGens(p).includes(S.kasa)?128:0)
+|(gm?2:0)
+|(!gm&&S.alt&&p.sub!==S.alt?256:0)
 |(mk.size&&!mk.has(p.__bk)?4:0)
 |(kk.size&&!kk.has(p.__qk)?8:0)
 |((S.min!=null&&p.price<S.min)||(S.max!=null&&p.price>S.max)?16:0)
 |(S.stok&&!p.inStock?32:0)
 |(S.firsat&&!p.__deal?64:0);
 }
-const single=f=>f&&!(f&(f-1));
+const sub=(f,m)=>(f&~m)===0;
+const FACETS=[129,258,4,8,16,32,64];
 const inc=(m,k)=>m.set(k,(m.get(k)||0)+1);
 function compute(){
 const qs=querySet();
 const rank=qs?qs.rank:null;
 const mk=new Set(S.marka),kk=new Set(S.kalite);
-const cnt={model:new Map(),make:new Map(),modelAll:0,grup:new Map(),grupAll:0,marka:new Map(),kalite:new Map(),stok:0,firsat:0,pmin:Infinity,pmax:0};
+const cnt={model:new Map(),make:new Map(),modelAll:0,gen:new Map(),genAll:0,untagged:0,grup:new Map(),grupAll:0,alt:new Map(),altAll:0,marka:new Map(),kalite:new Map(),stok:0,firsat:0,pmin:Infinity,pmax:0};
 const list=[];
 const src=ORDER[S.sirala]||ORDER.onerilen;
 for(let i=0;i<src.length;i++){
 const p=src[i];
 if(rank&&!rank.has(p.id))continue;
 const f=fails(p,mk,kk);
-if(f&&!single(f))continue;
+if(f&&!FACETS.some(m=>sub(f,m)))continue;
 if(!f)list.push(p);
-if(!f||f===1){
+if(sub(f,129)){
 cnt.modelAll++;
 for(const m of p.models)inc(cnt.model,m);
 for(const m of p.__mk)inc(cnt.make,m);
 }
-if(!f||f===2){cnt.grupAll++;inc(cnt.grup,p.group);}
+if(S.model&&sub(f,128)){
+cnt.genAll++;
+let own=false;
+for(const g of pGens(p)){inc(cnt.gen,g);if(!own){const gi=GENS.get(g);own=!!gi&&gi.model===S.model;}}
+if(!own)cnt.untagged++;
+}
+if(sub(f,258)){cnt.grupAll++;inc(cnt.grup,p.group);}
+if(S.grup&&sub(f,256)){cnt.altAll++;if(p.sub)inc(cnt.alt,p.sub);}
 if(!f||f===4)inc(cnt.marka,p.__bk);
 if(!f||f===8)inc(cnt.kalite,p.__qk);
 if((!f||f===16)&&p.price>0){if(p.price<cnt.pmin)cnt.pmin=p.price;if(p.price>cnt.pmax)cnt.pmax=p.price;}
@@ -258,7 +307,7 @@ else if(!rank&&S.sirala==='onerilen'){
 const g=garageKey();
 if(g&&S.model!==g){
 const fit=[],rest=[];
-for(const p of list)(p.models.includes(g)?fit:rest).push(p);
+for(const p of list)(D.garage.fits(p)?fit:rest).push(p);
 list.length=0;list.push(...fit,...rest);
 }
 }
@@ -266,9 +315,9 @@ return{list,cnt,qs,mk,kk};
 }
 const countFor=(cnt,k)=>(isVirtual(k)?cnt.make.get(k):cnt.model.get(k))||0;
 const garageKey=()=>{const g=D.garage.get();return g&&cat&&MODEL_KEYS.has(g)?g:null;};
-const modelFam=k=>(k==='pickup'?'offroad':k==='land-rover'?'range-rover':(cat.models.find(m=>m.key===k)||{}).family||'');
+const modelFam=k=>(k==='pickup'?'offroad':k==='land-rover'?'range-rover':((cat?cat.models.find(m=>m.key===k):NAV&&NAV.model(k))||{}).family||'');
 const qLabel=k=>(QUALITIES.find(q=>q[0]===k)||[k,k])[1];
-const activeCount=()=>(S.model?1:0)+(S.grup?1:0)+S.marka.length+S.kalite.length+(S.min!=null||S.max!=null?1:0)+(S.stok?1:0)+(S.firsat?1:0);
+const activeCount=()=>(S.model?1:0)+(S.kasa?1:0)+(S.grup?1:0)+(S.alt?1:0)+S.marka.length+S.kalite.length+(S.min!=null||S.max!=null?1:0)+(S.stok?1:0)+(S.firsat?1:0);
 const priceLabel=()=>S.min!=null&&S.max!=null?`${D.fmtShort(S.min)} – ${D.fmtShort(S.max)}`:S.min!=null?`${D.fmtShort(S.min)} ve üzeri`:`${D.fmtShort(S.max)} ve altı`;
 const short=(s,n)=>(s.length>n?s.slice(0,n-1)+'…':s);
 function card(p,eager){
@@ -277,9 +326,16 @@ if(p.__fixq)fix.brand=p.__bk;
 return D.card(Object.assign({},p,fix),{eager});
 }
 const capFirst=t=>t.charAt(0).toLocaleUpperCase('tr-TR')+t.slice(1);
+const vehLabel=()=>(S.model?vLabel(S.model)+(S.kasa&&genOf(S.kasa)?' '+genShort(genOf(S.kasa)):''):'');
+const grpName=k=>(D.groupName?D.groupName(k,gLabel(k)):gLabel(k));
 function heading(){
-const m=S.model?vLabel(S.model):'';
-const g=S.grup?cat.groupLabel(S.grup):'';
+const m=vehLabel();
+const g=S.grup?gLabel(S.grup):'';
+const a=S.alt?subOf(S.alt):null;
+if(a){
+const al=a.label;
+return m?{h1:`${m} ${lower(al)}`,title:`${m} ${al}`}:{h1:capFirst(al),title:`${al} · ${g}`};
+}
 const gl=lower(g);
 const multi=R&&R.qs&&R.qs.multi;
 const part=PART_GROUPS.has(S.grup),other=S.grup==='diger';
@@ -295,23 +351,25 @@ return{h1:`${m} ${h}`,title:`${m} ${t}`};
 if(g)return{h1:capFirst(other||part?gH:`${gl} ürünleri`),title:other||part?gT:`${g} Ürünleri`};
 if(multi)return{h1:'Parça numarası listesi',title:'Parça Numarası Listesi'};
 if(S.q)return{h1:`“${short(S.q,40)}” için arama sonuçları`,title:`“${short(S.q,40)}” Arama Sonuçları`};
-if(S.marka.length===1){const b=brandByKey.get(S.marka[0]).name;return{h1:`${b} ürünleri`,title:`${b} Ürünleri`};}
+if(S.marka.length===1){const b=(brandByKey.get(S.marka[0])||{name:S.marka[0]}).name;return{h1:`${b} ürünleri`,title:`${b} Ürünleri`};}
 if(S.firsat)return{h1:DEAL.h1,title:DEAL.title};
 return{h1:'Yedek parça kataloğu',title:'Yedek Parça ve 4x4 Ekipman Kataloğu'};
 }
 function scopeCount(){
 let n=0;
-for(const p of P)if((!S.model||modelMatch(p,S.model))&&(!S.grup||p.group===S.grup))n++;
+for(const p of P)if((!S.model||modelMatch(p,S.model))&&(!S.kasa||pGens(p).includes(S.kasa))&&(!S.grup||p.group===S.grup)&&(!S.alt||p.sub===S.alt))n++;
 return n;
 }
-function leadText(total){
-const m=S.model?vLabel(S.model):'';
-const gl=S.grup?lower(cat.groupLabel(S.grup)):'';
+function leadText(total,preN){
+const gen=S.kasa?genOf(S.kasa):null;
+const m=vehLabel()+(gen&&gen.years?` (${gen.years})`:'');
+const gl=S.alt&&subOf(S.alt)?lower(subOf(S.alt).label):S.grup?lower(gLabel(S.grup)):'';
 const tail='Orijinal, OEM üretici ve muadil seçenekler KDV dahil açık fiyatla; stoktaki ürünlerde 15.00’e kadar verilen siparişler aynı gün kargoda. Emin değilseniz şasi numaranızla WhatsApp’tan doğrulatın.';
 if(R&&R.qs&&R.qs.multi)return'Yapıştırdığınız her parça numarasının katalogdaki karşılıkları aşağıda. Bulunamayanları tek tıkla WhatsApp’tan sorun; katalogda görünmeyen parçalar için de tedarik desteği veriyoruz.';
 if(m||gl){
-const n=nf(scopeCount());
-const what=m&&gl?`${m} için ${n} ${gl} ürünü.`:m?`${m} için ${n} parça ve aksesuar.`:`Tüm araçlar için ${n} ${gl} ürünü.`;
+const c=preN===undefined?scopeCount():preN;
+const n=c==null?'':nf(c)+' ';
+const what=m&&gl?`${m} için ${n}${gl} ürünü.`:m?`${m} için ${n}parça ve aksesuar.`:`Tüm araçlar için ${n}${gl} ürünü.`;
 return`${what} ${tail}`;
 }
 if(S.q)return`“${short(S.q,60)}” araması için ${nf(total)} sonuç. Aradığınızı göremiyorsanız parça numarasını veya şasi numaranızı WhatsApp’tan gönderin; katalogda görünmeyen parçalar için de tedarik desteği veriyoruz.`;
@@ -335,29 +393,108 @@ el.lead.textContent=lead;
 const title=`${h.title} | DKY Auto Parts`;
 document.title=title;
 let desc='';
-for(const sent of lead.match(/[^.;]+[.;]?/g)||[]){const t=(desc+sent).trim();if(t.length>155)break;desc=t+' ';}
+for(const sent of lead.split(/(?<=[.])\s+/)){const t=(desc+sent).trim();if(t.length>155)break;desc=t+' ';}
 desc=desc.trim()||lead.slice(0,152).replace(/\s+\S*$/,'')+'…';
 setMeta('meta[name="description"]','content',desc);
 setMeta('meta[property="og:title"]','content',title);
 setMeta('meta[property="og:description"]','content',desc);
 const cq=new URLSearchParams();
 if(S.model)cq.set('model',S.model);
+if(S.kasa)cq.set('kasa',S.kasa);
 if(S.grup)cq.set('grup',S.grup);
+if(S.alt)cq.set('alt',S.alt);
 const canon=`${SITE}/urunler.html${cq.toString()?'?'+cq.toString():''}`;
 setMeta('link[rel="canonical"]','href',canon);
 setMeta('meta[property="og:url"]','content',canon);
 const thin=!!S.q||S.marka.length>0||S.kalite.length>0||S.min!=null||S.max!=null||S.sayfa>1;
 setMeta('meta[name="robots"]','content','noindex,nofollow');
-const crumbs=['<li><a href="/dky/">Ana sayfa</a></li>'];
-const any=S.model||S.grup||S.q||activeCount();
-crumbs.push(any?'<li><a href="/dky/urunler.html">Ürünler</a></li>':'<li aria-current="page">Ürünler</li>');
-if(S.model){
-const mk=makeOf(S.model);
-if(!isVirtual(S.model)&&mk&&(isVirtual(mk)||mk!==S.model))crumbs.push(`<li><a href="/dky/urunler.html?model=${esc(mk)}">${esc(vLabel(mk))}</a></li>`);
-crumbs.push(S.grup?`<li><a href="/dky/urunler.html?model=${esc(S.model)}">${esc(vLabel(S.model))}</a></li>`:`<li aria-current="page">${esc(vLabel(S.model))}</li>`);
+renderCrumbs();
 }
-if(S.grup)crumbs.push(`<li aria-current="page">${esc(cat.groupLabel(S.grup))}</li>`);
-el.crumbs.innerHTML=crumbs.join('');
+let crumbLD=null;
+function renderCrumbs(){
+const list=[['Ana sayfa','/']];
+const ctx={model:S.model,kasa:S.kasa};
+if(S.model){
+const col=NAV&&NAV.colOfModel?(isVirtual(S.model)?NAV.col(S.model==='pickup'?'offroad':'land-rover'):NAV.colOfModel(S.model)):null;
+const mm=NAV?NAV.model(S.model):null;
+if(isVirtual(S.model))list.push([vLabel(S.model),col?col.href:null]);
+else{
+if(col&&col.href!==D.url.hub(S.model))list.push([col.label,col.href]);
+const short=mm&&D.shortModel?(mm.isMake?mm.label:D.shortModel(mm,col)):vLabel(S.model);
+const gen=S.kasa?genOf(S.kasa):null;
+list.push([short+(gen?' '+genShort(gen):''),D.url?D.url.hub(S.model,S.kasa):`/dky/urunler.html?model=${S.model}`]);
+}
+if(!S.grup)list.push(['Tüm parçalar',null]);
+}else if(S.grup)list.push(['Kategoriler','/dky/kategoriler.html']);
+else list.push(['Ürünler',S.q||activeCount()?'/dky/urunler.html':null]);
+if(S.grup)list.push([grpName(S.grup),S.alt?D.url.cat(Object.assign({grup:S.grup},ctx)):null]);
+if(S.alt&&subOf(S.alt))list.push([subOf(S.alt).label,null]);
+if(!S.model&&!S.grup&&S.q)list.push([`“${short(S.q,32)}”`,null]);
+el.crumbs.innerHTML=list.map(([n,u],i)=>(i===list.length-1||!u?`<li aria-current="page">${esc(n)}</li>`:`<li><a href="${esc(u)}">${esc(n)}</a></li>`)).join('');
+if(!crumbLD){crumbLD=document.createElement('script');crumbLD.type='application/ld+json';document.head.appendChild(crumbLD);}
+crumbLD.textContent=JSON.stringify({
+'@context':'https://schema.org','@type':'BreadcrumbList',
+itemListElement:list.map(([n,u],i)=>({'@type':'ListItem',position:i+1,name:n,item:SITE+(u||toQuery(Object.assign(DEF(),{model:S.model,kasa:S.kasa,grup:S.grup,alt:S.alt})))}))
+}).replace(/</g,'\\u003c');
+}
+const ctxLink=(o)=>esc(toQuery(Object.assign(DEF(),{model:S.model,kasa:S.kasa,grup:S.grup,alt:S.alt},o)));
+function centerX(box,item){
+if(!box||!item||box.scrollWidth<=box.clientWidth)return;
+const br=box.getBoundingClientRect(),ir=item.getBoundingClientRect();
+box.scrollLeft=Math.max(0,box.scrollLeft+(ir.left-br.left)-(br.width-ir.width)/2);
+}
+function renderSide(cnt){
+if(!el.side)return;
+if(!S.model||isVirtual(S.model)||(R&&R.qs&&R.qs.multi)){el.side.hidden=true;el.side.innerHTML='';return;}
+const groups=(cat?cat.groups:NAV.groups).filter(g=>(cnt.grup.get(g.key)||0)>0||g.key===S.grup)
+.sort((a,b)=>(a.key==='diger')-(b.key==='diger')||(cnt.grup.get(b.key)||0)-(cnt.grup.get(a.key)||0));
+if(!groups.length){el.side.hidden=true;return;}
+const mm=NAV?NAV.model(S.model):null;
+const col=NAV&&!isVirtual(S.model)?NAV.colOfModel(S.model):null;
+const title=(mm&&D.shortModel?(mm.isMake?mm.label:D.shortModel(mm,col)):vLabel(S.model))+(S.kasa&&genOf(S.kasa)?' · '+genShort(genOf(S.kasa)):'');
+const link=(o,label,n,cur,ico)=>`<a class="side-nav__link" href="${ctxLink(o)}" data-side="${esc(o.grup||'')}" data-side-alt="${esc(o.alt||'')}"${cur?' aria-current="page"':''}>${ico||''}<span>${esc(label)}</span><small>${n==null?'':nf(n)}</small></a>`;
+const ico=k=>(D.catIco?D.catIco(k,'sm'):'');
+el.side.setAttribute('aria-label',`${vehLabel()} kategorileri`);
+el.side.innerHTML=`<p class="side-nav__title">${isVirtual(S.model)?esc(title):`<a href="${esc(D.url.hub(S.model,S.kasa))}">${esc(title)}</a>`}</p>
+      <ul class="side-nav__list">
+        <li>${link({grup:'',alt:''},'Tüm parçalar',cnt.grupAll,!S.grup,'<svg class="cat-ico cat-ico--sm" aria-hidden="true"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#i-grid"/></svg>')}</li>
+        ${groups.map(g=>`<li>${link({grup:g.key,alt:''},grpName(g.key),cnt.grup.get(g.key)||0,g.key===S.grup,ico(g.key))}</li>`).join('')}
+      </ul>`;
+el.side.hidden=false;
+centerX($('.side-nav__list',el.side),el.side.querySelector('[aria-current]'));
+}
+function renderCtx(cnt){
+if(!el.ctx)return;
+const multi=R&&R.qs&&R.qs.multi;
+let genHTML='';
+if(S.model&&!isVirtual(S.model)&&!multi){
+const gens=[...GENS.values()].filter(g=>g.model===S.model&&((cnt.gen?cnt.gen.get(g.key)||0:g.count||0)>0||g.key===S.kasa));
+if(gens.length>=2||S.kasa){
+genHTML=`<a class="chip gen-chip gen-chip--all" href="${ctxLink({kasa:''})}" data-gen=""${S.kasa?'':' aria-current="true"'}><strong>Tüm nesiller</strong><small>${cnt.genAll==null?'':nf(cnt.genAll)}</small></a>`+
+gens.map(g=>`<a class="chip gen-chip" href="${ctxLink({kasa:g.key})}" data-gen="${esc(g.key)}"${g.key===S.kasa?' aria-current="true"':''} aria-label="${esc(vLabel(S.model)+' '+(g.code?g.code+' ':'')+g.years+(cnt.gen?', '+nf(cnt.gen.get(g.key)||0)+' ürün':''))}">${g.code?`<strong>${esc(g.code)}</strong>`:''}<small>${esc(g.years)}</small></a>`).join('');
+}
+}
+el.genChips.innerHTML=genHTML;
+el.genChips.hidden=!genHTML;
+let subHTML='';
+if(S.grup&&!multi){
+const ac=k=>(cnt.alt?cnt.alt.get(k)||0:null);
+const subs=[...SUBS.values()].filter(x=>x.group===S.grup&&(ac(x.key)===null||ac(x.key)>0||x.key===S.alt))
+.sort((a,b)=>(ac(b.key)||0)-(ac(a.key)||0));
+const sm=n=>(n==null?'':` <small>${nf(n)}</small>`);
+if(subs.length){
+subHTML=`<a class="chip" href="${ctxLink({alt:''})}" data-alt=""${S.alt?'':' aria-current="true"'}>Tümü${sm(cnt.altAll)}</a>`+
+subs.map(x=>`<a class="chip" href="${ctxLink({alt:x.key})}" data-alt="${esc(x.key)}"${x.key===S.alt?' aria-current="true"':''}>${esc(x.label)}${sm(ac(x.key))}</a>`).join('');
+}
+}
+el.subChips.innerHTML=subHTML;
+el.subChips.hidden=!subHTML;
+if(S.kasa&&(cnt.untagged==null||cnt.untagged>0)&&!multi){
+el.note.hidden=false;
+el.note.innerHTML=`${ICON('info')}<span>Kasa kodu belirtilmemiş ${cnt.untagged==null?'':nf(cnt.untagged)+' '}${esc(vLabel(S.model))} ürünleri bu listede yok; uyumu şasi numaranızla doğrulatabilirsiniz.</span><button type="button" data-gen="">Hepsini göster</button>`;
+}else{el.note.hidden=true;el.note.innerHTML='';}
+el.ctx.hidden=!genHTML&&!subHTML&&el.note.hidden;
+if(S.alt)centerX(el.subChips,el.subChips.querySelector('[aria-current]'));
 }
 const opt=(type,name,value,label,extra='',cls='')=>
 `<label class="fopt${cls?' '+cls:''}" data-opt="${name}:${esc(value)}"><input type="${type}" name="${name}" value="${esc(value)}"><span class="fopt__l">${esc(label)}${extra}</span><span class="fopt__n" data-n></span></label>`;
@@ -495,14 +632,15 @@ el.model.value=!isVirtual(vk)&&MAKE_OF.get(vk)===mk?vk:'';
 }
 el.find.classList.toggle('has-car',!!g);
 el.gOnly.hidden=!g;
-el.gToggle.checked=!!g&&S.model===g;
-el.gN.textContent=g?nf(cnt.model.get(g)||0):'';
+const gg=D.garage.gen?D.garage.gen():null;
+el.gToggle.checked=!!g&&S.model===g&&(!gg||S.kasa===gg.key);
+el.gN.textContent=g?nf((gg&&cnt.gen.get(gg.key))||cnt.model.get(g)||0):'';
 el.gClear.hidden=!g;
-const save=S.model&&!isVirtual(S.model)&&S.model!==g;
+const save=S.model&&!isVirtual(S.model)&&(S.model!==g||(S.kasa&&(!gg||gg.key!==S.kasa)));
 el.gSave.hidden=!save;
-if(save)el.gSave.textContent=`Garajıma kaydet: ${vLabel(S.model)}`;
+if(save)el.gSave.textContent=`Aracım olarak kaydet: ${vehLabel()}`;
 el.gNote.textContent=g
-?`Aracım: ${vLabel(g)}`
+?`Aracım: ${D.garage.label()}`
 :isVirtual(S.model)?`${vLabel(S.model)} modelinizi seçin; uyumlu parçalar öne çıksın.`:'Aracınızı seçin; uyumlu parçalar öne çıksın.';
 }
 function renderSort(){
@@ -528,9 +666,11 @@ function chipList(){
 const chips=[];
 if(S.q)chips.push(['q','',`Arama: “${short(S.q,28)}”`]);
 if(S.model)chips.push(['model','',vLabel(S.model)]);
-if(S.grup)chips.push(['grup','',cat.groupLabel(S.grup)]);
+if(S.kasa&&genOf(S.kasa))chips.push(['kasa','',`Kasa: ${genShort(genOf(S.kasa))}`]);
+if(S.grup)chips.push(['grup','',gLabel(S.grup)]);
+if(S.alt&&subOf(S.alt))chips.push(['alt','',subOf(S.alt).label]);
 S.kalite.forEach(k=>chips.push(['kalite',k,qLabel(k)]));
-S.marka.forEach(k=>chips.push(['marka',k,brandByKey.get(k).name]));
+S.marka.forEach(k=>chips.push(['marka',k,(brandByKey.get(k)||{name:k}).name]));
 if(S.min!=null||S.max!=null)chips.push(['fiyat','',priceLabel()]);
 if(S.stok)chips.push(['stok','','Stokta']);
 if(S.firsat)chips.push(['firsat','',DEAL.label]);
@@ -645,8 +785,8 @@ if(animate)stagger($$('.mrow',el.mcode),{y:8,step:40});
 function waEmptyMsg(){
 const parts=['Merhaba, sitede bulamadığım bir parçayı arıyorum.'];
 if(S.q)parts.push(`Aranan: ${S.q}`);
-if(S.model)parts.push(`Araç: ${vLabel(S.model)}`);
-if(S.grup)parts.push(`Parça grubu: ${cat.groupLabel(S.grup)}`);
+if(S.model)parts.push(`Araç: ${vehLabel()}`);
+if(S.grup)parts.push(`Parça grubu: ${cat.groupLabel(S.grup)}${S.alt&&subOf(S.alt)?' / '+subOf(S.alt).label:''}`);
 parts.push('Şasi (VIN) no: ');
 return parts.join('\n');
 }
@@ -708,10 +848,13 @@ resetTilt();
 if(multi||!list.length){el.grid.hidden=true;el.grid.innerHTML='';return;}
 el.grid.hidden=false;
 const start=(view.from-1)*PER,end=S.sayfa*PER;
+const before=new CustomEvent('dky:grid-before',{bubbles:true,cancelable:true,detail:{animate:!!animate}});
+el.grid.dispatchEvent(before);
 el.grid.innerHTML=list.slice(start,end).map((p,i)=>card(p,i<EAGER)).join('');
+el.grid.dispatchEvent(new CustomEvent('dky:grid-after',{bubbles:true,detail:{animate:!!animate,flip:before.defaultPrevented}}));
 const cards=[...el.grid.children];
 applyTilt(cards);
-if(animate&&canAnim()){
+if(animate&&canAnim()&&!before.defaultPrevented){
 el.grid.animate([{opacity:0.35},{opacity:1}],{duration:220,easing:EASE});
 stagger(cards);
 }
@@ -767,6 +910,8 @@ if(view.from<1)view.from=1;
 writeURL();
 renderHead(list.length);
 renderFilters(cnt);
+renderSide(cnt);
+renderCtx(cnt);
 renderCar(cnt);
 renderSort();
 renderChips();
@@ -880,8 +1025,8 @@ el.fltBody.addEventListener('change',e=>{
 const t=e.target;
 const tog=(arr,v,on)=>(on?uniq(arr.concat(v)):arr.filter(x=>x!==v));
 switch(t.name){
-case'f-model':S.model=t.value;break;
-case'f-grup':S.grup=t.value;break;
+case'f-model':S.model=t.value;S.kasa='';break;
+case'f-grup':S.grup=t.value;S.alt='';break;
 case'f-kalite':S.kalite=tog(S.kalite,t.value,t.checked);break;
 case'f-marka':S.marka=tog(S.marka,t.value,t.checked);break;
 case'f-stok':S.stok=t.checked;break;
@@ -903,6 +1048,7 @@ el.make.addEventListener('change',()=>{
 const v=el.make.value;
 const def=makeDef(v);
 S.sayfa=1;view.from=1;
+S.kasa='';
 if(!v){S.model='';changed({keepScroll:true});return;}
 if(def.single){S.model=v;D.garage.set(v);return;}
 S.model=v;
@@ -912,13 +1058,34 @@ if(!el.model.disabled)el.model.focus();
 el.model.addEventListener('change',()=>{
 const v=el.model.value;
 S.sayfa=1;view.from=1;
+S.kasa='';
 if(!v){S.model=el.make.value||'';changed({keepScroll:true});return;}
 S.model=v;
 D.garage.set(v);
 });
-el.gToggle.addEventListener('change',()=>{const g=garageKey();S.model=el.gToggle.checked&&g?g:'';changed({keepScroll:true});});
-el.gSave.addEventListener('click',()=>{if(S.model&&!isVirtual(S.model))D.garage.set(S.model);});
-el.gClear.addEventListener('click',()=>{const old=garageKey();if(S.model===old)S.model='';S.sayfa=1;view.from=1;D.garage.set(null);});
+el.gToggle.addEventListener('change',()=>{
+const g=garageKey(),gg=D.garage.gen?D.garage.gen():null;
+S.model=el.gToggle.checked&&g?g:'';
+S.kasa=el.gToggle.checked&&g&&gg&&GENS.has(gg.key)?gg.key:'';
+changed({keepScroll:true});
+});
+el.gSave.addEventListener('click',()=>{if(S.model&&!isVirtual(S.model))D.garage.set(S.model,S.kasa?(genOf(S.kasa)&&Object.assign({key:S.kasa},genOf(S.kasa))):null);});
+el.gClear.addEventListener('click',()=>{const old=garageKey();if(S.model===old){S.model='';S.kasa='';}S.sayfa=1;view.from=1;D.garage.set(null);});
+const plainClick=e=>!(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button===1);
+if(el.side)el.side.addEventListener('click',e=>{
+const a=e.target.closest('[data-side]');
+if(!a||!plainClick(e))return;
+e.preventDefault();
+S.grup=a.dataset.side;S.alt=a.dataset.sideAlt||'';
+changed();
+});
+if(el.ctx)el.ctx.addEventListener('click',e=>{
+const g=e.target.closest('[data-gen]'),a=e.target.closest('[data-alt]');
+if((!g&&!a)||!plainClick(e))return;
+e.preventDefault();
+if(g)S.kasa=g.dataset.gen;else S.alt=a.dataset.alt;
+changed({keepScroll:true});
+});
 document.addEventListener('dky:garage',()=>render({animate:true}));
 document.addEventListener('click',e=>{
 const t=e.target.closest('[data-chip],[data-clear-all],[data-more],[data-page],[data-flt-open],[data-flt-close],[data-retry],[data-mcode-add]');
@@ -927,8 +1094,10 @@ if(t.matches('[data-chip]')){
 if(t.classList.contains('is-leave'))return;
 const k=t.dataset.chip,v=t.dataset.v;
 if(k==='q'){S.q='';el.q.value='';}
-else if(k==='model')S.model='';
-else if(k==='grup')S.grup='';
+else if(k==='model'){S.model='';S.kasa='';}
+else if(k==='kasa')S.kasa='';
+else if(k==='grup'){S.grup='';S.alt='';}
+else if(k==='alt')S.alt='';
 else if(k==='kalite')S.kalite=S.kalite.filter(x=>x!==v);
 else if(k==='marka')S.marka=S.marka.filter(x=>x!==v);
 else if(k==='fiyat'){S.min=null;S.max=null;}
@@ -996,12 +1165,49 @@ if(mn===S.min&&mx===S.max)return;
 S.min=mn;S.max=mx;
 changed();
 }
+function preRender(){
+if(cat||!NAV)return;
+indexLabels();
+if(S.kasa){const g=genOf(S.kasa);if(!g)S.kasa='';else if(!S.model)S.model=g.model;else if(g.model!==S.model)S.kasa='';}
+if(S.model&&!isVirtual(S.model)&&!NAV.model(S.model)){S.model='';S.kasa='';}
+if(S.alt){const x=subOf(S.alt);if(!x)S.alt='';else if(!S.grup)S.grup=x.group;else if(x.group!==S.grup)S.alt='';}
+if(S.grup&&!NAV.group(S.grup)){S.grup='';S.alt='';}
+const extra=!!S.q||S.marka.length||S.kalite.length||S.min!=null||S.max!=null||S.stok||S.firsat;
+const real=S.model&&!isVirtual(S.model)?NAV.model(S.model):null;
+const gen=S.kasa?NAV.gen(S.kasa):null;
+const ctxGroups=real?NAV.groupsOf(real.key,gen&&gen.key):[];
+const grpN=k=>{const x=ctxGroups.find(e=>e.group===k);return x?x.count:0;};
+const scopeTotal=real?(gen?gen.count:real.count):null;
+let n=null;
+if(!extra){
+if(real&&!S.grup)n=scopeTotal;
+else if(real&&S.grup&&!S.alt)n=grpN(S.grup);
+else if(!S.model&&S.grup&&!S.alt)n=(NAV.group(S.grup)||{}).count||null;
+else if(!S.model&&S.alt)n=(NAV.sub(S.alt)||{}).count||null;
+}
+const h=heading();
+el.h1.textContent=h.h1;
+if(S.model||S.grup)el.lead.textContent=leadText(0,n);
+renderCrumbs();
+const cnt={
+grup:new Map(ctxGroups.map(e=>[e.group,e.count])),grupAll:extra?null:scopeTotal,
+gen:null,genAll:extra||S.grup?null:real?real.count:null,untagged:null,
+alt:!S.model&&!extra&&S.grup?new Map(((NAV.group(S.grup)||{}).subs||[]).map(x=>[x.key,x.count])):null,
+altAll:!S.model&&!extra&&S.grup?(NAV.group(S.grup)||{}).count:null
+};
+if(real)renderSide(cnt);
+renderCtx(cnt);
+renderChips();
+}
 let bound=false;
 function start(){
 el.q.value=S.q;
 el.count.textContent='Katalog yükleniyor…';
 renderMsg(null);
-D.loadCatalog().then(c=>{
+const shown=()=>{if(catRoot)catRoot.classList.add('is-pre');};
+if(window.DKY_NAV&&D.loadNav&&!cat)D.loadNav({fallback:false}).then(n=>{if(!cat){NAV=n;try{preRender();}catch(e){}}shown();}).catch(shown);
+else shown();
+D.loadCatalog().then(c=>(D.loadNav?D.loadNav({fallback:true}).then(n=>{NAV=n;},()=>{}):null).then(()=>c)).then(c=>{
 cat=c;
 if(!P.length)index();
 sanitize();

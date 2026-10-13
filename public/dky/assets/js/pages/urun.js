@@ -65,6 +65,37 @@ const T=s=>D.title(prepName(s));
 const card=p=>D.card(Object.assign({},p,{name:prepName(p.name)},!D.quality(p)&&quality(p)?{brand:brandKey(p.brand)}:{}));
 const lowerTR=s=>String(s||'').toLocaleLowerCase('tr-TR');
 let cat=null,P=null;
+const GEN_L=new Map(),SUB_L=new Map();
+const addLabels=(gens,subs)=>{(gens||[]).forEach(g=>g&&g.key&&GEN_L.set(g.key,g));(subs||[]).forEach(x=>x&&x.key&&SUB_L.set(x.key,x));};
+const navNow=()=>(D.nav?D.nav():null);
+const genL=k=>GEN_L.get(k)||(D.genInfo&&D.genInfo(k))||(navNow()&&navNow().gen(k))||null;
+const subL=k=>SUB_L.get(k)||(navNow()&&navNow().sub(k))||((window.DKY_CATALOG&&window.DKY_CATALOG.subs)||[]).find(x=>x.key===k)||null;
+const pGens=p=>(Array.isArray(p.gens)?p.gens:[]);
+const gensOf=(p,model)=>pGens(p).map(genL).filter(g=>g&&g.model===model);
+const genTag=g=>(g.code?`${g.code} · ${g.years}`:g.years);
+const OFFROAD=new Set(['ford-ranger','toyota-hilux','mitsubishi-l200','mercedes-x-class','vw-amarok','isuzu-dmax','nissan-navara','jeep']);
+const colKeyOf=k=>(/^rr-/.test(k)?'range-rover':/^(defender|discovery|freelander)/.test(k)?'land-rover':/^jaguar/.test(k)?'jaguar':/^bmw|^mini$/.test(k)?'bmw-mini':OFFROAD.has(k)?'offroad':'');
+const colOf=k=>(D.navCols||[]).find(c=>c.key===colKeyOf(k))||null;
+const shortOf=k=>{
+const n=navNow(),m=n&&n.model(k);
+if(m&&D.shortModel)return m.isMake?m.label:D.shortModel(m,n.colOfModel(k));
+const l=cat.modelLabel(k),ck=colKeyOf(k);
+const pre=ck==='range-rover'?'Range Rover ':ck==='jaguar'&&k!=='jaguar'?'Jaguar ':'';
+return pre&&l.startsWith(pre)?l.slice(pre.length):l;
+};
+function crumbVehicle(p){
+const g=garageKey();
+let m=g&&p.models.includes(g)?g:null;
+if(!m){
+const list=p.models.filter(k=>!p.models.some(x=>x!==k&&x.startsWith(k+'-')));
+if(list.length===1)m=list[0];
+}
+if(!m)return null;
+const own=gensOf(p,m);
+const gg=D.garage.gen?D.garage.gen():null;
+const gen=gg&&own.some(x=>x.key===gg.key)?own.find(x=>x.key===gg.key):own.length===1?own[0]:null;
+return{m,gen};
+}
 function setMeta(sel,attr,val){
 let m=$(sel);
 if(!m){
@@ -117,7 +148,8 @@ const specs=[
 ['Marka',p.brand&&esc(p.brand)],
 ['Parça kodu',p.code&&`<span class="mono">${esc(p.code)}</span>`],
 ['Parça grubu',p.group&&`<a href="/dky/urunler.html?grup=${esc(p.group)}">${esc(gLabel)}</a>`],
-['Uyumlu modeller',p.models.length&&p.models.map(k=>`<a href="/dky/urunler.html?model=${esc(k)}">${esc(cat.modelLabel(k))}</a>`).join(', ')],
+['Uyumlu modeller',p.models.length&&p.models.map(k=>{const gs=gensOf(p,k);return`<a href="${esc(D.url?D.url.hub(k):'/dky/urunler.html?model='+k)}">${esc(cat.modelLabel(k))}</a>${gs.length?` <span class="pd-spec__muted">(${gs.map(g=>esc(genTag(g))).join(', ')})</span>`:''}`;}).join(', ')],
+['Alt kategori',p.sub&&subL(p.sub)&&`<a href="/dky/urunler.html?grup=${esc(p.group)}&amp;alt=${esc(p.sub)}">${esc(subL(p.sub).label)}</a>`],
 ['Kalite',q&&`${esc(q.label)} <span class="pd-spec__muted">— ${esc(q.hint)}</span>`],
 ['Kategori',p.category&&esc(p.category)],
 ['Stok durumu',p.inStock?'Stokta':'Tedarik edilir']
@@ -136,17 +168,14 @@ const quoteRow=(primary)=>`<div class="pd-quote">
             <button class="btn ${primary?'btn--primary btn--red':'btn--secondary btn--ghost'} pd-quote__add" type="button" data-add>${ICON('clipboard')}Teklif listesine ekle</button>
           </div>`;
 const waBtn=`<a class="btn btn--wa btn--secondary btn--block" href="#" data-wa="${esc(p.inStock?waMsg:waStock)}" data-track="whatsapp_click" data-track-label="product">${ICON('whatsapp')}${p.inStock?'WhatsApp ile sor':'Tedarik süresini WhatsApp’tan sor'}</a>`;
+const frameEl=$('[data-mo-vt-main]',root)||document.createElement('button');
+frameEl.remove();
 root.innerHTML=`
 <section class="pd-main">
   <div class="wrap pd-grid">
     <div class="pd-gallery">
       <div class="pd-gallery__in">
-        <button class="pd-frame" type="button" data-zoom aria-label="Görseli tam ekran büyüt: ${esc(name)}">
-          <img class="pd-img" src="${esc(D.img(imgs[0],800))}" srcset="${esc(D.img(imgs[0],400))} 400w, ${esc(D.img(imgs[0],800))} 800w, ${esc(D.img(imgs[0],1200))} 1200w" sizes="(max-width: 960px) calc(100vw - 40px), 600px" width="800" height="800" alt="${esc(name)}" fetchpriority="high" decoding="async">
-          <span class="pd-lens" aria-hidden="true"></span>
-          ${flags.length?`<span class="pd-frame__flags">${flags.slice(0,2).join('')}</span>`:''}
-          <span class="pd-frame__hint">${ICON('search')}<span class="pd-hint-mouse">Yakınlaştırmak için üzerine gelin</span><span class="pd-hint-touch">Büyütmek için dokunun</span></span>
-        </button>
+        <i data-pd-frame-slot hidden></i>
         ${thumbs}
       </div>
     </div>
@@ -177,9 +206,8 @@ root.innerHTML=`
           <select class="pd-fit__select" id="pd-garage" data-pd-garage>${garageOptions()}</select>
         </div>
         <div class="pd-fit__result" data-fit aria-live="polite"></div>
-        ${p.models.length
-?`<ul class="pd-chips" aria-label="Ürün bilgisine göre uyumlu modeller">${p.models.map(k=>`<li><a class="pd-chip" data-model="${esc(k)}" href="/dky/urunler.html?model=${esc(k)}&amp;grup=${esc(p.group)}">${esc(cat.modelLabel(k))}</a></li>`).join('')}</ul>`
-:'<p class="pd-fit__none">Bu ürün için katalogda model bilgisi yer almıyor.</p>'}
+        <p class="pd-fit__lbl">Bu parça şu araçlara uyar</p>
+        <div data-pd-fitlist>${fitList(p)}</div>
         <a class="btn btn--wa btn--secondary btn--sm pd-fit__vin" href="#" data-wa="${esc(waVin)}" data-track="whatsapp_click" data-track-label="product_vin">${ICON('whatsapp')}Şasi no ile doğrulat</a>
       </div>
       <div class="pd-actions" data-pd-cta>
@@ -226,9 +254,28 @@ root.innerHTML=`
   <img class="pd-lb__img" alt="${esc(name)}" width="1200" height="1200" decoding="async">
   <p class="pd-lb__cap">${esc(name)} <span class="mono">${esc(p.code)}</span></p>
 </dialog>`;
+const slot=$('[data-pd-frame-slot]',root);
+if(slot){
+frameEl.className='pd-frame';
+frameEl.type='button';
+frameEl.disabled=false;
+frameEl.removeAttribute('tabindex');
+frameEl.removeAttribute('aria-hidden');
+frameEl.setAttribute('data-zoom','');
+frameEl.setAttribute('data-mo-vt-main','');
+frameEl.setAttribute('aria-label',`Görseli tam ekran büyüt: ${name}`);
+const early=frameEl.querySelector('img.pd-img');
+const keepImg=early&&early.getAttribute('src')===D.img(imgs[0],800)?early:null;
+frameEl.innerHTML=`${keepImg?'<i data-pd-img-slot></i>':`<img class="pd-img" src="${esc(D.img(imgs[0],800))}" srcset="${esc(D.img(imgs[0],400))} 400w, ${esc(D.img(imgs[0],800))} 800w, ${esc(D.img(imgs[0],1200))} 1200w" sizes="(max-width: 640px) 260px, (max-width: 960px) calc(100vw - 40px), 600px" width="800" height="800" alt="${esc(name)}" fetchpriority="high" decoding="async">`}
+          <span class="pd-lens" aria-hidden="true"></span>
+          ${flags.length?`<span class="pd-frame__flags">${flags.slice(0,2).join('')}</span>`:''}
+          <span class="pd-frame__hint">${ICON('search')}<span class="pd-hint-mouse">Yakınlaştırmak için üzerine gelin</span><span class="pd-hint-touch">Büyütmek için dokunun</span></span>`;
+if(keepImg){keepImg.alt=name;$('[data-pd-img-slot]',frameEl).replaceWith(keepImg);}
+slot.replaceWith(frameEl);
+}
 root.removeAttribute('aria-busy');
 D.bindWa(root);
-crumbs.innerHTML=`<li><a href="/dky/">Ana sayfa</a></li><li><a href="/dky/urunler.html">Ürünler</a></li><li><a href="/dky/urunler.html?grup=${esc(p.group)}">${esc(gLabel)}</a></li><li aria-current="page">${esc(clip(name,48))}</li>`;
+renderCrumbs(p);
 seo(p,{name,q,gLabel,url,mainCode,imgs});
 bindProduct(p,imgs,renderSims);
 renderFit(p,false);
@@ -324,7 +371,9 @@ const sel=$('[data-pd-garage]',root);
 if(!box)return;
 const g=garageKey();
 if(sel)sel.value=g||'';
+const gg=D.garage.gen?D.garage.gen():null;
 $$('.pd-chip',root).forEach(a=>a.classList.toggle('is-mine',a.dataset.model===g));
+$$('.pd-gen',root).forEach(a=>a.classList.toggle('is-mine',a.dataset.model===g&&!!gg&&a.dataset.gen===gg.key));
 let state,html;
 if(!g){
 state='none';
@@ -334,6 +383,10 @@ const gl=cat.modelLabel(g);
 if(!p.models.length){
 state='unknown';
 html=`${ICON('info')}<p><strong>${esc(gl)} için uyum bilgisi yok.</strong> Bu ürünün kaydında model bilgisi bulunmuyor; şasi numaranızla teyit edelim.</p>`;
+}else if(p.models.includes(g)&&!D.garage.fits(p)){
+state='warn';
+const gg=D.garage.gen(),own=gensOf(p,g);
+html=`${ICON('info')}<p><strong>Ürün bilgisi ${esc(gl)} için ${esc(own.map(genTag).join(', '))} nesillerini belirtiyor.</strong> Seçtiğiniz kasa kodu (${esc(gg?genTag(gg):'')}) farklı; şasi numaranızla doğrulatmanızı öneririz.</p>`;
 }else if(p.models.includes(g)){
 state='ok';
 html=`${ICON('check')}<p><strong>${esc(gl)} ile uyumlu görünüyor.</strong> Ürün bilgisine göre eşleşti; kasa kodu ve model yılı için şasi numaranızla son kontrolü yapabiliriz.</p>`;
@@ -387,15 +440,42 @@ seller:{'@type':'Organization',name:C.brand||'DKY Auto Parts',url:SITE+'/'}
 };
 }
 addLD(product);
-addLD({
+}
+let crumbLD=null;
+function renderCrumbs(p){
+const name=T(p.name);
+const gLabel=D.groupName?D.groupName(p.group,cat.groupLabel(p.group)):cat.groupLabel(p.group);
+const v=crumbVehicle(p);
+const ctx=v?{model:v.m,kasa:v.gen?v.gen.key:''}:{};
+const catUrl=o=>(D.url?D.url.cat(Object.assign({},ctx,o)):`/dky/urunler.html?grup=${o.grup}`);
+const list=[['Ana sayfa','/']];
+if(v){
+const c=colOf(v.m);
+if(c&&c.href!==(D.url&&D.url.hub(v.m)))list.push([c.label,c.href]);
+list.push([shortOf(v.m)+(v.gen?' '+(v.gen.code||v.gen.years):''),D.url?D.url.hub(v.m,v.gen&&v.gen.key):`/dky/urunler.html?model=${v.m}`]);
+}else list.push(['Kategoriler','/dky/kategoriler.html']);
+list.push([gLabel,catUrl({grup:p.group})]);
+const sb=p.sub?subL(p.sub):null;
+if(sb)list.push([sb.label,catUrl({grup:p.group,alt:p.sub})]);
+crumbs.innerHTML=list.map(([n,u])=>`<li><a href="${esc(u)}">${esc(n)}</a></li>`).join('')+`<li aria-current="page">${esc(clip(name,48))}</li>`;
+if(!crumbLD){crumbLD=document.createElement('script');crumbLD.type='application/ld+json';document.head.appendChild(crumbLD);}
+crumbLD.textContent=JSON.stringify({
 '@context':'https://schema.org','@type':'BreadcrumbList',
-itemListElement:[
-{'@type':'ListItem',position:1,name:'Ana sayfa',item:SITE+'/'},
-{'@type':'ListItem',position:2,name:'Ürünler',item:SITE+'/urunler.html'},
-{'@type':'ListItem',position:3,name:gLabel,item:`${SITE}/urunler.html?grup=${p.group}`},
-{'@type':'ListItem',position:4,name,item:url}
-]
-});
+itemListElement:list.concat([[name,`/dky/urun.html?id=${p.id}`]]).map(([n,u],i)=>({'@type':'ListItem',position:i+1,name:n,item:SITE+u}))
+}).replace(/</g,'\\u003c');
+}
+function fitList(p){
+if(!p.models.length)return'<p class="pd-fit__none">Bu ürün için katalogda model bilgisi yer almıyor.</p>';
+const ms=p.models.filter(k=>!p.models.some(x=>x!==k&&x.startsWith(k+'-')));
+return`<ul class="pd-chips pd-fitlist" aria-label="Ürün bilgisine göre uyumlu araçlar">${ms.map(k=>{
+const gs=gensOf(p,k);
+return`<li><a class="pd-chip" data-model="${esc(k)}" href="${esc(D.url?D.url.cat({model:k,grup:p.group}):'/dky/urunler.html?model='+k)}">${esc(cat.modelLabel(k))}</a>${gs.map(g=>`<a class="pd-gen" data-model="${esc(k)}" data-gen="${esc(g.key)}" href="${esc(D.url?D.url.hub(k,g.key):'#')}" aria-label="${esc(cat.modelLabel(k)+' '+genTag(g))} araç sayfası">${g.code?`<b>${esc(g.code)}</b> `:''}${esc(g.years)}</a>`).join('')}</li>`;
+}).join('')}</ul>`;
+}
+function refreshLabels(p){
+const box=$('[data-pd-fitlist]',root);
+if(box){box.innerHTML=fitList(p);renderFit(p,false);}
+renderCrumbs(p);
 }
 function bindProduct(p,imgs,renderSims){
 $('[data-copy]',root).addEventListener('click',e=>{
@@ -420,7 +500,7 @@ const barQuote=$('[data-bar-quote]',root);
 if(barQuote)barQuote.addEventListener('click',()=>D.quote.add(p,clampQ(qty.value)));
 const sel=$('[data-pd-garage]',root);
 if(sel)sel.addEventListener('change',()=>D.garage.set(sel.value||null));
-document.addEventListener('dky:garage',()=>{renderFit(p,true);renderSims();});
+document.addEventListener('dky:garage',()=>{renderFit(p,true);renderSims();renderCrumbs(p);});
 bindGallery(p,imgs);
 bindBar();
 }
@@ -561,11 +641,12 @@ const setHdr=()=>{const h=$('#header'),m=$('.pd');if(h&&m)m.style.setProperty('-
 setHdr();
 window.addEventListener('resize',setHdr,{passive:true});
 const KOVA=256;
-const KOVA_DIZIN='/dky/assets/h/js/data/p.356e9d0e75/';
+const KOVA_DIZIN='/dky/assets/h/js/data/p.dea84b2d9e/';
 function loadBucket(pid){
 if(!window.fetch)return Promise.reject(new Error('fetch yok'));
-return fetch(KOVA_DIZIN+(pid%KOVA)+'.json',{credentials:'same-origin'})
-.then(r=>{if(!r.ok)throw new Error('kova '+r.status);return r.json();})
+const early=window.DKY_KOVA&&window.DKY_KOVA.id===pid?window.DKY_KOVA.promise:null;
+return(early||fetch(KOVA_DIZIN+(pid%KOVA)+'.json',{credentials:'same-origin'})
+.then(r=>{if(!r.ok)throw new Error('kova '+r.status);return r.json();}))
 .then(b=>{if(!b||b.v!==1||!b.products||!b.models||!b.groups)throw new Error('kova biçimi');return b;});
 }
 const labelsOf=(models,groups)=>({
@@ -586,9 +667,15 @@ D.loadCatalog().then(c=>{
 cat=c;P=c.products;
 const p=c.byId.get(id);
 if(!p){notFound();return;}
+addLabels(c.gens||(window.DKY_CATALOG||{}).gens,c.subs||(window.DKY_CATALOG||{}).subs);
 render(p);
 renderRelated(p);
+afterNav(p);
 }).catch(errorState);
+}
+function afterNav(p){
+if(!D.loadNav)return;
+D.loadNav({fallback:false}).then(()=>refreshLabels(p)).catch(()=>{});
 }
 function start(){
 if(!Number.isFinite(id)||id<=0){notFound();return;}
@@ -596,8 +683,10 @@ loadBucket(id).then(b=>{
 const p=b.products[id];
 if(!p){fromCatalog();return;}
 cat=labelsOf(b.models,b.groups);P=[];
+addLabels(b.gens,b.subs);
 render(p);
 loadRest(p);
+afterNav(p);
 },fromCatalog).catch(errorState);
 }
 start();

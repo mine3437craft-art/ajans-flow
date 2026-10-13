@@ -81,7 +81,7 @@ catalogPromise=new Promise((resolve,reject)=>{
 const done=()=>resolve(decode(window.DKY_CATALOG));
 if(window.DKY_CATALOG)return done();
 const s=document.createElement('script');
-s.src='/dky/assets/h/js/data/catalog.099351cd33.js';
+s.src='/dky/assets/h/js/data/catalog.b88b6861fe.js';
 s.async=true;
 s.onload=done;
 s.onerror=()=>{catalogPromise=null;reject(new Error('Katalog yüklenemedi'));};
@@ -95,14 +95,15 @@ const compact=s=>norm(s).replace(/[^a-z0-9]/g,'');
 DKY.norm=norm;
 function decode(raw){
 if(raw.__decoded)return raw.__decoded;
-const models=raw.models,groups=raw.groups;
+const models=raw.models,groups=raw.groups,gens=raw.gens||[],subs=raw.subs||[];
 const all=raw.rows.map(r=>{
 const flags=r[9];
 const p={
 id:r[0],name:r[1],code:r[2],brand:raw.brands[r[3]]||'',category:raw.cats[r[4]]||'',
 url:r[5],image:r[6],price:r[7],oldPrice:r[8],
 inStock:!!(flags&1),freeShipping:!!(flags&2),isNew:!!(flags&4),bestSeller:!!(flags&8),opportunity:!!(flags&16),tmRisk:!!(flags&32),
-models:r[10].map(i=>models[i].key),group:(groups[r[11]]||{}).key||'diger',stock:r[12]
+models:r[10].map(i=>models[i].key),group:(groups[r[11]]||{}).key||'diger',stock:r[12],
+gens:(r[13]||[]).map(i=>(gens[i]||{}).key).filter(Boolean),sub:(subs[r[14]]||{}).key||null
 };
 p.discount=p.oldPrice>p.price?Math.round((1-p.price/p.oldPrice)*100):0;
 p._name=norm(p.name+' '+p.brand+' '+p.category);
@@ -113,9 +114,11 @@ const products=C.hideTrademarkRisk?all.filter(p=>!p.tmRisk):all;
 const byId=new Map(all.map(p=>[p.id,p]));
 const out={
 products,byId,brands:raw.brands,updatedAt:raw.updatedAt,
-models,groups,
+models,groups,gens,subs,
 modelLabel:k=>(models.find(m=>m.key===k)||{}).label||k,
-groupLabel:k=>(groups.find(g=>g.key===k)||{}).label||k
+groupLabel:k=>(groups.find(g=>g.key===k)||{}).label||k,
+genLabel:k=>(gens.find(g=>g.key===k)||{}).label||k,
+subLabel:k=>(subs.find(s=>s.key===k)||{}).label||k
 };
 raw.__decoded=out;
 return out;
@@ -207,11 +210,11 @@ return!own.length||own.includes(gv.key);
 const FAM_LABEL={'range-rover':'Range Rover',defender:'Defender',discovery:'Discovery',freelander:'Freelander',offroad:'Off-road pick-up',other:''};
 const famOf=k=>(/^rr-/.test(k)?'range-rover':/^defender/.test(k)?'defender':/^discovery/.test(k)?'discovery':/^freelander/.test(k)?'freelander':'');
 const NAV_COLS=[
-{key:'land-rover',label:'Land Rover',make:'land-rover',fams:['defender','discovery','freelander'],cat:'land-rover',href:'/arac.html?marka=land-rover'},
-{key:'range-rover',label:'Range Rover',make:'land-rover',fams:['range-rover'],cat:'',href:'/arac.html?marka=range-rover'},
-{key:'jaguar',label:'Jaguar',makes:['jaguar'],cat:'jaguar',href:'/arac.html?model=jaguar'},
-{key:'bmw-mini',label:'BMW & Mini',makes:['bmw','mini'],cat:'',href:'/arac.html?marka=bmw-mini'},
-{key:'offroad',label:'Off-road pick-up',makes:['offroad'],cat:'pickup',href:'/arac.html?marka=offroad'}
+{key:'land-rover',label:'Land Rover',make:'land-rover',fams:['defender','discovery','freelander'],cat:'land-rover',href:'/dky/arac.html?marka=land-rover'},
+{key:'range-rover',label:'Range Rover',make:'land-rover',fams:['range-rover'],cat:'',href:'/dky/arac.html?marka=range-rover'},
+{key:'jaguar',label:'Jaguar',makes:['jaguar'],cat:'jaguar',href:'/dky/arac.html?model=jaguar'},
+{key:'bmw-mini',label:'BMW & Mini',makes:['bmw','mini'],cat:'',href:'/dky/arac.html?marka=bmw-mini'},
+{key:'offroad',label:'Off-road pick-up',makes:['offroad'],cat:'pickup',href:'/dky/arac.html?marka=offroad'}
 ];
 DKY.navCols=NAV_COLS;
 const GROUP_ORDER=['fren','suspansiyon','motor','filtre','sogutma','elektrik','aktarma','aydinlatma','kaporta','bodykit','basamak','offroad','jant','ic','logo','diger'];
@@ -221,8 +224,8 @@ DKY.groupName=(k,label)=>GROUP_NAMES[k]||sentence(label)||k;
 const nfmt=n=>Number(n||0).toLocaleString('tr-TR');
 DKY.nf=nfmt;
 DKY.url={
-hub:(model,kasa)=>`/arac.html?model=${encodeURIComponent(model)}${kasa?'&kasa='+encodeURIComponent(kasa):''}`,
-make:col=>`/arac.html?marka=${encodeURIComponent(col)}`,
+hub:(model,kasa)=>`/dky/arac.html?model=${encodeURIComponent(model)}${kasa?'&kasa='+encodeURIComponent(kasa):''}`,
+make:col=>`/dky/arac.html?marka=${encodeURIComponent(col)}`,
 cat:({model,kasa,grup,alt,q}={})=>{
 const u=new URLSearchParams();
 if(model)u.set('model',model);
@@ -233,6 +236,39 @@ if(q)u.set('q',q);
 const s=u.toString();
 return'/dky/urunler.html'+(s?'?'+s:'');
 }
+};
+const BANNER=(file,trim,w)=>`https://static.ticimax.cloud/cdn-cgi/image/trim=${trim},width=${w},quality=82,format=auto/57305/uploads/sayfatasarim/sayfa13/${file}`;
+const VEH_PHOTOS={
+'range-rover':{file:'vogue-6859b74a-d.jpg',trim:'0;820;0;0',w:1100,h:656,pos:'46% 62%'},
+'defender-new':{file:'77a09013-70d9-43e7-a7e3-1a594fc82175.jpg',trim:'0;820;0;0',w:1100,h:656,pos:'30% 62%'},
+offroad:{file:'l200-1fda8c7d-a.jpg',trim:'165;0;0;0',w:580,h:315,pos:'58% 60%'},
+'mitsubishi-l200':{file:'l200-1fda8c7d-a.jpg',trim:'165;0;0;0',w:580,h:315,pos:'58% 60%'},
+'ford-ranger':{file:'ranger-off-road-a123.jpg',trim:'0;152;152;0',w:323,h:170,pos:'30% 55%'},
+'toyota-hilux':{file:'toyata-hilux-off-road-acbf.jpg',trim:'0;247;152;0',w:228,h:170,pos:'40% 55%'}
+};
+const PICKUPS=new Set(['ford-ranger','toyota-hilux','mitsubishi-l200','mercedes-x-class','vw-amarok','isuzu-dmax','nissan-navara','jeep','pickup']);
+DKY.vehicleKey=(model,gen)=>{
+const M=(window.DKY_GORSELLER&&window.DKY_GORSELLER.arac)||{};
+if(gen&&M[gen])return gen;
+const k=String(model||'');
+if(k==='rr-vogue'||k==='range-rover')return'range-rover';
+if(/^discovery-[2-5]$/.test(k))return'discovery';
+if(/^freelander/.test(k))return'freelander';
+if(/^jaguar/.test(k))return'jaguar';
+if(/^bmw/.test(k)||k==='mini'||k==='bmw-mini')return'bmw-mini';
+if(PICKUPS.has(k))return M[k]||VEH_PHOTOS[k]?k:'offroad';
+if(k==='offroad')return'offroad';
+if(k==='land-rover')return'defender-new';
+return k;
+};
+DKY.vehicleImage=(key,width=800)=>{
+const M=(window.DKY_GORSELLER&&window.DKY_GORSELLER.arac)||{};
+if(key&&M[key])return{src:'/'+String(M[key]).replace(/^\/+/,''),w:1200,h:800,kind:'ai'};
+const ph=VEH_PHOTOS[key];
+if(!ph)return null;
+const ws=[480,800,1100].filter(x=>x<=ph.w).concat(ph.w<480?[ph.w]:[]);
+const w=Math.min(width,ph.w);
+return{src:BANNER(ph.file,ph.trim,w),srcset:ws.map(x=>BANNER(ph.file,ph.trim,x)+' '+x+'w').join(', '),w:ph.w,h:ph.h,pos:ph.pos,kind:'photo'};
 };
 let navIndex=null;
 function normNav(raw,source){
@@ -350,7 +386,7 @@ if(ck.startsWith('m:'))modelGroups[ck.slice(2)]=list;else genGroups[ck.slice(2)]
 return normNav({updatedAt:cat.updatedAt,makes:makesRaw,groups:groupsRaw,modelGroups,genGroups},'catalog');
 }
 let navPromise=null,navCatPromise=null;
-const NAV_SRC='/dky/assets/js/data/nav.js';
+const NAV_SRC='/dky/assets/h/js/data/nav.ce171af89e.js';
 function loadNavFile(){
 if(navPromise)return navPromise;
 navPromise=new Promise((resolve,reject)=>{
@@ -656,18 +692,20 @@ const chevIco=ICON('chevron');
 const genMeta=g=>(g.code?`<b>${esc(g.code)}</b> ${esc(g.years)}`:esc(g.years||g.label));
 DKY.genMeta=genMeta;
 const shortModel=(m,c)=>{
-if(m.isMake)return'Tüm '+(MODEL_LABELS[m.key]||m.label);
+if(m.isMake)return(m.subs&&m.subs.some(x=>x.count>0)?'Tüm ':'')+(MODEL_LABELS[m.key]||m.label);
 const pre=c&&c.key==='range-rover'?'Range Rover ':c&&c.key==='jaguar'?'Jaguar ':c&&c.key==='bmw-mini'&&m.key.startsWith('bmw-')?'BMW ':'';
 return pre&&m.label.startsWith(pre)?m.label.slice(pre.length):m.label;
 };
 DKY.shortModel=shortModel;
 const liveGens=m=>(m.gens||[]).filter(g=>g.count>0);
 DKY.liveGens=liveGens;
+const soleGen=m=>{const gs=liveGens(m);const g=gs.length===1?gs[0]:null;return g&&(g.code||!String(m.label).includes(g.years))?g:null;};
+DKY.soleGen=soleGen;
 const genAria=(m,g)=>m.label+' '+(g.code?g.code+' ':'')+g.years;
 function megaCarsHTML(nav){
 const list=(items,c)=>`<ul>${items.map(m=>{
 const gs=liveGens(m);
-const one=gs.length===1?gs[0]:null;
+const one=soleGen(m);
 const row=`<a href="${esc(DKY.url.hub(m.key))}" data-nav-model="${esc(m.key)}" aria-label="${esc(m.isMake?shortModel(m,c)+' modelleri':one?genAria(m,one):m.label)}"><span>${esc(shortModel(m,c))}${one?` <span class="nav-meta">${genMeta(one)}</span>`:''}</span><small>${nfmt(m.count)}</small></a>`;
 const sub=gs.length>1?`<ul class="mbrand__gens">${gs.map(g=>`<li><a href="${esc(DKY.url.hub(m.key,g.key))}" data-nav-model="${esc(m.key)}" data-nav-gen="${esc(g.key)}" aria-label="${esc(genAria(m,g))}"><span class="nav-meta">${genMeta(g)}</span><small>${nfmt(g.count)}</small></a></li>`).join('')}</ul>`:'';
 return`<li>${row}${sub}</li>`;
@@ -685,13 +723,13 @@ return nav.groups.filter(g=>g.count>0).map(g=>{
 const subs=g.subs.filter(s=>s.count>0).sort((a,b)=>b.count-a.count);
 const top=subs.slice(0,4);
 const more=subs.length-top.length;
-return`<section class="mcat" data-mo-item><a class="mcat__head" href="${esc(DKY.url.cat({grup:g.key}))}">${catIco(g.key)}<strong>${esc(g.label)}</strong><small>${nfmt(g.count)}</small></a>${top.length?`<ul class="mcat__subs">${top.map(s=>`<li><a href="${esc(DKY.url.cat({grup:g.key,alt:s.key}))}">${esc(s.label)} <small>${nfmt(s.count)}</small></a></li>`).join('')}${more>0?`<li class="mcat__more"><a href="/kategoriler.html#k-${esc(g.key)}">+${more} alt kategori</a></li>`:''}</ul>`:''}</section>`;
+return`<section class="mcat" data-mo-item><a class="mcat__head" href="${esc(DKY.url.cat({grup:g.key}))}">${catIco(g.key)}<strong>${esc(g.label)}</strong><small>${nfmt(g.count)}</small></a>${top.length?`<ul class="mcat__subs">${top.map(s=>`<li><a href="${esc(DKY.url.cat({grup:g.key,alt:s.key}))}">${esc(s.label)} <small>${nfmt(s.count)}</small></a></li>`).join('')}${more>0?`<li class="mcat__more"><a href="/dky/kategoriler.html#k-${esc(g.key)}">+${more} alt kategori</a></li>`:''}</ul>`:''}</section>`;
 }).join('');
 }
 function drawerCarsHTML(nav){
 return nav.cols.filter(c=>c.items.length).map(c=>`<details class="dbrand"><summary><span>${esc(c.label)}</span>${chevIco}</summary><div class="dbrand__body">${c.items.map(m=>{
 const gs=liveGens(m);
-const one=gs.length===1?gs[0]:null;
+const one=soleGen(m);
 return`<a class="dbrand-link" href="${esc(DKY.url.hub(m.key))}" data-nav-model="${esc(m.key)}"><span>${esc(m.isMake?shortModel(m,c):m.label)}${one?` <span class="nav-meta">${genMeta(one)}</span>`:''}</span><small>${nfmt(m.count)}</small></a>`+
 (gs.length>1?`<div class="chips chips--gens">${gs.map(g=>`<a class="chip gen-chip" href="${esc(DKY.url.hub(m.key,g.key))}" data-nav-model="${esc(m.key)}" data-nav-gen="${esc(g.key)}" aria-label="${esc(genAria(m,g))}">${g.code?`<strong>${esc(g.code)}</strong>`:''}<small>${esc(g.years)}</small></a>`).join('')}</div>`:'');
 }).join('')}<a class="btn btn--text btn--sm" href="${esc(c.href)}">${esc(c.label)}: tüm modeller${arrowIco}</a></div></details>`).join('');
@@ -701,7 +739,7 @@ return nav.groups.filter(g=>g.count>0).map(g=>{
 const subs=g.subs.filter(s=>s.count>0).sort((a,b)=>b.count-a.count);
 if(!subs.length)return`<a class="dbrand-link dcat-link" href="${esc(DKY.url.cat({grup:g.key}))}">${catIco(g.key,'sm')}<span>${esc(g.label)}</span><small>${nfmt(g.count)}</small></a>`;
 return`<details class="dbrand dcat"><summary>${catIco(g.key,'sm')}<span>${esc(g.label)}</span><small>${nfmt(g.count)}</small>${chevIco}</summary><div class="dbrand__body"><div class="chips"><a class="chip chip--all" href="${esc(DKY.url.cat({grup:g.key}))}">Tümü <small>${nfmt(g.count)}</small></a>${subs.map(s=>`<a class="chip" href="${esc(DKY.url.cat({grup:g.key,alt:s.key}))}">${esc(s.label)} <small>${nfmt(s.count)}</small></a>`).join('')}</div></div></details>`;
-}).join('')+`<a class="btn btn--text btn--sm dcat-all" href="/kategoriler.html">Tüm kategoriler${arrowIco}</a>`;
+}).join('')+`<a class="btn btn--text btn--sm dcat-all" href="/dky/kategoriler.html">Tüm kategoriler${arrowIco}</a>`;
 }
 let hydrated=null,paintGarageRef=null;
 function hydrateNav(nav){
@@ -804,6 +842,7 @@ const btn=$('[data-garage-btn]');
 if(btn)btn.setAttribute('aria-label',label?'Araçlar · Aracım: '+label:'Araçlar');
 };
 paintGarageRef=paintGarage;
+DKY.paintGarage=paintGarage;
 paintGarage();
 document.addEventListener('dky:garage',paintGarage);
 window.addEventListener('storage',e=>{if(e.key===GKEY||e.key===GGEN)paintGarage();});
