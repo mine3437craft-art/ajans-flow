@@ -86,7 +86,8 @@ export const config = {
   // /mimarelif: public/mimarelif altındaki statik müşteri sitesi (Mimar Elif Kara).
   //   Tam eşleşme veya /mimarelif/... alt yolu; /mimarelifXYZ korumalı kalır.
   // /site: Ajans Flow kurumsal web sitesi (herkese açık).
+  // /dky: public/dky altındaki DKY Auto Parts önizlemesi (noindex); /dkyXYZ korumalı kalır.
   matcher: [
-    '/((?!login|tanitim|mimarelif(?:$|/)|site(?:$|/)|t/|api/health|_next/static|_next/image|favicon.ico).*)',
+    '/((?!login|tanitim|mimarelif(?:$|/)|dky(?:$|/)|site(?:$|/)|t/|api/health|_next/static|_next/image|favicon.ico).*)',
   ],
 };

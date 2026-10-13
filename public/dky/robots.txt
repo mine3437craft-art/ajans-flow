@@ -1,0 +1,3 @@
+# Önizleme derlemesi (build.mjs --noindex): dizine eklenmez.
+User-agent: *
+Disallow: /
