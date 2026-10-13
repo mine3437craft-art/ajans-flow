@@ -455,7 +455,7 @@ const title=(mm&&D.shortModel?(mm.isMake?mm.label:D.shortModel(mm,col)):vLabel(S
 const link=(o,label,n,cur,ico)=>`<a class="side-nav__link" href="${ctxLink(o)}" data-side="${esc(o.grup||'')}" data-side-alt="${esc(o.alt||'')}"${cur?' aria-current="page"':''}>${ico||''}<span>${esc(label)}</span><small>${n==null?'':nf(n)}</small></a>`;
 const ico=k=>(D.catIco?D.catIco(k,'sm'):'');
 el.side.setAttribute('aria-label',`${vehLabel()} kategorileri`);
-el.side.innerHTML=`<p class="side-nav__title">${isVirtual(S.model)?esc(title):`<a href="${esc(D.url.hub(S.model,S.kasa))}">${esc(title)}</a>`}</p>
+el.side.innerHTML=`<p class="side-nav__title">${isVirtual(S.model)?esc(title):`<a href="${esc(D.url.hub(S.model,S.kasa))}" lang="en">${esc(title)}</a>`}</p>
       <ul class="side-nav__list">
         <li>${link({grup:'',alt:''},'Tüm parçalar',cnt.grupAll,!S.grup,'<svg class="cat-ico cat-ico--sm" aria-hidden="true"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#i-grid"/></svg>')}</li>
         ${groups.map(g=>`<li>${link({grup:g.key,alt:''},grpName(g.key),cnt.grup.get(g.key)||0,g.key===S.grup,ico(g.key))}</li>`).join('')}
@@ -508,7 +508,7 @@ let subs='';
 if(mk.fams){
 subs=mk.fams.map(([fk,fl])=>{
 const ms=MAKE_MODELS.get(mk.key).filter(m=>m.family===fk);
-return ms.length?`<p class="fset__sub">${esc(fl)}</p>`+ms.map(m=>opt('radio','f-model',m.key,m.label,'','fopt--sub')).join(''):'';
+return ms.length?`<p class="fset__sub" lang="en">${esc(fl)}</p>`+ms.map(m=>opt('radio','f-model',m.key,m.label,'','fopt--sub')).join(''):'';
 }).join('');
 }else subs=MAKE_MODELS.get(mk.key).filter(m=>m.key!==mk.key).map(m=>opt('radio','f-model',m.key,m.label,'','fopt--sub')).join('');
 return head+`<div class="fopt-group">${subs}</div>`;

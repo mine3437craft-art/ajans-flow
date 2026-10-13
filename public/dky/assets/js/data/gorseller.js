@@ -1,6 +1,7 @@
 /* Görsel manifesti (DKY 80) — yalnızca diskte VAR olan dosyalar listelenir (assets/img/ai/). Yollar kökten mutlak.
-   arac: ana sayfa araç kutuları, 1200×800 (3:2) · marka: marka bandı/hero, 1600×900 (16:9), araç solda, sağ %60 boş zemin.
-   Manifestte olmayan anahtar için arayüz yedeğe düşer (gerçek fotoğraf / ürün kolajı / silüet). Rapor: docs/gorsel-uretim-raporu.md */
+   arac: araç kutuları, 1200×800 (3:2), 3/4 ön, sola bakan · marka: marka/aile bandı, 1600×900 (16:9), araç solda, sağ %55–60 boş zemin
+   kategori: kategori kutuları, 1200×900 (4:3). Takma adlar aynı dosyayı gösterir. Manifestte olmayan anahtar için arayüz yedeğe düşer.
+   Rapor: docs/gorsel-uretim-raporu.md */
 window.DKY_GORSELLER = {
   arac: {
     'range-rover': '/dky/assets/h/img/ai/arac/range-rover.31b88311b0.webp',
@@ -14,13 +15,76 @@ window.DKY_GORSELLER = {
     'freelander': '/dky/assets/h/img/ai/arac/freelander.4dc1542456.webp',
     'jaguar': '/dky/assets/h/img/ai/arac/jaguar.d9f6efa3c5.webp',
     'bmw-mini': '/dky/assets/h/img/ai/arac/bmw-mini.1a2ce1d404.webp',
-    'offroad': '/dky/assets/h/img/ai/arac/offroad.213e8c87c6.webp'
+    'offroad': '/dky/assets/h/img/ai/arac/offroad.213e8c87c6.webp',
+    'bmw-1': '/dky/assets/h/img/ai/arac/bmw-1.433ce87119.webp',
+    'bmw-3': '/dky/assets/h/img/ai/arac/bmw-3.d3bbb3f75b.webp',
+    'bmw-5': '/dky/assets/h/img/ai/arac/bmw-5.0ad310f88a.webp',
+    'bmw-7': '/dky/assets/h/img/ai/arac/bmw-7.a5e6a3f923.webp',
+    'bmw-x1': '/dky/assets/h/img/ai/arac/bmw-x1.8b8cab7c82.webp',
+    'bmw-x3': '/dky/assets/h/img/ai/arac/bmw-x3.18616bd409.webp',
+    'bmw-x5': '/dky/assets/h/img/ai/arac/bmw-x5.c4afb2b8e4.webp',
+    'discovery-2': '/dky/assets/h/img/ai/arac/discovery-2.4b7784165d.webp',
+    'discovery-3': '/dky/assets/h/img/ai/arac/discovery-3.1e5dd49e22.webp',
+    'discovery-4': '/dky/assets/h/img/ai/arac/discovery-4.5cc8e692c4.webp',
+    'freelander-1': '/dky/assets/h/img/ai/arac/freelander-1.6c9f332843.webp',
+    'isuzu-dmax': '/dky/assets/h/img/ai/arac/isuzu-dmax.2636865789.webp',
+    'jaguar-f-pace': '/dky/assets/h/img/ai/arac/jaguar-f-pace.f5cd303c46.webp',
+    'jaguar-f-type': '/dky/assets/h/img/ai/arac/jaguar-f-type.6e9c202432.webp',
+    'jaguar-s-type': '/dky/assets/h/img/ai/arac/jaguar-s-type.724f2e4c53.webp',
+    'jaguar-x-type': '/dky/assets/h/img/ai/arac/jaguar-x-type.aed98ee4f7.webp',
+    'jaguar-xe': '/dky/assets/h/img/ai/arac/jaguar-xe.530b8c69ed.webp',
+    'jaguar-xj': '/dky/assets/h/img/ai/arac/jaguar-xj.2c30b642a7.webp',
+    'jeep': '/dky/assets/h/img/ai/arac/jeep.38bfcc1586.webp',
+    'mercedes-x-class': '/dky/assets/h/img/ai/arac/mercedes-x-class.da7ee42c4c.webp',
+    'mini': '/dky/assets/h/img/ai/arac/mini.154a780d39.webp',
+    'mitsubishi-l200': '/dky/assets/h/img/ai/arac/mitsubishi-l200.b6dc49cb80.webp',
+    'nissan-navara': '/dky/assets/h/img/ai/arac/nissan-navara.5eb428aae1.webp',
+    'rr-evoque-l538': '/dky/assets/h/img/ai/arac/rr-evoque-l538.f8270fd0ea.webp',
+    'rr-sport-l320': '/dky/assets/h/img/ai/arac/rr-sport-l320.aff387c9cc.webp',
+    'rr-sport-l461': '/dky/assets/h/img/ai/arac/rr-sport-l461.b26c695494.webp',
+    'rr-vogue-l322': '/dky/assets/h/img/ai/arac/rr-vogue-l322.7239d04232.webp',
+    'rr-vogue-l405': '/dky/assets/h/img/ai/arac/rr-vogue-l405.a48e2914a3.webp',
+    'rr-vogue-l460': '/dky/assets/h/img/ai/arac/rr-vogue-l460.7a71970f61.webp',
+    'toyota-hilux': '/dky/assets/h/img/ai/arac/toyota-hilux.40588d09ec.webp',
+    'vw-amarok': '/dky/assets/h/img/ai/arac/vw-amarok.351a9c8eab.webp',
+    'discovery-5': '/dky/assets/h/img/ai/arac/discovery.e825690d24.webp',
+    'freelander-2': '/dky/assets/h/img/ai/arac/freelander.4dc1542456.webp',
+    'rr-vogue': '/dky/assets/h/img/ai/arac/range-rover.31b88311b0.webp',
+    'rr-sport-l494': '/dky/assets/h/img/ai/arac/rr-sport.13e8554d19.webp',
+    'rr-evoque-l551': '/dky/assets/h/img/ai/arac/rr-evoque.0ddb2bdbbd.webp',
+    'jaguar-xf': '/dky/assets/h/img/ai/arac/jaguar.d9f6efa3c5.webp',
+    'defender-l663': '/dky/assets/h/img/ai/arac/defender-new.da493a001b.webp',
+    'rr-velar-l560': '/dky/assets/h/img/ai/arac/rr-velar.862cf69174.webp',
+    'discovery-sport-l550': '/dky/assets/h/img/ai/arac/discovery-sport.b86db09e56.webp',
+    'ford-ranger': '/dky/assets/h/img/ai/arac/offroad.213e8c87c6.webp',
+    'bmw': '/dky/assets/h/img/ai/arac/bmw-3.d3bbb3f75b.webp'
   },
   marka: {
     'land-rover': '/dky/assets/h/img/ai/marka/land-rover.0f0998b2dc.webp',
     'jaguar': '/dky/assets/h/img/ai/marka/jaguar.c6c53f65eb.webp',
     'bmw-mini': '/dky/assets/h/img/ai/marka/bmw-mini.dba54c1267.webp',
-    'offroad': '/dky/assets/h/img/ai/marka/offroad.3577d1588f.webp'
+    'offroad': '/dky/assets/h/img/ai/marka/offroad.3577d1588f.webp',
+    'defender': '/dky/assets/h/img/ai/marka/defender.ab31b2866c.webp',
+    'discovery': '/dky/assets/h/img/ai/marka/discovery.6a12fa9103.webp',
+    'freelander': '/dky/assets/h/img/ai/marka/freelander.1d95ddfe10.webp',
+    'range-rover': '/dky/assets/h/img/ai/marka/range-rover.761e10b525.webp'
   },
-  kategori: {}
+  kategori: {
+    'aktarma': '/dky/assets/h/img/ai/kategori/aktarma.4c64c1afd5.webp',
+    'aydinlatma': '/dky/assets/h/img/ai/kategori/aydinlatma.df76b58147.webp',
+    'basamak': '/dky/assets/h/img/ai/kategori/basamak.c30eb45cad.webp',
+    'bodykit': '/dky/assets/h/img/ai/kategori/bodykit.dbaed9cf84.webp',
+    'diger': '/dky/assets/h/img/ai/kategori/diger.7a7730105e.webp',
+    'elektrik': '/dky/assets/h/img/ai/kategori/elektrik.6c8c515f1c.webp',
+    'filtre': '/dky/assets/h/img/ai/kategori/filtre.4182c03057.webp',
+    'fren': '/dky/assets/h/img/ai/kategori/fren.7f5b1f135c.webp',
+    'ic': '/dky/assets/h/img/ai/kategori/ic.0382821dfa.webp',
+    'jant': '/dky/assets/h/img/ai/kategori/jant.6fcec6a389.webp',
+    'kaporta': '/dky/assets/h/img/ai/kategori/kaporta.42ba05063a.webp',
+    'logo': '/dky/assets/h/img/ai/kategori/logo.e1eda1bcf5.webp',
+    'motor': '/dky/assets/h/img/ai/kategori/motor.5f15c246b0.webp',
+    'offroad': '/dky/assets/h/img/ai/kategori/offroad.5a8c91eed5.webp',
+    'sogutma': '/dky/assets/h/img/ai/kategori/sogutma.dfa46adc4d.webp',
+    'suspansiyon': '/dky/assets/h/img/ai/kategori/suspansiyon.e179bfe953.webp'
+  }
 };

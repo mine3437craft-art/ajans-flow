@@ -61,44 +61,78 @@ return out.trim()||txt;
 const img=(name,w=400)=>D.img(name,w);
 const offroadish=m=>m&&(m.family==='offroad'||m.make==='offroad');
 const partsWord=m=>(offroadish(m)?'aksesuar ve ekipman':'parça ve aksesuar');
-function cbox(nav,g,ctx){
+const catAI=k=>{const K=(window.DKY_GORSELLER&&window.DKY_GORSELLER.kategori)||{};return K[k]?'/'+String(K[k]).replace(/^\/+/,''):'';};
+const catPhoto=name=>`<img src="${esc(img(name,400))}" alt="" width="400" height="400" loading="lazy" decoding="async">`;
+function cbox(nav,g,ctx,i){
 const grp=nav.group(g.group)||{key:g.group,label:D.groupName(g.group)};
-const media=g.image
-?`<span class="cbox__media"><img src="${esc(img(g.image,400))}" alt="" width="400" height="400" loading="lazy" decoding="async"></span>`
+const ai=catAI(grp.key);
+const media=ai
+?`<span class="cbox__media cbox__media--ai"${g.image?` data-cat-fb="${esc(g.image)}"`:''} data-cat-key="${esc(grp.key)}"><img src="${esc(ai)}" alt="" width="1200" height="900"${i>3?' loading="lazy"':''} decoding="async"></span>`
+:g.image
+?`<span class="cbox__media">${catPhoto(g.image)}</span>`
 :`<span class="cbox__media cbox__media--icon">${D.catIco(grp.key,'lg')}</span>`;
 return`<li><a class="cbox" href="${esc(D.url.cat(Object.assign({grup:grp.key},ctx)))}" data-mo-spot>${media}<span class="cbox__body"><span class="cbox__name">${D.catIco(grp.key,'sm')}${esc(grp.label)}</span><span class="cbox__count">${nf(g.count)} parça</span></span><span class="cbox__go" aria-hidden="true">${ICON('arrow')}</span></a></li>`;
 }
-const CLEAN=['fren','suspansiyon','motor','aydinlatma','sogutma','filtre','elektrik','aktarma'];
-const cleanImgs=(list,fallback)=>{
-const by=new Map((list||[]).filter(x=>x.image).map(x=>[x.group,x.image]));
-const out=CLEAN.map(g=>by.get(g)).filter(Boolean);
-return[...new Set(out.length?out:[fallback].filter(Boolean))];
+const vimg=k=>{const vi=k&&D.vehicleImage?D.vehicleImage(k,1100):null;return vi&&vi.kind==='ai'?vi:null;};
+const vkey=(model,gen,family)=>(D.vehicleKey?D.vehicleKey(model,gen,{family}):'');
+const silSym=model=>(D.vehicleSil?D.vehicleSil(model):'sil-suv');
+const unitOf=m=>(offroadish(m)?'ürün':'parça');
+function silMedia(cls,model,label,sub){
+return`<span class="${cls} vmedia vmedia--sil" aria-hidden="true"><span class="vmedia__name">${esc(label)}</span>${sub?`<span class="vmedia__sub">${esc(sub)}</span>`:''}<svg class="vmedia__sil"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#${silSym(model)}"/></svg></span>`;
+}
+function vmedia(cls,k,model,label,sub,lazy){
+const vi=vimg(k);
+if(!vi)return silMedia(cls,model,label,sub);
+return`<span class="${cls} vmedia vmedia--ai" aria-hidden="true" data-sil-model="${esc(model)}" data-sil-label="${esc(label)}" data-sil-sub="${esc(sub||'')}"><img src="${esc(vi.src)}" alt="" width="${vi.w}" height="${vi.h}"${lazy?' loading="lazy"':''} decoding="async"></span>`;
+}
+const yearSpan=gs=>{
+if(!gs.length)return'';
+if(gs.length===1)return gs[0].years||'';
+const a=String(gs[0].years||'').split(/[–-]/)[0].trim(),z=String(gs[gs.length-1].years||'').trim();
+const end=/\+$/.test(z)?'günümüz':z.split(/[–-]/).pop().trim();
+return a&&end?`${a}–${end}`:'';
 };
-function mbox(nav,m,col){
-const gs=D.liveGens(m);
-const imgs=cleanImgs(nav.groupsOf(m.key),m.image).slice(0,3);
-const vi=vehicleFor(m.key,'',!!m.isMake);
-const media=vi
-?`<span class="mbox__media mbox__media--photo"><img src="${esc(vi.src)}" alt="" width="${vi.w}" height="${vi.h}"${vi.pos?` style="object-position:${esc(vi.pos)}"`:''} loading="lazy" decoding="async"></span>`
-:imgs.length
-?`<span class="mbox__media mbox__media--collage">${imgs.map(im=>`<img src="${esc(img(im,400))}" alt="" width="400" height="400" loading="lazy" decoding="async">`).join('')}</span>`
-:`<span class="mbox__media mbox__media--sil"><svg class="car-sil" aria-hidden="true"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#${offroadish(m)?'sil-pickup':'sil-suv'}"/></svg></span>`;
+function vcard(nav,m,col,i){
 const sg=D.soleGen?D.soleGen(m):null;
-const meta=sg?`${sg.code?sg.code+' · ':''}${sg.years}`:gs.length>1?gs.map(g=>g.code||g.years).join(' · '):'';
+const list=sg?[sg]:D.liveGens(m);
+const codes=list.map(g=>g.code).filter(Boolean);
+const years=yearSpan(list);
 const name=m.isMake?D.shortModel(m,col):m.label;
-const chips=gs.length>1?`<div class="gen-chips gen-chips--sm" role="group" aria-label="${esc(m.label)} nesilleri">${gs.map(g=>`<a class="chip gen-chip" href="${esc(D.url.hub(m.key,g.key))}" data-nav-model="${esc(m.key)}" data-nav-gen="${esc(g.key)}" aria-label="${esc(m.label+' '+(g.code?g.code+' ':'')+g.years)}">${g.code?`<strong>${esc(g.code)}</strong>`:''}<small>${esc(g.years)}</small></a>`).join('')}</div>`:'';
-return`<li class="mbox-item"><a class="mbox" href="${esc(D.url.hub(m.key))}" data-nav-model="${esc(m.key)}" data-mo-spot>${media}<span class="mbox__body"><span class="mbox__name">${esc(name)}</span>${meta?`<span class="mbox__meta">${esc(meta)}</span>`:''}<span class="mbox__count">${nf(m.count)} ${offroadish(m)?'ürün':'parça'}</span></span></a>${chips}</li>`;
+return`<li class="vcard-item"><a class="vcard" href="${esc(D.url.hub(m.key))}" data-nav-model="${esc(m.key)}" data-mo-spot>${vmedia('vcard__media',vkey(m.key,'',!!m.isMake),m.key,name,codes.join(' · '),i>2)}<span class="vcard__body"><span class="vcard__name">${esc(name)}</span><span class="vcard__meta">${codes.map(c=>`<span class="vcard__code">${esc(c)}</span>`).join('')}${years?`<span class="vcard__years">${esc(years)}</span>`:''}</span><span class="vcard__foot"><span class="vcard__count">${nf(m.count)} ${unitOf(m)}</span><span class="vcard__go" aria-hidden="true">${ICON('arrow')}</span></span></span></a></li>`;
+}
+function genSection(m,g,gs){
+if(gs.length<2)return'';
+const card=(href,cur,k,label,sub,code,years,count,gen,i)=>`<li><a class="gcard" href="${esc(href)}"${cur?' aria-current="page"':''} data-gen-card="${esc(gen||'all')}">${vmedia('gcard__media',k,m.key,label,sub,i>3)}<span class="gcard__body"><span class="gcard__code">${esc(code)}</span>${years?`<span class="gcard__years">${esc(years)}</span>`:''}<span class="gcard__count">${nf(count)} ${unitOf(m)}</span></span></a></li>`;
+const all=card(D.url.hub(m.key),!g,vkey(m.key,'',false),m.label,'','Tüm nesiller',yearSpan(gs),m.count,'',0);
+const items=gs.map((x,i)=>card(D.url.hub(m.key,x.key),!!(g&&g.key===x.key),vimg(x.key)?x.key:'',x.code||x.years,x.code?x.years:'',x.code||x.years,x.code?x.years:'',x.count,x.key,i+1));
+return`<section class="section hub-gens" aria-labelledby="hub-gens-t">
+      <div class="wrap">
+        <div class="sec-head hub-sec-head"><div><h2 id="hub-gens-t" data-mo-split>Kasa kodunu seçin</h2><p class="hub-sec-head__sub">${esc(m.label)} nesilleri — parçalar kasa koduna göre değişir.</p></div></div>
+        <ul class="gcard-grid" data-mo-stagger>${all}${items.join('')}</ul>
+      </div>
+    </section>`;
+}
+function subsSection(nav,mk,col){
+const subs=(mk.subs||[]).filter(x=>x.count>0);
+if(!subs.length)return'';
+return`<section class="section hub-make" aria-labelledby="hub-subs-t">
+      <div class="wrap">
+        <div class="sec-head hub-sec-head"><div><h2 id="hub-subs-t" data-mo-split>${esc(mk.label)} modelleri</h2><p class="hub-sec-head__sub">Modelinizi seçin; o modele uyan kategoriler ve parçalar açılır.</p></div></div>
+        <ul class="vcard-grid" data-mo-stagger>${subs.map((x,i)=>vcard(nav,x,col,i)).join('')}</ul>
+      </div>
+    </section>`;
 }
 function colSection(nav,c,{heading='h2',id,title}={}){
 if(!c.items.length)return'';
 const H=heading;
 let inner;
 if(c.fams&&c.fams.length>1){
+let n=0;
 inner=c.fams.map(f=>{
 const its=c.items.filter(m=>m.family===f);
-return its.length?`<div class="hub-fam"><h3 class="hub-fam__title">${esc(({defender:'Defender',discovery:'Discovery',freelander:'Freelander'})[f]||f)}</h3><ul class="mbox-grid" data-mo-stagger>${its.map(m=>mbox(nav,m,c)).join('')}</ul></div>`:'';
+return its.length?`<div class="hub-fam"><h3 class="hub-fam__title">${esc(({defender:'Defender',discovery:'Discovery',freelander:'Freelander'})[f]||f)}</h3><ul class="vcard-grid" data-mo-stagger>${its.map(m=>vcard(nav,m,c,n++)).join('')}</ul></div>`:'';
 }).join('');
-}else inner=`<ul class="mbox-grid" data-mo-stagger>${c.items.map(m=>mbox(nav,m,c)).join('')}</ul>`;
+}else inner=`<ul class="vcard-grid" data-mo-stagger>${c.items.map((m,i)=>vcard(nav,m,c,i)).join('')}</ul>`;
 const cta=c.cat?`<a class="btn btn--text" href="${esc(D.url.cat({model:c.cat}))}">Tüm ${esc(c.label)} parçaları${ICON('arrow')}</a>`:'';
 return`<section class="section hub-make" aria-labelledby="${esc(id||'hm-'+c.key)}">
       <div class="wrap">
@@ -108,44 +142,67 @@ return`<section class="section hub-make" aria-labelledby="${esc(id||'hm-'+c.key)
     </section>`;
 }
 function showActions(on){el.actions.hidden=!on;}
-const GENERIC=new Set(['offroad','jaguar','bmw-mini','discovery','freelander']);
-function vehicleFor(key,gen,allowGeneric){
-if(!D.vehicleImage||!D.vehicleKey)return null;
-const k=D.vehicleKey(key,gen);
-if(GENERIC.has(k)&&!allowGeneric)return null;
-const vi=D.vehicleImage(k,1100);
-return vi&&vi.kind==='photo'&&vi.w<480?null:vi;
-}
-function setVehicle(vi,alt){
-el.media.hidden=false;
-el.media.className=`hub-head__media hub-head__media--vehicle hub-head__media--${vi.kind}`;
-el.media.innerHTML=`<span class="media-well"><img src="${esc(vi.src)}"${vi.srcset?` srcset="${esc(vi.srcset)}" sizes="(max-width: 960px) 100vw, 520px"`:''} alt="${esc(alt||'')}" width="${vi.w}" height="${vi.h}"${vi.pos?` style="object-position:${esc(vi.pos)}"`:''} fetchpriority="high" decoding="async"></span>`;
-}
-const BAND={'land-rover':'land-rover','range-rover':'land-rover',discovery:'land-rover',freelander:'land-rover',defender:'land-rover',jaguar:'jaguar','bmw-mini':'bmw-mini',bmw:'bmw-mini',mini:'bmw-mini',offroad:'offroad'};
-function bandSrc(key){
-const M=(window.DKY_GORSELLER&&window.DKY_GORSELLER.marka)||{};
-const b=BAND[key];
-return b&&M[b]?'/'+String(M[b]).replace(/^\/+/,''):'';
-}
-function setBand(src,band){
-const head=el.root.querySelector('.hub-head');
-if(!head||!src)return false;
-head.classList.add('hub-head--band');head.dataset.band=band||'';
-if(!head.querySelector('.hub-band'))head.insertAdjacentHTML('afterbegin',`<div class="hub-band" aria-hidden="true"><span class="hub-band__fill"><img class="hub-band__bg" src="${esc(src)}" alt="" width="1600" height="900" decoding="async"></span><img class="hub-band__car" src="${esc(src)}" alt="" width="1600" height="900" fetchpriority="high" decoding="async"></div>`);
+let bandOn=false,panelOn=false,panelArgs=null;
+const headEl=()=>el.root.querySelector('.hub-head');
+const bandFrom=(kind,band,src)=>(src?{kind,band,src}:null);
+const aracBand=k=>{const vi=vimg(k);return vi?{kind:'arac',band:k,src:vi.src}:null;};
+function setBand(b){
+const h=headEl();
+if(!h||!b||!b.src)return false;
+const[w,hh]=b.kind==='arac'?[1200,800]:[1600,900];
+const cur=h.querySelector('.hub-band');
+const ci=cur&&cur.querySelector('.hub-band__car');
+if(ci&&ci.getAttribute('src')===b.src&&ci.complete&&!ci.naturalWidth)return false;
+h.classList.add('hub-head--band');h.classList.remove('hub-head--media');
+h.dataset.band=b.band;h.dataset.bandKind=b.kind;
+if(!cur)h.insertAdjacentHTML('afterbegin',`<div class="hub-band" aria-hidden="true"><span class="hub-band__fill"><img class="hub-band__bg" src="${esc(b.src)}" alt="" width="${w}" height="${hh}" decoding="async"></span><img class="hub-band__car" src="${esc(b.src)}" alt="" width="${w}" height="${hh}" fetchpriority="high" decoding="async"></div>`);
+else cur.querySelectorAll('img').forEach(im=>{if(im.getAttribute('src')!==b.src){im.setAttribute('width',w);im.setAttribute('height',hh);im.setAttribute('src',b.src);}});
 el.media.hidden=true;
 el.media.innerHTML='';
+bandOn=true;
 return true;
 }
+function dropBandEl(h){
+const b=h.querySelector('.hub-band');
+if(b)b.remove();
+h.classList.remove('hub-head--band');delete h.dataset.band;delete h.dataset.bandKind;
+}
+function setPanel(model,label,sub){
+const h=headEl();
+if(!h)return;
+if(bandOn){dropBandEl(h);bandOn=false;}
+h.classList.add('hub-head--media');
+el.media.hidden=false;
+el.media.className='hub-head__media hub-head__media--sil';
+el.media.innerHTML=silMedia('hub-vis',model,label,sub);
+panelOn=true;
+}
+function setHeadVisual(b,model,label,sub){
+panelArgs=[model,label,sub];
+if(!(b&&setBand(b)))setPanel(model,label,sub);
+}
+function settleHead(){
+const h=headEl();
+if(!h)return;
+if(!bandOn)dropBandEl(h);
+if(!panelOn)h.classList.remove('hub-head--media');
+}
+el.root.addEventListener('error',e=>{
+const im=e.target;
+if(!im||im.tagName!=='IMG')return;
+const cat=im.closest('.cbox__media--ai');
+if(cat){
+const fb=cat.dataset.catFb;
+cat.className=fb?'cbox__media':'cbox__media cbox__media--icon';
+cat.innerHTML=fb?catPhoto(fb):D.catIco(cat.dataset.catKey,'lg');
+return;
+}
+const box=im.closest('.vmedia--ai');
+if(box){box.outerHTML=silMedia([...box.classList].filter(c=>!/^vmedia/.test(c)).join(' '),box.dataset.silModel,box.dataset.silLabel,box.dataset.silSub);return;}
+if(im.closest('.hub-band')&&bandOn&&panelArgs)setPanel(...panelArgs);
+},true);
 function modelChips(items,col){
 return items.filter(m=>m.count>0&&!(m.isMake&&(m.subs||[]).length)).map(m=>`<a class="chip gen-chip" href="${esc(D.url.hub(m.key))}" data-nav-model="${esc(m.key)}"><strong>${esc(D.shortModel(m,col))}</strong><small>${nf(m.count)}</small></a>`).join('');
-}
-function setMedia(list,vi,alt){
-if(vi){setVehicle(vi,alt);return;}
-const imgs=list.filter(Boolean).slice(0,3);
-if(!imgs.length){el.media.hidden=true;el.media.innerHTML='';return;}
-el.media.hidden=false;
-el.media.className=`hub-head__media hub-head__media--${imgs.length}`;
-el.media.innerHTML=imgs.map((im,i)=>`<span class="media-well"><img src="${esc(img(im,i?400:800))}" alt="" width="${i?400:800}" height="${i?400:800}" ${i?'loading="lazy"':'fetchpriority="high"'} decoding="async"></span>`).join('');
 }
 function renderModel(nav,m,g){
 const col=nav.colOfModel(m.key);
@@ -158,6 +215,7 @@ const years=gen?gen.years:'';
 const count=g?g.count:m.count;
 const ctx={model:m.key,kasa:g?g.key:''};
 el.eyebrow.textContent=col?col.label:'Araca göre parça';
+if(col)el.eyebrow.lang='en';else el.eyebrow.removeAttribute('lang');
 el.h1.textContent=title;
 const metaTxt=gen?`${gen.code?'Kasa kodu '+gen.code+' · ':''}${gen.years}`:gs.length>1?`Nesiller: ${gs.map(x=>x.code||x.years).join(' · ')}`:'';
 el.meta.hidden=!metaTxt;
@@ -165,10 +223,7 @@ el.meta.textContent=metaTxt;
 const lead=`${title}${years?` (${years})`:''} için ${nf(count)} ${partsWord(m)}: kategoriyi seçin, parçayı kodu ve KDV dahil fiyatıyla görün. Kasa kodundan ya da uyumdan emin değilseniz şasi numaranızla WhatsApp’tan sorun.`;
 el.lead.textContent=lead;
 let chips='';
-if(gs.length>1){
-chips=`<a class="chip gen-chip gen-chip--all" href="${esc(D.url.hub(m.key))}"${g?'':' aria-current="true"'}><strong>Tüm nesiller</strong><small>${nf(m.count)}</small></a>`+
-gs.map(x=>`<a class="chip gen-chip" href="${esc(D.url.hub(m.key,x.key))}"${g&&g.key===x.key?' aria-current="true"':''} aria-label="${esc(m.label+' '+(x.code?x.code+' ':'')+x.years+', '+nf(x.count)+' parça')}">${x.code?`<strong>${esc(x.code)}</strong>`:''}<small>${esc(x.years)}</small></a>`).join('');
-}else{
+if(gs.length<2){
 const makeModel=m.isMake?m:nav.model(m.make);
 const subs=makeModel&&makeModel.isMake?(makeModel.subs||[]).filter(x=>x.count>0):[];
 if(subs.length){
@@ -190,10 +245,12 @@ if(on){D.garage.set(null);D.toast('Araç seçimi kaldırıldı');}
 else{D.garage.set(m.key,g||null);D.toast(`Aracım: ${title}`);}
 };
 document.addEventListener('dky:garage',()=>paintSave(m,g));
+let band=m.isMake&&!g?bandFrom('marka',m.key,D.bandImage&&D.bandImage(m.key)):null;
+if(!band)band=aracBand(vkey(m.key,g&&g.key,!!m.isMake));
+setHeadVisual(band,m.key,title,gen?[gen.code,gen.years].filter(Boolean).join(' · '):'');
 const groups=nav.groupsOf(m.key,g&&g.key);
-if(!(m.isMake&&setBand(bandSrc(m.key),BAND[m.key])))setMedia(cleanImgs(groups,m.image),vehicleFor(m.key,g&&g.key,!!m.isMake),title);
 const catsTitle=`${title} kategorileri`;
-el.body.innerHTML=`
+el.body.innerHTML=`${genSection(m,g,gs)}${m.isMake?subsSection(nav,m,col):''}
     <section class="section hub-cats" aria-labelledby="hub-cats-t">
       <div class="wrap">
         <div class="sec-head hub-sec-head">
@@ -201,7 +258,7 @@ el.body.innerHTML=`
           <p class="vat-note">${ICON('info')}Fiyatlar KDV dahildir</p>
         </div>
         ${groups.length
-?`<ul class="cbox-grid cbox-grid--4" data-mo-stagger>${groups.map(x=>cbox(nav,x,ctx)).join('')}</ul>`
+?`<ul class="cbox-grid cbox-grid--4" data-mo-stagger>${groups.map((x,i)=>cbox(nav,x,ctx,i)).join('')}</ul>`
 :emptyState(m,g)}
         ${g?`<p class="cat-note" data-hub-gen-note hidden></p>`:''}
       </div>
@@ -279,7 +336,7 @@ if(document.readyState==='complete')idle(run);else window.addEventListener('load
 function renderMake(nav,c){
 const mk=c.key==='offroad'?'Off-road pick-up aksesuar ve ekipmanları':c.key==='bmw-mini'?'BMW ve Mini yedek parçaları':`${c.label} yedek parça ve aksesuarları`;
 const n=c.items.filter(m=>!m.isMake||!(m.subs||[]).length).length;
-el.eyebrow.textContent='Araca göre parça';
+el.eyebrow.textContent='Araca göre parça';el.eyebrow.removeAttribute('lang');
 el.h1.textContent=mk.charAt(0).toLocaleUpperCase('tr-TR')+mk.slice(1);
 const mkCount=(nav.make(c.key)||{}).count||0;
 el.meta.hidden=false;
@@ -290,15 +347,18 @@ const chips=modelChips(c.items,c);
 el.gens.innerHTML=chips;
 el.gens.hidden=!chips;
 el.gens.setAttribute('aria-label','Aracını seç');
-showActions(!!c.cat);
+showActions(true);
+el.save.hidden=true;
+el.all.hidden=!c.cat;
 if(c.cat){
 el.all.href=D.url.cat({model:c.cat});
 el.all.innerHTML=`Tüm ${esc(c.label)} parçaları${ICON('arrow')}`;
-el.save.hidden=true;
+}
 el.wa.setAttribute('data-wa',`Merhaba, ${c.label} aracım için parça arıyorum. Şasi (VIN) numaram: `);
 D.bindWa(el.actions);
-}
-if(!setBand(bandSrc(c.key),BAND[c.key]))setMedia(c.items.map(m=>cleanImgs(nav.groupsOf(m.key),m.image)[0]),vehicleFor(c.key,'',true),c.label);
+let band=bandFrom('marka',c.key,D.bandImage&&D.bandImage(c.key));
+if(!band)for(const k of(D.vehicleFamilyKeys?D.vehicleFamilyKeys(c.key):[]))if((band=aracBand(k)))break;
+setHeadVisual(band,c.key,c.label,'');
 el.body.innerHTML=colSection(nav,Object.assign({},c,{cat:''}),{id:'hub-make-t',title:`${c.label} modelleri`})+otherMakes(nav,c);
 D.paintGarage&&D.paintGarage();
 setCrumbs(c.parent?[['Ana sayfa','/'],[c.parent.label,c.parent.href],[c.label,null]]:[['Ana sayfa','/'],['Araçlar','/dky/arac.html'],[c.label,null]]);
@@ -316,15 +376,17 @@ return`<section class="section section--paper hub-others" aria-labelledby="hub-o
     </section>`;
 }
 function renderIndex(nav,missing){
-el.eyebrow.textContent='Araca göre parça';
+el.eyebrow.textContent='Araca göre parça';el.eyebrow.removeAttribute('lang');
 el.h1.textContent=missing?'Bu model bulunamadı':'Aracınızı seçin';
 el.meta.hidden=true;
-el.gens.hidden=true;
+const jump=nav.cols.filter(c=>c.items.length).map(c=>`<a class="chip gen-chip" href="#hm-${esc(c.key)}"><strong>${esc(c.label)}</strong><small>${nf(c.items.filter(m=>!(m.isMake&&(m.subs||[]).length)).length)} model</small></a>`).join('');
+el.gens.innerHTML=jump;
+el.gens.hidden=!jump;
+el.gens.setAttribute('aria-label','Markaya git');
 showActions(false);
 el.lead.textContent=missing
 ?'Aradığınız model listemizde yok ya da bağlantı hatalı olabilir. Aşağıdan modelinizi seçin; bulamazsanız şasi numaranızla WhatsApp’tan sorun, parçayı birlikte bulalım.'
 :'Land Rover, Range Rover, Jaguar, BMW, Mini ve off-road pick-up’lar için model ve kasa koduna göre parçalar. Modelinizi seçin; o araca uyan kategorileri KDV dahil açık fiyatla görün.';
-setMedia([]);
 el.body.innerHTML=nav.cols.map(c=>colSection(nav,c)).join('');
 D.paintGarage&&D.paintGarage();
 setCrumbs([['Ana sayfa','/'],['Araçlar',null]]);
@@ -383,5 +445,5 @@ const load=F&&F.load?Promise.all([F.load('700 1em Archivo'),F.load('400 1em Inte
 return Promise.race([load,new Promise(r=>setTimeout(r,900))]);
 };
 const ready=mode=>fontsReady().then(()=>{el.root.classList.add('is-ready');document.dispatchEvent(new CustomEvent('dky:hub-ready',{detail:{mode,model:P.model,kasa:P.kasa,marka:P.marka}}));});
-D.loadNav({fallback:true}).then(nav=>{route(nav);ready(P.model||P.kasa?'model':P.marka?'make':'index');}).catch(()=>{errorState();ready('error');});
+D.loadNav({fallback:true}).then(nav=>{route(nav);settleHead();ready(P.model||P.kasa?'model':P.marka?'make':'index');}).catch(()=>{settleHead();errorState();ready('error');});
 })();

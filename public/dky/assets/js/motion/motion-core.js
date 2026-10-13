@@ -4,7 +4,7 @@ var d=document,w=window,html=d.documentElement;
 if(w.DKYMO)return;
 var mq=function(q){return w.matchMedia?w.matchMedia(q):{matches:false};};
 var RM=mq('(prefers-reduced-motion: reduce)');
-var MAIN_JS='/dky/assets/h/js/motion/motion-main.42f5b19067.js';
+var MAIN_JS='/dky/assets/h/js/motion/motion-main.ced68321c4.js';
 var MO=w.DKYMO={
 version:'3.0',
 reduced:RM.matches,

@@ -247,22 +247,46 @@ offroad:{file:'l200-1fda8c7d-a.jpg',trim:'165;0;0;0',w:580,h:315,pos:'58% 60%'},
 'toyota-hilux':{file:'toyata-hilux-off-road-acbf.jpg',trim:'0;247;152;0',w:228,h:170,pos:'40% 55%'}
 };
 const PICKUPS=new Set(['ford-ranger','toyota-hilux','mitsubishi-l200','mercedes-x-class','vw-amarok','isuzu-dmax','nissan-navara','jeep','pickup']);
-DKY.vehicleKey=(model,gen)=>{
-const M=(window.DKY_GORSELLER&&window.DKY_GORSELLER.arac)||{};
+const VEH_SAME={'rr-vogue':'range-rover'};
+const VEH_FAMILY={
+discovery:['discovery-5','discovery'],freelander:['freelander-2','freelander'],defender:['defender-new'],
+'range-rover':['rr-vogue','range-rover'],jaguar:['jaguar'],bmw:['bmw','bmw-3','bmw-5','bmw-x5'],mini:['mini'],
+offroad:['offroad'],pickup:['offroad']
+};
+const vehMan=()=>(window.DKY_GORSELLER&&window.DKY_GORSELLER.arac)||{};
+DKY.vehicleFamilyKeys=fam=>(VEH_FAMILY[fam]||[]).slice();
+DKY.vehicleKey=(model,gen,opts)=>{
+const M=vehMan();
+const k=String(model||'');
 if(gen&&M[gen])return gen;
+if(M[k])return k;
+if(VEH_SAME[k]&&M[VEH_SAME[k]])return VEH_SAME[k];
+if(opts&&opts.family)for(const c of VEH_FAMILY[k]||[])if(M[c])return c;
+return'';
+};
+DKY.vehicleBox=model=>{
 const k=String(model||'');
 if(k==='rr-vogue'||k==='range-rover')return'range-rover';
 if(/^discovery-[2-5]$/.test(k))return'discovery';
 if(/^freelander/.test(k))return'freelander';
 if(/^jaguar/.test(k))return'jaguar';
 if(/^bmw/.test(k)||k==='mini'||k==='bmw-mini')return'bmw-mini';
-if(PICKUPS.has(k))return M[k]||VEH_PHOTOS[k]?k:'offroad';
-if(k==='offroad')return'offroad';
 if(k==='land-rover')return'defender-new';
 return k;
 };
+const VEH_SIL={
+'defender-new':'sil-offroad','defender-classic':'sil-offroad',defender:'sil-offroad',jeep:'sil-offroad',
+'discovery-sport':'sil-suv-compact','freelander-1':'sil-suv-compact','freelander-2':'sil-suv-compact',freelander:'sil-suv-compact',
+'rr-evoque':'sil-suv-compact','jaguar-f-pace':'sil-suv-compact','bmw-x1':'sil-suv-compact','bmw-x3':'sil-suv-compact','bmw-x5':'sil-suv',
+jaguar:'sil-sedan','jaguar-xe':'sil-sedan','jaguar-xf':'sil-sedan','jaguar-xj':'sil-sedan','jaguar-s-type':'sil-sedan','jaguar-x-type':'sil-sedan','jaguar-f-type':'sil-sedan',
+bmw:'sil-sedan','bmw-3':'sil-sedan','bmw-5':'sil-sedan','bmw-7':'sil-sedan','bmw-1':'sil-hatch',mini:'sil-hatch','bmw-mini':'sil-sedan'
+};
+DKY.vehicleSil=model=>{
+const k=String(model||'');
+return VEH_SIL[k]||(PICKUPS.has(k)||k==='offroad'?'sil-pickup':'sil-suv');
+};
 DKY.vehicleImage=(key,width=800)=>{
-const M=(window.DKY_GORSELLER&&window.DKY_GORSELLER.arac)||{};
+const M=vehMan();
 if(key&&M[key])return{src:'/'+String(M[key]).replace(/^\/+/,''),w:1200,h:800,kind:'ai'};
 const ph=VEH_PHOTOS[key];
 if(!ph)return null;
@@ -270,6 +294,7 @@ const ws=[480,800,1100].filter(x=>x<=ph.w).concat(ph.w<480?[ph.w]:[]);
 const w=Math.min(width,ph.w);
 return{src:BANNER(ph.file,ph.trim,w),srcset:ws.map(x=>BANNER(ph.file,ph.trim,x)+' '+x+'w').join(', '),w:ph.w,h:ph.h,pos:ph.pos,kind:'photo'};
 };
+DKY.bandImage=key=>{const B=(window.DKY_GORSELLER&&window.DKY_GORSELLER.marka)||{};return key&&B[key]?'/'+String(B[key]).replace(/^\/+/,''):'';};
 let navIndex=null;
 function normNav(raw,source){
 const models=new Map(),gens=new Map(),groups=new Map(),subs=new Map(),makes=new Map();
@@ -335,6 +360,7 @@ make:k=>makes.get(k)||null,
 col:k=>cols.find(c=>c.key===k)||null,
 colOfModel,
 groupsOf:(model,kasa)=>((kasa&&raw.genGroups&&raw.genGroups[kasa])||(raw.modelGroups&&raw.modelGroups[model])||[]).filter(x=>x.count>0)
+.map((x,i)=>[GROUP_ORDER.indexOf(x.group)<0?99:GROUP_ORDER.indexOf(x.group),i,x]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(r=>r[2])
 };
 return nav;
 }

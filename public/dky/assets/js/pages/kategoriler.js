@@ -57,8 +57,24 @@ subs:ready?g.subs.map(s=>Object.assign(s,{count:CARC.subs.get(s.key)||0})):g.sub
 }
 return groups.filter(g=>g.count>0);
 }
+const catAI=k=>{const K=(window.DKY_GORSELLER&&window.DKY_GORSELLER.kategori)||{};return K[k]?'/'+String(K[k]).replace(/^\/+/,''):'';};
+const catPhoto=(name,lazy)=>`<img src="${esc(D.img(name,400))}" alt="" width="400" height="400"${lazy?' loading="lazy"':''} decoding="async">`;
+function cmedia(g,i){
+const ai=catAI(g.key);
+if(ai)return`<span class="cbox__media cbox__media--ai"${g.image?` data-cat-fb="${esc(g.image)}"`:''} data-cat-key="${esc(g.key)}"><img src="${esc(ai)}" alt="" width="1200" height="900"${i>2?' loading="lazy"':''} decoding="async"></span>`;
+if(g.image)return`<span class="cbox__media">${catPhoto(g.image,i>2)}</span>`;
+return`<span class="cbox__media cbox__media--icon">${D.catIco(g.key,'lg')}</span>`;
+}
+el.body.addEventListener('error',e=>{
+const im=e.target,box=im&&im.tagName==='IMG'&&im.closest('.cbox__media--ai');
+if(!box)return;
+const fb=box.dataset.catFb;
+box.className=fb?'cbox__media':'cbox__media cbox__media--icon';
+box.innerHTML=fb?catPhoto(fb,true):D.catIco(box.dataset.catKey,'lg');
+},true);
 function renderTree(groups,term){
 const ctx=ctxParams();
+let n=0;
 const items=groups.map(g=>{
 const gHit=term&&norm(g.label).includes(term);
 let subs=g.subs.filter(s=>s.count===null||s.count>0).sort((a,b)=>(b.count||0)-(a.count||0)||cmpTR(a.label,b.label));
@@ -66,7 +82,7 @@ if(term&&!gHit)subs=subs.filter(s=>norm(s.label).includes(term));
 if(term&&!gHit&&!subs.length)return'';
 const rest=g.count-subs.reduce((t,s)=>t+(s.count||0),0);
 return`<li id="k-${esc(g.key)}"><div class="cbox cbox--tree" data-mo-spot>
-        <a class="cbox__head" href="${esc(D.url.cat(Object.assign({grup:g.key},ctx)))}">${D.catIco(g.key,'badge')}<span class="cbox__body"><span class="cbox__name">${hl(g.label,term)}</span><span class="cbox__count">${nf(g.count)} parça</span></span><span class="cbox__go" aria-hidden="true">${ICON('arrow')}</span></a>
+        <a class="cbox__head" href="${esc(D.url.cat(Object.assign({grup:g.key},ctx)))}">${cmedia(g,n++)}<span class="cbox__row">${D.catIco(g.key,'badge')}<span class="cbox__body"><span class="cbox__name">${hl(g.label,term)}</span><span class="cbox__count">${nf(g.count)} parça</span></span><span class="cbox__go" aria-hidden="true">${ICON('arrow')}</span></span></a>
         ${subs.length?`<ul class="cbox__subs">${subs.map(s=>`<li><a href="${esc(D.url.cat(Object.assign({grup:g.key,alt:s.key},ctx)))}">${hl(s.label,term)} <small>${s.count===null?'':nf(s.count)}</small></a></li>`).join('')}</ul>`:''}
         ${subs.length&&!term&&rest>0&&g.count>rest?`<a class="cbox__all" href="${esc(D.url.cat(Object.assign({grup:g.key},ctx)))}">Tümünü gör (${nf(g.count)})${ICON('arrow')}</a>`:''}
       </div></li>`;

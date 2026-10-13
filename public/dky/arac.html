@@ -12,13 +12,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://static.ticimax.cloud">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/dky/assets/h/css/site.df04e6dbdb.css">
-<link rel="stylesheet" href="/dky/assets/h/css/motion.6d5faa1dec.css">
+<link rel="stylesheet" href="/dky/assets/h/css/site.c6ead0f987.css">
+<link rel="stylesheet" href="/dky/assets/h/css/motion.ad6a628083.css">
 <script>document.documentElement.classList.add('js')</script>
 <script src="/dky/assets/h/js/config.9ae5c325ab.js"></script>
 <script src="/dky/assets/h/js/track.ac2ba79e91.js" defer></script>
-<script src="/dky/assets/h/js/site.dd91d7fd94.js" defer></script>
-<script src="/dky/assets/h/js/motion/motion-core.a1cca52266.js" defer></script>
+<script src="/dky/assets/h/js/site.2ea66678a4.js" defer></script>
+<script src="/dky/assets/h/js/motion/motion-core.cfdd1e1a20.js" defer></script>
 
 <title>Araca Göre Yedek Parça | Land Rover, Jaguar, BMW, Mini, Off-road | DKY Auto Parts</title>
 <meta name="description" content="Modelinizi ve kasa kodunu seçin; o araca uyan yedek parça ve aksesuar kategorilerini KDV dahil açık fiyatla görün. Emin değilseniz şasi numaranızla sorun.">
@@ -29,20 +29,38 @@
 <meta property="og:description" content="Modelinizi ve kasa kodunu seçin; o araca uyan parça kategorilerini açık fiyatla görün.">
 <meta property="og:image" content="https://www.dkyautoparts.com/assets/img/og-default.jpg">
 <meta property="og:locale" content="tr_TR">
-<link rel="stylesheet" href="/dky/assets/h/css/bilesenler.0395d55e6b.css">
+<link rel="stylesheet" href="/dky/assets/h/css/bilesenler.76d680647e.css">
 <link rel="preload" href="/dky/assets/h/js/data/nav.ce171af89e.js" as="script">
-<link rel="preload" href="/dky/assets/h/js/pages/arac.977cb9c6bf.js" as="script">
+<link rel="preload" href="/dky/assets/h/js/pages/arac.f168e7c90f.js" as="script">
+<script src="/dky/assets/h/js/data/gorseller.7beb4aec43.js"></script>
 <script>
-/* Marka/aile sayfası bandı için LCP ön yüklemesi (hub-band-preload): URL'den bandı bilir; yollar düz yazılı ki build.mjs özetli adlara çevirsin. */
+/* Araç hub'ı ilk kare kararı (hub-band-preload): URL + görsel manifesti (hemen üstte, eşzamanlı; küçük) → tam genişlik bant mı
+   (marka bandı 1600×900 ya da aracın kendi 3:2 görseli), yoksa silüet paneli mi. Görsel ön yüklenir (fetchpriority=high).
+   Sıra site.js DKY.vehicleKey ile aynı: nesil → model → eski ad → (yalnız marka/aile düzeyinde) marka bandı → ailenin temsilî görseli;
+   başka modelin / ailenin aracı asla. Tablolar site.js VEH_FAMILY / VEH_SAME ve arac.js MAKE_ALIAS ile aynı tutulmalı. */
 (function () {
-  var q = new URLSearchParams(location.search), mk = q.get('marka') || '', md = q.get('model') || '';
-  var B = { lr: '/dky/assets/h/img/ai/marka/land-rover.0f0998b2dc.webp', jg: '/dky/assets/h/img/ai/marka/jaguar.c6c53f65eb.webp', bm: '/dky/assets/h/img/ai/marka/bmw-mini.dba54c1267.webp', of: '/dky/assets/h/img/ai/marka/offroad.3577d1588f.webp' };
-  var k = md ? { jaguar: 'jg', bmw: 'bm', mini: 'bm' }[md] : { 'land-rover': 'lr', lr: 'lr', 'range-rover': 'lr', rr: 'lr', discovery: 'lr', freelander: 'lr', defender: 'lr', jaguar: 'jg', 'bmw-mini': 'bm', bmw: 'bm', mini: 'bm', offroad: 'of', pickup: 'of', 'off-road': 'of' }[mk];
-  if (!k || q.get('kasa')) return;
-  var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = B[k]; l.setAttribute('fetchpriority', 'high'); document.head.appendChild(l);
+  var q = new URLSearchParams(location.search), mk = q.get('marka') || '', md = q.get('model') || '', ks = q.get('kasa') || '';
+  var G = window.DKY_GORSELLER || {}, A = G.arac || {}, K = G.marka || {};
+  var ALIAS = { lr: 'land-rover', rr: 'range-rover', pickup: 'offroad', 'off-road': 'offroad', bmw: 'bmw-mini', mini: 'bmw-mini' };
+  var FAM = { discovery: ['discovery-5', 'discovery'], freelander: ['freelander-2', 'freelander'], defender: ['defender-new'], 'range-rover': ['rr-vogue', 'range-rover'], jaguar: ['jaguar'], bmw: ['bmw', 'bmw-3', 'bmw-5', 'bmw-x5'], mini: ['mini'], offroad: ['offroad'] };
+  var SAME = { 'rr-vogue': 'range-rover' }, MAKE = { jaguar: 1, bmw: 1, mini: 1 };
+  var pick = function (l) { for (var i = 0; l && i < l.length; i++) if (A[l[i]]) return l[i]; return ''; };
+  var b = null, k = '', f;
+  if (md || ks) {
+    if (MAKE[md] && !ks && K[md]) b = { kind: 'marka', band: md, src: K[md] };
+    else if ((k = (ks && A[ks] ? ks : '') || (A[md] ? md : '') || (SAME[md] && A[SAME[md]] ? SAME[md] : '') || (MAKE[md] ? pick(FAM[md]) : ''))) b = { kind: 'arac', band: k, src: A[k] };
+  } else if (mk) {
+    f = ALIAS[mk] || mk;
+    if (K[f]) b = { kind: 'marka', band: f, src: K[f] };
+    else if ((k = pick(FAM[f]))) b = { kind: 'arac', band: k, src: A[k] };
+  }
+  if (b) b.src = '/' + String(b.src).replace(/^\/+/, '');
+  window.DKY_BAND = b || (md || ks || mk ? { kind: 'sil' } : null);
+  if (!b) return;
+  var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = b.src; l.setAttribute('fetchpriority', 'high'); document.head.appendChild(l);
 })();
 </script>
-<link rel="stylesheet" href="/dky/assets/h/css/pages/arac.69280678e1.css">
+<link rel="stylesheet" href="/dky/assets/h/css/pages/arac.b00fdddc51.css">
 </head>
 <body>
 
@@ -155,6 +173,18 @@
 
 <main id="main" class="hub" data-hub data-mo-page="arac">
 <section class="hub-head" aria-labelledby="hub-h1">
+<script>
+    /* hub-band-early: bant ya da görsel paneli ilk karede kurulur → sonradan eklenip içeriği kaydırmaz (CLS 0).
+       arac.js doğrular: aynıysa korur, farklıysa yalnız görseli değiştirir, kip istemiyorsa kaldırır. */
+    (function () {
+      var b = window.DKY_BAND, h = document.currentScript && document.currentScript.parentNode;
+      if (!b || !h) return;
+      if (b.kind === 'sil') { h.classList.add('hub-head--media'); return; }
+      var wh = b.kind === 'arac' ? ' width="1200" height="800"' : ' width="1600" height="900"';
+      h.classList.add('hub-head--band'); h.setAttribute('data-band', b.band); h.setAttribute('data-band-kind', b.kind);
+      h.insertAdjacentHTML('afterbegin', '<div class="hub-band" aria-hidden="true"><span class="hub-band__fill"><img class="hub-band__bg" src="' + b.src + '" alt=""' + wh + ' decoding="async"></span><img class="hub-band__car" src="' + b.src + '" alt=""' + wh + ' fetchpriority="high" decoding="async"></div>');
+    })();
+    </script>
 <div class="wrap hub-head__grid">
 <div class="hub-head__text">
 <ol class="crumbs" data-hub-crumbs><li><a href="/dky/">Ana sayfa</a></li><li aria-current="page">Araçlar</li></ol>
@@ -307,7 +337,6 @@
 <p class="footer__legal">Land Rover, Range Rover, Defender, Discovery, Freelander, Jaguar, BMW, Mini, Ford, Toyota, Mitsubishi, Isuzu, Nissan, Volkswagen, Mercedes-Benz, Jeep ve diğer marka adları ilgili sahiplerinin tescilli markalarıdır. DKY Auto Parts bu üreticilerin yetkili satıcısı değildir ve onlarla bağlantılı değildir; marka adları yalnızca parça uyumluluğunu belirtmek amacıyla kullanılır.</p>
 </div>
 </div>
-<div class="footer__giant" aria-hidden="true">DKY AUTO PARTS</div>
 </footer>
 
 <nav class="mbar" aria-label="Hızlı eylemler">
@@ -389,7 +418,7 @@
 <form class="finder" data-search-form role="search" action="/dky/urunler.html">
 <span class="finder__icon"><svg aria-hidden="true"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#i-search"/></svg></span>
 <label class="sr-only" for="search-q">Parça adı veya OEM kodu</label>
-<input id="search-q" name="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Parça adı veya OEM kodu (ör. LR058429, fren balatası)" data-search-input>
+<input id="search-q" name="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Parça adı veya OEM kodu (ör. LR015570, fren balatası)" data-search-input>
 <button class="btn btn--primary" type="submit"><span>Tümünü gör</span><svg class="arrow" aria-hidden="true"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#i-arrow"/></svg></button>
 </form>
 <div class="search-suggest" data-search-suggest>
@@ -430,7 +459,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="/dky/assets/h/js/data/nav.ce171af89e.js" defer></script>
-<script src="/dky/assets/h/js/data/gorseller.d629f13431.js" defer></script>
-<script src="/dky/assets/h/js/pages/arac.977cb9c6bf.js" defer></script>
+<script src="/dky/assets/h/js/pages/arac.f168e7c90f.js" defer></script>
 </body>
 </html>

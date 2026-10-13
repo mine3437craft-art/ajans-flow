@@ -24,13 +24,6 @@ const G=window.DKY_GORSELLER||{};
 if(F){
 $$('[data-stat]').forEach(el=>{const v=F.stats&&F.stats[el.dataset.stat];if(v!=null)el.textContent=nf(v);});
 $$('[data-gcount]').forEach(el=>{const n=F.groupCounts&&F.groupCounts[el.dataset.gcount];if(n)el.textContent=nf(n);});
-$$('[data-gimg]').forEach(img=>{
-const k=img.dataset.gimg;
-const ai=G.kategori&&G.kategori[k];
-const name=F.groupImages&&F.groupImages[k];
-const src=ai?'/'+String(ai).replace(/^\/+/,''):name?DKY.img(name,400):'';
-if(src&&img.getAttribute('src')!==src)img.src=src;
-});
 const box=F.boxCounts||{};
 const brand=F.brands||{};
 const single={'range-rover':'rr-vogue'};
@@ -45,6 +38,19 @@ if(n==null)return;
 el.innerHTML=`<span data-vn>${nf(n)}</span> ${k==='offroad'||makeOf(k)==='offroad'?'ürün':'parça'}`;
 });
 }
+$$('[data-gimg]').forEach(img=>{
+const k=img.dataset.gimg,media=img.closest('.ctile__media');
+const ai=G.kategori&&G.kategori[k];
+const name=F&&F.groupImages&&F.groupImages[k];
+const photo=name?DKY.img(name,400):img.getAttribute('src');
+if(ai){
+const src='/dky/'+String(ai).replace(/^\/+/,'');
+img.addEventListener('error',()=>{if(media)media.classList.remove('ctile__media--ai');img.width=400;img.height=400;if(photo&&img.getAttribute('src')!==photo)img.src=photo;},{once:true});
+if(media)media.classList.add('ctile__media--ai');
+img.width=1200;img.height=900;
+if(img.getAttribute('src')!==src)img.src=src;
+}else if(photo&&img.getAttribute('src')!==photo)img.src=photo;
+});
 const silHTML=k=>`<svg class="car-sil" aria-hidden="true"><use href="/dky/assets/h/img/icons.9d3a84566c.svg#${SIL[k]||'sil-suv'}"/></svg>`;
 const toSil=(media,k)=>{media.className='vbox__media vbox__media--sil';media.innerHTML=silHTML(k);};
 $$('[data-veh]').forEach((a,i)=>{
@@ -176,7 +182,7 @@ if(rail)rail.scrollBy({left:Number(b.dataset.rail)*rail.clientWidth*0.9,behavior
 }));
 const paintGarage=()=>{
 const g=DKY.garage.get();
-const keys=new Set(g?[g,DKY.vehicleKey?DKY.vehicleKey(g):'',makeOf(g)==='offroad'?'offroad':'']:[]);
+const keys=new Set(g?[g,DKY.vehicleBox?DKY.vehicleBox(g):'',makeOf(g)==='offroad'?'offroad':'']:[]);
 $$('[data-veh]').forEach(a=>{
 const on=keys.has(a.dataset.veh);
 a.classList.toggle('is-garage',on);

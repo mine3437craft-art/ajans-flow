@@ -116,6 +116,8 @@ update();
 });
 const nf=$('[data-nf]');
 if(nf){
+const fontsOk=()=>nf.classList.add('is-fonts');
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fontsOk,fontsOk);else fontsOk();
 const path=location.pathname+location.search;
 $$('[data-nf-path]').forEach(el=>{el.textContent=path;});
 $$('[data-nf-wa]').forEach(a=>{

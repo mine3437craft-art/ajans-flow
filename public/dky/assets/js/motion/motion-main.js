@@ -16,7 +16,7 @@ ScrollTrigger:'sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0f
 SplitText:'sha384-xb96EMJeax+NLXMC88ZBa1xAeAW+kn+horHh/zFlbMLG2UPWhMJJSlv7fi57hS+Q',
 Flip:'sha384-lg3+EgIwmxYq9YD4ix279pdUEasqmOS17fF+2mI/NEg6JHkawYaWYpJ6nKZenPOy'
 };
-var FX_CSS='/dky/assets/h/css/motion-fx.5635eeca4d.css';
+var FX_CSS='/dky/assets/h/css/motion-fx.4b0cb7327d.css';
 html.classList.add('mo-on');
 var loaded={};
 function loadScript(src,integrity){
@@ -145,7 +145,7 @@ once:true,
 onEnter:function(batch){
 gsap.to(batch,{
 opacity:1,y:0,x:0,duration:opts.duration||.75,ease:opts.ease||'power3.out',
-stagger:opts.stagger!=null?opts.stagger:(MO.small?.045:.075),
+stagger:opts.stagger!=null?opts.stagger:{each:MO.small?.045:.075,grid:'auto',from:'start'},
 overwrite:true,clearProps:'opacity,transform,transition'
 });
 }
@@ -211,6 +211,7 @@ if(sibs.length)MO.reveal(sibs,{y:12,stagger:.08});
 })(el);
 }
 var GROUP_SEL='.levels__list, .steps, .faq, .footer__grid, .k-grid, [data-mo-stagger]';
+var WAVE_SEL=MO.WAVE_SEL='[data-mo-stagger="wave"], [data-mo-stagger="fold"], [data-vgrid], .ctiles';
 var SKIP_REVEAL='[data-mo-skip], [data-mo-own], [data-mo-rail], .p-grid, .rail';
 function initReveals(){
 var r=d.querySelectorAll('.reveal:not(.is-in):not(.mo-gs)');
@@ -231,6 +232,7 @@ var g=d.querySelectorAll(GROUP_SEL);
 for(var k=0;k<g.length;k++){
 var grp=g[k];
 if(grp.closest('[data-mo-skip], .mo-gs, .reveal, .stagger, .mega, .drawer, .search-overlay, .quote')||grp.classList.contains('stagger')||grp.hasAttribute('data-mo-own'))continue;
+if(grp.matches(WAVE_SEL))continue;
 MO.reveal(grp.children);
 }
 }
@@ -399,7 +401,8 @@ var MODULES=[
 {test:'[data-mo-hero], [data-mo-steps]',file:'/dky/assets/h/js/motion/motion-home.5e363b5a63.js'},
 {test:'[data-cat-grid], [data-mo-catalog], [data-mo-flip], .cat-head',file:'/dky/assets/h/js/motion/motion-catalog.40be72d14e.js',plugins:['Flip']},
 {test:'[data-pd-root], [data-mo-product]',file:'/dky/assets/h/js/motion/motion-product.9133f5cbdd.js'},
-{test:'[data-mo-page], .page-hero, .lp, .k-photo',file:'/dky/assets/h/js/motion/motion-pages.8eeeed99aa.js'}
+{test:'[data-mo-page], .page-hero, .lp, .k-photo',file:'/dky/assets/h/js/motion/motion-pages.8eeeed99aa.js'},
+{test:'main',file:'/dky/assets/h/js/motion/motion-scroll.feb4c5806a.js'}
 ];
 function loadModules(){
 MODULES.forEach(function(m){
